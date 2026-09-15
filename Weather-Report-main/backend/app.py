@@ -13,6 +13,8 @@ from dotenv import load_dotenv
 from ollama import Client
 from groq import Groq
 
+from farm_advisor import CROPS, STAGES, VALID_CROPS, VALID_STAGES, build_farm_advice, validate_params
+
 # ============================================================
 # CONFIGURATION & ENV LOADING
 # ============================================================
@@ -75,6 +77,7 @@ _RATE_LIMITS = {
     "/api/report": (int(os.getenv("RATE_REPORT", "60")), 3600),
     "/api/assistant": (int(os.getenv("RATE_ASSISTANT", "60")), 3600),
     "/api/geocode": (int(os.getenv("RATE_GEOCODE", "120")), 3600),
+    "/api/farm-advice": (int(os.getenv("RATE_FARM_ADVICE", "120")), 3600),
 }
 _rate_lock = threading.Lock()
 _RATE_HITS = {}
@@ -1103,6 +1106,69 @@ def api_assistant():
         language=language,
     )
     return jsonify(fallback_result)
+
+
+@app.route("/api/farm-advice", methods=["GET"])
+def api_farm_advice():
+    """Deterministic farm advisory from real forecast data.
+
+    Query params: crop, stage, latitude, longitude, language (en|hi|te),
+    optional forecast_days (1-7, default 7).
+    """
+    crop = request.args.get("crop", "")
+    stage = request.args.get("stage", "")
+    lang = (request.args.get("language") or "en").strip().lower()
+    lang = {"en": "en", "en-us": "en", "english": "en", "hi": "hi", "hindi": "hi",
+            "te": "te", "telugu": "te"}.get(lang, "en")
+
+    crop_n, stage_n, _, error = validate_params(crop, stage, lang)
+    if error:
+        return jsonify(error[0]), error[1]
+
+    try:
+        latitude = float(request.args["latitude"])
+        longitude = float(request.args["longitude"])
+    except (KeyError, ValueError):
+        return jsonify({"error": "valid latitude and longitude are required"}), 400
+
+    if not _valid_latlon(latitude, longitude):
+        return jsonify({"error": "latitude must be in [-90, 90] and longitude in [-180, 180]"}), 400
+
+    try:
+        forecast_days = int(request.args.get("forecast_days", 7))
+    except ValueError:
+        return jsonify({"error": "forecast_days must be an integer between 1 and 7"}), 400
+
+    try:
+        weather_data = fetch_weather(latitude, longitude, forecast_days)
+    except requests.HTTPError as error:
+        if error.response is not None and error.response.status_code == 429:
+            return jsonify({"error": "Weather API rate-limited. Please try again in a few moments."}), 503
+        app.logger.warning("[farm-advice] upstream error: %s", error)
+        return jsonify({"error": "Weather service temporarily unavailable"}), 502
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    except Exception as error:
+        app.logger.exception("[farm-advice] Error: %s", error)
+        return jsonify({"error": "Weather service temporarily unavailable"}), 502
+
+    advice = build_farm_advice(weather_data, crop_n, stage_n, lang)
+    return jsonify(advice)
+
+
+@app.route("/api/crops")
+def api_crops():
+    """Crop + stage catalogue for the frontend selectors."""
+    return jsonify({
+        "crops": [
+            {"id": cid, "names": p["names"], "emoji": p["emoji"]}
+            for cid, p in CROPS.items()
+        ],
+        "stages": [
+            {"id": sid, "names": s["names"], "emoji": s["emoji"]}
+            for sid, s in STAGES.items()
+        ],
+    })
 
 
 # ============================================================

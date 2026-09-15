@@ -7,6 +7,7 @@ cache eviction, and the live API contract. The live-API section needs
 network access; everything else runs offline.
 """
 
+import json
 import sys
 import unittest
 
@@ -23,6 +24,7 @@ def _network_available():
         return False
 
 import app as wgpt  # noqa: E402
+import farm_advisor  # noqa: E402
 
 
 class TestLocationExtraction(unittest.TestCase):
@@ -167,6 +169,190 @@ class TestLanguageNormalization(unittest.TestCase):
         self.assertEqual(wgpt.normalize_language("Hindi", "en"), ("hi", "Hindi"))
         self.assertEqual(wgpt.normalize_language("TELUGU", "en"), ("te", "Telugu"))
         self.assertEqual(wgpt.normalize_language("fr", "hi"), ("hi", "Hindi"))
+class TestFarmAdvisorEngine(unittest.TestCase):
+    """Deterministic rules engine: real payload in -> auditable advice out."""
+
+    def _payload(self, **over):
+        base = {
+            "current": {"temperature_2m": 28.0, "apparent_temperature": 30.0,
+                        "wind_speed_10m": 12.0, "wind_gusts_10m": 18.0},
+            "daily": {"precipitation_sum": [0.0, 0.0, 0.0, 5.0],
+                      "precipitation_probability_max": [10, 15, 20, 25],
+                      "temperature_2m_min": [20.0, 21.0, 22.0],
+                      "temperature_2m_max": [31.0, 32.0, 33.0]},
+        }
+        for k, v in over.items():
+            if isinstance(v, dict) and isinstance(base.get(k), dict):
+                base[k].update(v)
+            else:
+                base[k] = v
+        return base
+
+    def test_validation_rejects_unknown_crop_stage(self):
+        _, _, _, err = farm_advisor.validate_params("mango", "sowing", "en")
+        self.assertIsNotNone(err)
+        self.assertEqual(err[1], 400)
+        _, _, _, err = farm_advisor.validate_params("rice", "blooming", "en")
+        self.assertIsNotNone(err)
+
+    def test_validation_accepts_valid(self):
+        c, s, lang, err = farm_advisor.validate_params("  Rice ", "Sowing", "hi")
+        self.assertIsNone(err)
+        self.assertEqual((c, s, lang), ("rice", "sowing", "hi"))
+
+    def test_snapshot_echoes_real_values_only(self):
+        p = self._payload()
+        out = farm_advisor.build_farm_advice(p, "cotton", "growing", "en")
+        snap = out["weather_snapshot"]
+        self.assertEqual(snap["temperature_c"], 28.0)
+        self.assertEqual(snap["rain_next_3_days_mm"], 0.0)
+        self.assertEqual(snap["wind_kph"], 12.0)
+
+    def test_rain_3d_sums_daily_precip(self):
+        p = self._payload(daily={"precipitation_sum": [2.0, 3.5, 4.5]})
+        out = farm_advisor.build_farm_advice(p, "maize", "growing", "en")
+        self.assertEqual(out["weather_snapshot"]["rain_next_3_days_mm"], 10.0)
+
+    def test_irrigation_skip_when_heavy_rain(self):
+        p = self._payload(daily={"precipitation_sum": [15.0, 12.0, 8.0]})
+        out = farm_advisor.build_farm_advice(p, "cotton", "growing", "en")
+        irr = next(a for a in out["advice"] if a["topic"] == "irrigation")
+        self.assertEqual(irr["severity"], "info")
+        self.assertIn("35", irr["text"])  # 15+12+8
+
+    def test_irrigation_caution_when_dry(self):
+        p = self._payload()
+        out = farm_advisor.build_farm_advice(p, "groundnut", "growing", "en")
+        irr = next(a for a in out["advice"] if a["topic"] == "irrigation")
+        self.assertEqual(irr["severity"], "caution")
+        self.assertIn("Dry spell", irr["text"])
+
+    def test_harvest_pause_on_rain(self):
+        p = self._payload(daily={"precipitation_sum": [12.0, 0.0, 0.0]})
+        out = farm_advisor.build_farm_advice(p, "rice", "harvesting", "en")
+        h = next(a for a in out["advice"] if a["topic"] == "harvest")
+        self.assertEqual(h["severity"], "action")
+        self.assertIn("PAUSE", h["text"])
+
+    def test_harvest_go_when_dry(self):
+        p = self._payload()
+        out = farm_advisor.build_farm_advice(p, "wheat", "harvesting", "en")
+        h = next(a for a in out["advice"] if a["topic"] == "harvest")
+        self.assertEqual(h["severity"], "info")
+        self.assertIn("Dry window", h["text"])
+
+    def test_wind_no_spray_threshold(self):
+        p = self._payload(current={"wind_speed_10m": 32.0, "wind_gusts_10m": 50.0})
+        out = farm_advisor.build_farm_advice(p, "maize", "flowering", "en")
+        w = next(a for a in out["advice"] if a["topic"] == "wind")
+        self.assertEqual(w["severity"], "action")
+        self.assertIn("do NOT spray", w["text"])
+
+    def test_heat_stress_uses_crop_threshold(self):
+        # wheat threshold is 32; 34 must trigger crop-specific advice
+        p = self._payload(current={"temperature_2m": 34.0, "apparent_temperature": 34.0})
+        out = farm_advisor.build_farm_advice(p, "wheat", "flowering", "en")
+        h = next(a for a in out["advice"] if a["topic"] == "heat")
+        self.assertIn("heat-stress threshold", h["text"])
+        self.assertIn("Wheat", h["text"])
+
+    def test_heat_shift_advice_between_33_and_threshold(self):
+        # cotton threshold is 38; 35 -> generic heat-shift advice
+        p = self._payload(current={"temperature_2m": 35.0, "apparent_temperature": 36.0})
+        out = farm_advisor.build_farm_advice(p, "cotton", "growing", "en")
+        h = next(a for a in out["advice"] if a["topic"] == "heat")
+        self.assertIn("shift field work", h["text"])
+
+    def test_frost_note_on_cold_min(self):
+        p = self._payload(daily={"temperature_2m_min": [2.0, 4.0, 5.0]})
+        out = farm_advisor.build_farm_advice(p, "wheat", "growing", "en")
+        topics = {a["topic"] for a in out["advice"]}
+        self.assertIn("field", topics)
+        frost = [a for a in out["advice"] if "frost" in a["text"].lower()]
+        self.assertTrue(frost)
+
+    def test_multilingual_output(self):
+        p = self._payload()
+        for lang, expected in (("hi", "सिंचाई"), ("te", "నీటి పారుదల")):
+            out = farm_advisor.build_farm_advice(p, "rice", "growing", lang)
+            self.assertEqual(out["crop_name"], farm_advisor.CROPS["rice"]["names"][lang])
+            irr = next(a for a in out["advice"] if a["topic"] == "irrigation")
+            self.assertIn(expected, irr["topic_label"])
+            self.assertTrue(any("\u0900" <= ch <= "\u097f" or "\u0c00" <= ch <= "\u0c7f" for ch in irr["text"]),
+                            f"advice text should be in {lang}")
+
+    def test_unknown_lang_falls_back_to_english(self):
+        p = self._payload()
+        out = farm_advisor.build_farm_advice(p, "rice", "growing", "fr")
+        self.assertIn("Irrigation", next(a for a in out["advice"] if a["topic"] == "irrigation")["topic_label"])
+
+    def test_no_pesticide_or_dosage_terms(self):
+        p = self._payload()
+        for crop in farm_advisor.CROPS:
+            for stage in farm_advisor.STAGES:
+                out = farm_advisor.build_farm_advice(p, crop, stage, "en")
+                blob = " ".join(a["text"] for a in out["advice"]).lower()
+                for bad in ("ml/acre", "kg/acre", "grams per", "dose", "dosage", "ppm"):
+                    self.assertNotIn(bad, blob)
+
+
+class TestFarmAdvisorEndpoint(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        wgpt.app.config["TESTING"] = True
+        cls.client = wgpt.app.test_client()
+
+    def test_requires_crop_and_stage(self):
+        r = self.client.get("/api/farm-advice?latitude=17.38&longitude=78.48")
+        self.assertEqual(r.status_code, 400)
+
+    def test_rejects_unknown_crop(self):
+        r = self.client.get("/api/farm-advice?crop=mango&stage=sowing&latitude=17.38&longitude=78.48")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Valid crops", r.get_json()["error"])
+
+    def test_rejects_unknown_stage(self):
+        r = self.client.get("/api/farm-advice?crop=rice&stage=blooming&latitude=17.38&longitude=78.48")
+        self.assertEqual(r.status_code, 400)
+
+    def test_rejects_bad_latlon(self):
+        r = self.client.get("/api/farm-advice?crop=rice&stage=sowing&latitude=999&longitude=999")
+        self.assertEqual(r.status_code, 400)
+
+    def test_rejects_bad_forecast_days(self):
+        r = self.client.get("/api/farm-advice?crop=rice&stage=sowing&latitude=17.38&longitude=78.48&forecast_days=abc")
+        self.assertEqual(r.status_code, 400)
+
+    @unittest.skipUnless(_network_available(), "network unavailable")
+    def test_live_advice_en_hi_te(self):
+        for lang, marker in (("en", "advisory"), ("hi", "सलाह"), ("te", "సలహా")):
+            r = self.client.get(f"/api/farm-advice?crop=rice&stage=growing&latitude=17.38&longitude=78.48&language={lang}")
+            self.assertEqual(r.status_code, 200, f"lang={lang}")
+            body = r.get_json()
+            self.assertEqual(body["crop"], "rice")
+            self.assertEqual(body["language"], lang)
+            self.assertTrue(body["advice"])
+            self.assertIn(marker, json.dumps(body, ensure_ascii=False))
+
+    @unittest.skipUnless(_network_available(), "network unavailable")
+    def test_live_all_crops_all_stages(self):
+        for crop in farm_advisor.CROPS:
+            for stage in farm_advisor.STAGES:
+                r = self.client.get(
+                    f"/api/farm-advice?crop={crop}&stage={stage}&latitude=17.38&longitude=78.48")
+                self.assertEqual(r.status_code, 200, f"{crop}/{stage}")
+                body = r.get_json()
+                self.assertTrue(body["advice"])
+                self.assertNotIn("error", body)
+
+    def test_crops_catalogue(self):
+        r = self.client.get("/api/crops")
+        self.assertEqual(r.status_code, 200)
+        body = r.get_json()
+        ids = {c["id"] for c in body["crops"]}
+        self.assertGreaterEqual(len(ids), 6)
+        self.assertTrue({"rice", "cotton", "maize", "groundnut"} <= ids)
+        self.assertEqual({s["id"] for s in body["stages"]}, {"sowing", "growing", "flowering", "harvesting"})
 
 
 @unittest.skipUnless(SystemExit is not None, "always runs")

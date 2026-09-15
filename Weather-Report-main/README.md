@@ -67,7 +67,8 @@ The application's purpose is to act as a **conversational, multilingual "atmosph
 | 7 | Live interactive radar map (Leaflet + real RainViewer precipitation/satellite tiles) centered on the real location | Radar Map tab |
 | 8 | Precision analytics / insights dashboard (alerts ledger, pressure, UV, microclimate variance) | Insights tab |
 | 9 | Installable Progressive Web App with offline app-shell caching | Global |
-| 10 | Illustrative "regional microclimate" chips derived from the current temperature | Forecast tab |
+| 10 | **Smart Farm Weather Advisor** — crop & stage-aware action advice (irrigation, rain, harvest windows, wind/heat safety, field operations) in EN/HI/TE | Forecast tab |
+| 11 | Illustrative "regional microclimate" chips derived from the current temperature | Forecast tab |
 
 ## 5. Feature Details
 
@@ -127,7 +128,25 @@ The Insights tab combines real and illustrative elements:
 - **Microclimate Delta Variance Grid** — the "Today" rows are fixed, illustrative placeholder values (labeled as such in the UI), not real per-neighborhood sensor data. The 48h/7d rows are aggregated from real forecast data.
 
 ### 5.10 Progressive Web App (Installable)
-A `manifest.json` defines the app's name, icons, theme colors, start URL, and Home-Screen shortcuts (Forecast, Radar Map, WeatherGPT AI). A service worker (`sw.js`) pre-caches the app shell (HTML, CSS, JS, icons) using a cache-first strategy for static assets while explicitly bypassing the cache for any `/api/*` request, so live data is always fetched fresh even though the UI itself can load offline.### 5.11 Hero Weather Glyph
+A `manifest.json` defines the app's name, icons, theme colors, start URL, and Home-Screen shortcuts (Forecast, Radar Map, WeatherGPT AI). A service worker (`sw.js`) pre-caches the app shell (HTML, CSS, JS, icons) using a cache-first strategy for static assets while explicitly bypassing the cache for any `/api/*` request, so live data is always fetched fresh even though the UI itself can load offline.
+
+### 5.11 Smart Farm Weather Advisor
+
+A prominent **"What should I do today?"** card on the Forecast tab turns the same real Open-Meteo payload already powering the app into simple, actionable farm guidance:
+
+1. The farmer selects a **crop** (Rice/Paddy, Cotton, Maize, Groundnut, Wheat, Sugarcane) and **stage** (Sowing, Growing, Flowering, Harvesting).
+2. The backend (`backend/farm_advisor.py`) runs a **deterministic, transparent rules engine** over the live forecast — current temp/feels-like, wind + gusts, 3-day rainfall sum, max daily rain probability, and 3-day minimum temperature — and emits topic cards for:
+   - **Irrigation** — skip / light / plan, relative to forecast rain vs the crop's typical water need (a phase reference, never a dosage).
+   - **Rainfall / sowing windows** — sow before or after a rain, based on the real 3-day sum.
+   - **Harvesting** — pause/cover/dry guidance driven by actual rain probability, plus dry-window go-aheads.
+   - **Strong wind** — no-spray drift warnings above 30 km/h sustained (45 km/h gusts), with lodging cautions for tall crops; thresholds are safety guidance only — **no pesticide or fertilizer products or dosages are ever suggested**.
+   - **Heat** — crop-specific heat-stress threshold (e.g. wheat 32 °C, cotton 38 °C) with worker/livestock safety shifts.
+   - **Field operations** — go/hold for ploughing, weeding and input application based on rain and wind; frost protection note when the real 3-day minimum approaches 0 °C.
+3. Every number shown is echoed in the response's `weather_snapshot`, so advice is fully auditable against the source forecast.
+
+The engine is translated at the data level — each rule carries English, Hindi and Telugu text — so switching the app language instantly re-renders the advisory via `GET /api/farm-advice` (validated: crop/stage whitelists, lat/lon range, forecast_days integer, 120 req/h rate limit). Unit + API tests for the engine and endpoint live in `backend/test_app.py`.
+
+### 5.12 Hero Weather Glyph
 
 The forecast hero card displays a lightweight inline-SVG cloud/sun glyph whose colors reflect the current condition category. It is decorative and independent of live data.
 
@@ -203,9 +222,10 @@ All client logic lives in `frontend/script.js` (vanilla JavaScript, no bundler).
 2. Allow location access when prompted, or tap the location pill in the header to search for a city, pick a popular city, or use GPS.
 3. Choose a language (EN / HI / TE / Auto) using the pills in the header.
 4. Review the Forecast tab for current conditions, the AI synopsis, hourly trajectory, and the 2×2 telemetry grid (wind, AQI, humidity, pressure).
-5. Switch to the **Radar Map** tab to view the live radar map and tap the marker for a sensor readout of the current location.
-6. Ask questions from any tab using the bottom "Ask anything" bar, or open the **WeatherGPT** tab, type a question, or tap the microphone to ask by voice; review the AI's answer, optimal activity window, route notes, and clothing guidance.
-7. Switch to the **Insights** tab to review any active hazard alerts and pressure/UV trends in more detail.
+5. On the Forecast tab, open the **\"What should I do today?\"** card, pick your crop and crop stage, and read the farm advisory (irrigation, rain, harvest, wind/heat safety, field operations) — it follows the selected app language.
+6. Switch to the **Radar Map** tab to view the live radar map and tap the marker for a sensor readout of the current location.
+7. Ask questions from any tab using the bottom "Ask anything" bar, or open the **WeatherGPT** tab, type a question, or tap the microphone to ask by voice; review the AI's answer, optimal activity window, route notes, and clothing guidance.
+8. Switch to the **Insights** tab to review any active hazard alerts and pressure/UV trends in more detail.
 8. Install the app to your home screen (Android: browser menu → "Install app"/"Add to Home screen"; iOS Safari: Share → "Add to Home Screen") for a full-screen, app-like experience.
 
 ## 10. Technologies, Frameworks, APIs & Libraries
@@ -306,7 +326,7 @@ The backend automatically searches several candidate paths for an env file (a `.
 | `FLASK_DEBUG` | No | `_(off)_` | Set to `1` **only for local development** — enables Flask's interactive debugger |
 | `CARTO_API_KEY` | No | _(bundled fallback)_ | CARTO basemaps key served via `/api/config` for the Radar Map tab |
 | `MAX_UPLOAD_MB` | No | `10` | Maximum accepted upload size for `/api/transcribe` (MB) |
-| `RATE_*` | No | _(see app.py)_ | Per-IP hourly rate limits for the AI/voice/geocode endpoints (`RATE_TRANSCRIBE`, `RATE_ANALYZE`, `RATE_REPORT`, `RATE_ASSISTANT`, `RATE_GEOCODE`) |
+| `RATE_*` | No | _(see app.py)_ | Per-IP hourly rate limits for the AI/voice/geocode/farm endpoints (`RATE_TRANSCRIBE`, `RATE_ANALYZE`, `RATE_REPORT`, `RATE_ASSISTANT`, `RATE_GEOCODE`, `RATE_FARM_ADVICE`) |
 
 If `OLLAMA_API_KEY` or `GROQ_API_KEY` are missing, the server still starts (with a console warning) but the corresponding endpoints (`/api/report`, `/api/assistant`, `/api/analyze`, `/api/transcribe`) will return an explicit error response instead of failing silently.
 
@@ -363,6 +383,8 @@ All endpoints are served by the same Flask app; all except `/` are prefixed with
 | GET | `/api/geocode` | Resolves a place name to coordinates (Open-Meteo Geocoding) | query: `location` | `{name, admin1, country, country_code, latitude, longitude, timezone}` |
 | GET | `/api/reverse-geocode` | Resolves coordinates to a place name (BigDataCloud) | query: `latitude`, `longitude` | `{name, admin1, country, latitude, longitude}` |
 | GET | `/api/weather` | Fetches current/hourly/daily weather, alerts, and air quality | query: `latitude`, `longitude`, `forecast_days` (optional, default 7) | `{weather, alerts, air_quality}` |
+| GET | `/api/farm-advice` | Deterministic crop & stage farm advisory from real forecast data | query: `crop`, `stage`, `latitude`, `longitude`, `language` (en/hi/te), `forecast_days` (optional) | `{crop, stage, headline, advice[], crop_note, disclaimer, weather_snapshot}` |
+| GET | `/api/crops` | Crop & stage catalogue for the advisor selectors | — | `{crops[], stages[]}` with EN/HI/TE names |
 | POST | `/api/report` | Generates the AI narrative weather synopsis | JSON: `{location, weather_data, alerts, language}` | `{report}` (Markdown-style text) |
 | POST | `/api/assistant` | Conversational AI assistant | JSON: `{query, location_name, weather_summary, language}` | `{answer, optimal_window, route_progression, attire_guidance}` |
 
@@ -399,7 +421,7 @@ gunicorn>=23.0
 - Replace the illustrative microclimate values with genuine per-neighborhood model or sensor data.
 - Wire the remaining "Soon" radar layers (Micro-Temp, Wind Vectors, AQI Plume) to real tile providers (e.g. OpenWeatherMap tile layers), now that Precipitation and Satellite are live.
 - Replace the hardcoded microclimate chip offsets and the Insights "Delta Variance" bars with genuine per-neighborhood sensor or model data, and wire up the currently non-functional "Today / 48 Hours / 7 Days" scope chips.
-- ~~Add automated tests for the alert-threshold logic~~ — done: run `cd backend && python test_app.py` (26 tests covering alert thresholds, input validation, cache eviction, and the API contract).
+- ~~Add automated tests for the alert-threshold logic~~ — done: run `cd backend && python test_app.py` (49 tests covering alert thresholds, input validation, cache eviction, the API contract, and the farm advisor engine + endpoint).
 - Add a `render.yaml` for infrastructure-as-code alongside the existing dashboard-configured Render deployment, plus a CI pipeline.
 - Expand supported languages beyond English, Hindi, and Telugu.
 - Add server-side rate limiting and input validation hardening on all `/api/*` endpoints.

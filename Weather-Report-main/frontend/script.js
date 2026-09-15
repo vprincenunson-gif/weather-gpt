@@ -41,7 +41,60 @@ const state = {
   recordTimer: null,
   countdownInterval: null,
   reportCache: null,
+  farmAdvice: null,
+  farmCacheKey: null,
 };
+
+// ============================================================
+// I18N STRINGS FOR THE FARM ADVISOR UI
+// (advice text itself is translated server-side)
+// ============================================================
+
+const FARM_I18N = {
+  en: {
+    title: "What should I do today?",
+    subtitle: "Smart Farm Weather Advisor",
+    cropLabel: "Crop",
+    stageLabel: "Crop Stage",
+    advisory: "Farm Advisory",
+    loading: "Preparing today's advisory...",
+    error: "Advisory unavailable right now. Please try again shortly.",
+    sevLabels: { action: "Act Now", caution: "Caution", info: "Info" },
+    alertCount: (n) => `${n} Farm Alert${n === 1 ? "" : "s"}`,
+    cropNoteLabel: "Crop note",
+    disclaimer: "Advice is generated from local forecast data and standard agronomy thresholds. Verify locally before major field decisions.",
+  },
+  hi: {
+    title: "आज मुझे क्या करना चाहिए?",
+    subtitle: "स्मार्ट फार्म मौसम सलाहकार",
+    cropLabel: "फसल",
+    stageLabel: "फसल अवस्था",
+    advisory: "कृषि सलाह",
+    loading: "आज की सलाह तैयार हो रही है...",
+    error: "सलाह अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद पुनः प्रयास करें।",
+    sevLabels: { action: "तुरंत करें", caution: "सावधानी", info: "जानकारी" },
+    alertCount: (n) => `${n} कृषि चेतावनी`,
+    cropNoteLabel: "फसल टिप्पणी",
+    disclaimer: "सलाह स्थानीय पूर्वानुमान और मानक कृषि-विज्ञान सीमाओं पर आधारित है। बड़े निर्णयों से पहले स्थानीय सत्यापन करें।",
+  },
+  te: {
+    title: "ఈరోజు నేను ఏమి చేయాలి?",
+    subtitle: "స్మార్ట్ ఫారం వాతావరణ సలహాదారు",
+    cropLabel: "పంట",
+    stageLabel: "పంట దశ",
+    advisory: "వ్యవసాయ సలహా",
+    loading: "ఈరోజు సలహా సిద్ధమవుతోంది...",
+    error: "సలహా ఇప్పుడు అందుబాటులో లేదు. దయచేసి కొంచెం తర్వాత ప్రయత్నించండి.",
+    sevLabels: { action: "వెంటనే చేయండి", caution: "జాగ్రత్త", info: "సమాచారం" },
+    alertCount: (n) => `${n} వ్యవసాయ హెచ్చరికలు`,
+    cropNoteLabel: "పంట గమనిక",
+    disclaimer: "సలహా స్థానిక అంచనా డేటా మరియు ప్రామాణిక వ్యవసాయ ప్రమాణాల ఆధారంగా. పెద్ద నిర్ణయాలకు ముందు స్థానికంగా సరిచూసుకోండి.",
+  },
+};
+
+function farmLang() {
+  return state.voiceLang === "hi" ? "hi" : state.voiceLang === "te" ? "te" : "en";
+}
 
 // Condition category mapping for WMO codes
 function getConditionCategory(code, isDay = 1) {
@@ -159,6 +212,17 @@ const els = {
   assistantMicBtn: document.getElementById("assistant-mic-btn"),
   assistantPromptChips: document.getElementById("assistant-prompt-chips"),
 
+  // Smart Farm Advisor
+  farmSection: document.getElementById("farm-advisor-section"),
+  farmTitle: document.getElementById("farm-advisor-title"),
+  farmCropSelect: document.getElementById("farm-crop-select"),
+  farmStageSelect: document.getElementById("farm-stage-select"),
+  farmAdviceCards: document.getElementById("farm-advice-cards"),
+  farmCropNote: document.getElementById("farm-crop-note"),
+  farmDisclaimer: document.getElementById("farm-disclaimer"),
+  farmAlertCount: document.getElementById("farm-alert-count"),
+  farmCropEmoji: document.getElementById("farm-crop-emoji"),
+
   // Insights Screen
   insightsTimeScope: document.getElementById("insights-time-scope"),
   insightsScopeSubtitle: document.getElementById("insights-scope-subtitle"),
@@ -243,6 +307,11 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
     document.documentElement.lang = state.voiceLang === "auto" ? "en" : state.voiceLang;
 
     updatePromptChipsForLanguage(state.voiceLang);
+
+    // Re-render farm advisory in the selected language (server-side
+    // translation is keyed by language, so refetch when it changes)
+    state.farmCacheKey = null;
+    if (state.weather) refreshFarmAdvice();
 
     // Refresh weather synopsis in new language if data already loaded
     if (state.weather) {
@@ -473,6 +542,10 @@ async function refreshWeatherData() {
     renderForecastScreen();
     renderMapScreen();
     renderInsightsScreen();
+
+    // Smart Farm Advisor follows the same real data pipeline
+    state.farmCacheKey = null; // new location -> refetch advisory
+    refreshFarmAdvice();
 
     // Trigger AI report synthesis asynchronously
     generateAiReport();
@@ -1014,6 +1087,105 @@ function renderInsightsScreen() {
 }
 
 // ============================================================
+// SMART FARM WEATHER ADVISOR
+// ============================================================
+
+function farmAdviceCacheKey(lang) {
+  const { latitude, longitude } = state.currentLocation;
+  return `${latitude?.toFixed(2)},${longitude?.toFixed(2)}:${state.farmCropSelect?.value}:${state.farmStageSelect?.value}:${lang}`;
+}
+
+async function refreshFarmAdvice({ force = false } = {}) {
+  if (!els.farmAdviceCards || !els.farmCropSelect || !els.farmStageSelect) return;
+  const lang = farmLang();
+  const key = farmAdviceCacheKey(lang);
+  if (!force && state.farmCacheKey === key && state.farmAdvice) {
+    renderFarmAdvice(); // same inputs -> reuse cached advisory
+    return;
+  }
+
+  els.farmAdviceCards.innerHTML = `
+    <div class="farm-advice-card rounded-2xl bg-surface-container-high/80 border border-glass-border/20 p-3" role="listitem">
+      <p class="font-body-base text-xs text-ink-tertiary">${escapeHTML(FARM_I18N[lang].loading)}</p>
+    </div>`;
+
+  try {
+    const lat = state.currentLocation.latitude;
+    const lon = state.currentLocation.longitude;
+    const data = await getJSON(
+      `/api/farm-advice?crop=${encodeURIComponent(els.farmCropSelect.value)}&stage=${encodeURIComponent(
+        els.farmStageSelect.value
+      )}&latitude=${lat}&longitude=${lon}&language=${lang}`
+    );
+    state.farmAdvice = data;
+    state.farmCacheKey = key;
+    renderFarmAdvice();
+  } catch (err) {
+    console.warn("Farm advisory failed:", err);
+    els.farmAdviceCards.innerHTML = `
+      <div class="farm-advice-card rounded-2xl bg-surface-container-high/80 border border-glass-border/20 p-3" role="listitem">
+        <p class="font-body-base text-xs text-ink-secondary">${escapeHTML(FARM_I18N[lang].error)}</p>
+      </div>`;
+  }
+}
+
+function renderFarmAdvice() {
+  const lang = farmLang();
+  const t = FARM_I18N[lang];
+  const data = state.farmAdvice;
+  if (!data || !els.farmAdviceCards) return;
+
+  if (els.farmTitle) els.farmTitle.textContent = data.headline || t.title;
+  if (els.farmCropEmoji) els.farmCropEmoji.textContent = data.crop_emoji || "🌾";
+
+  const actionable = (data.advice || []).filter((a) => a.severity !== "info");
+  if (els.farmAlertCount) {
+    if (actionable.length > 0) {
+      els.farmAlertCount.textContent = t.alertCount(actionable.length);
+      els.farmAlertCount.classList.remove("hidden");
+    } else {
+      els.farmAlertCount.classList.add("hidden");
+    }
+  }
+
+  els.farmAdviceCards.innerHTML = (data.advice || [])
+    .map(
+      (a) => `
+    <div class="farm-advice-card sev-${a.severity} rounded-2xl p-3 flex flex-col gap-1.5" role="listitem">
+      <div class="flex items-center justify-between gap-2">
+        <span class="font-label-caps text-[10px] uppercase tracking-wider ${
+        a.severity === "action" ? "text-alert-coral" : a.severity === "caution" ? "text-primary" : "text-secondary"
+      } font-semibold">${escapeHTML(a.topic_label || "")}</span>
+        <span class="farm-sev-badge sev-${a.severity}">${escapeHTML(t.sevLabels[a.severity] || a.severity)}</span>
+      </div>
+      <p class="font-body-base text-xs text-ink-primary leading-relaxed">${escapeHTML(a.text || "")}</p>
+    </div>`
+    )
+    .join("");
+
+  if (els.farmCropNote) {
+    els.farmCropNote.innerHTML = `<span class="text-primary font-semibold">${escapeHTML(
+      data.crop_note_label || t.cropNoteLabel
+    )}:</span> ${escapeHTML(data.crop_note || "")}`;
+  }
+  if (els.farmDisclaimer) {
+    els.farmDisclaimer.textContent = data.disclaimer || t.disclaimer;
+  }
+}
+
+function initFarmAdvisor() {
+  if (!els.farmCropSelect || !els.farmStageSelect) return;
+  els.farmCropSelect.addEventListener("change", () => {
+    state.farmCacheKey = null;
+    refreshFarmAdvice();
+  });
+  els.farmStageSelect.addEventListener("change", () => {
+    state.farmCacheKey = null;
+    refreshFarmAdvice();
+  });
+}
+
+// ============================================================
 // OLLAMA AI REPORT SYNTHESIS
 // ============================================================
 
@@ -1445,7 +1617,10 @@ els.voiceCancelBtn?.addEventListener("click", cancelVoiceRecording);
 document.querySelectorAll(".map-layer-pill").forEach((pill) => {
   pill.addEventListener("click", () => {
     if (pill.dataset.soon === "true") {
-      showStatus(`${pill.textContent.trim().replace("Soon", "").trim()} live layer is coming soon.`);
+      // Use the visible label span only — the icon span's ligature text
+      // (e.g. "device_thermostat") would otherwise leak into the message.
+      const labelText = pill.querySelector("span:nth-of-type(2)")?.textContent?.trim() || "This";
+      showStatus(`${labelText} live layer is coming soon.`);
       setTimeout(hideStatus, 2500);
       return;
     }
@@ -1579,6 +1754,7 @@ async function postJSON(path, body) {
 window.addEventListener("DOMContentLoaded", () => {
   bindAssistantChips();
   bindInsightsScopeChips();
+  initFarmAdvisor();
   // Request GPS or load initial weather for default city
   refreshWeatherData();
 });

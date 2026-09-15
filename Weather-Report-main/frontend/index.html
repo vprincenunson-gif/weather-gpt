@@ -320,6 +320,63 @@
         </div>
       </div>
 
+      <!-- ============ SMART FARM WEATHER ADVISOR ============ -->
+      <section id="farm-advisor-section" aria-labelledby="farm-advisor-title"
+        class="relative overflow-hidden rounded-3xl bg-gradient-to-b from-surface-navy/30 via-surface-container/60 to-surface-container-low border border-glass-border/30 shadow-xl p-4 sm:p-5">
+        <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-primary-container/15 blur-3xl pointer-events-none"></div>
+
+        <!-- Header -->
+        <div class="relative z-10 flex items-start justify-between gap-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-amber-glow-surface border border-primary/30 flex items-center justify-center shrink-0" aria-hidden="true">
+              <span class="text-[22px] leading-none" id="farm-crop-emoji">🌾</span>
+            </div>
+            <div class="min-w-0">
+              <h3 id="farm-advisor-title" class="font-headline-card text-[15px] sm:text-base text-primary font-semibold truncate">What should I do today?</h3>
+              <p id="farm-advisor-subtitle" class="font-label-caps text-[9px] sm:text-[10px] text-ink-tertiary uppercase tracking-wider truncate">Smart Farm Weather Advisor</p>
+            </div>
+          </div>
+          <span id="farm-alert-count" class="hidden shrink-0 px-2 py-1 rounded-full bg-alert-coral-bg border border-alert-coral/40 text-alert-coral font-label-caps text-[10px] font-bold" role="status" aria-live="polite">0 Alerts</span>
+        </div>
+
+        <!-- Crop & Stage selectors -->
+        <div class="relative z-10 grid grid-cols-2 gap-2 mt-3">
+          <div class="flex flex-col gap-1 min-w-0">
+            <label for="farm-crop-select" class="font-label-caps text-[9px] text-ink-tertiary uppercase tracking-wider">Crop</label>
+            <select id="farm-crop-select" class="farm-select" aria-describedby="farm-crop-help">
+              <option value="rice">🌾 Rice (Paddy)</option>
+              <option value="cotton">🪴 Cotton</option>
+              <option value="maize">🌽 Maize</option>
+              <option value="groundnut">🥜 Groundnut</option>
+              <option value="wheat">🌾 Wheat</option>
+              <option value="sugarcane">🎍 Sugarcane</option>
+            </select>
+            <span id="farm-crop-help" class="sr-only">Select the crop growing in your field</span>
+          </div>
+          <div class="flex flex-col gap-1 min-w-0">
+            <label for="farm-stage-select" class="font-label-caps text-[9px] text-ink-tertiary uppercase tracking-wider">Crop Stage</label>
+            <select id="farm-stage-select" class="farm-select" aria-describedby="farm-stage-help">
+              <option value="sowing">🌱 Sowing</option>
+              <option value="growing">🌿 Growing</option>
+              <option value="flowering">🌼 Flowering</option>
+              <option value="harvesting">🚜 Harvesting</option>
+            </select>
+            <span id="farm-stage-help" class="sr-only">Select the current growth stage of your crop</span>
+          </div>
+        </div>
+
+        <!-- Advisory cards -->
+        <div id="farm-advice-cards" class="relative z-10 flex flex-col gap-2 mt-3" role="list" aria-label="Farm advisory list">
+          <div class="farm-advice-card rounded-2xl bg-surface-container-high/80 border border-glass-border/20 p-3" role="listitem">
+            <p class="font-body-base text-xs text-ink-secondary">Select your crop and stage to get today's farm advisory.</p>
+          </div>
+        </div>
+
+        <!-- Crop note + disclaimer -->
+        <p id="farm-crop-note" class="relative z-10 mt-3 font-body-dim text-[10px] text-ink-tertiary"></p>
+        <p id="farm-disclaimer" class="relative z-10 mt-1 font-body-dim text-[9px] text-ink-tertiary/80"></p>
+      </section>
+
       <!-- Microclimate Comparative Bar -->
       <div class="flex flex-col gap-2">
         <div class="flex items-center justify-between px-1">
@@ -447,7 +504,7 @@
           <div class="w-full bg-surface-container-high/90 border border-glass-border/40 backdrop-blur-2xl rounded-full p-1.5 flex items-center justify-between shadow-xl">
             <div class="flex items-center gap-2 pl-3 flex-1 min-w-0">
               <span class="material-symbols-outlined text-primary text-[18px]">manage_search</span>
-              <input id="map-address-search-input" class="bg-transparent text-ink-primary font-body-base text-xs placeholder:text-ink-tertiary focus:outline-none w-full truncate" placeholder="Search neighborhood or address..." type="text" />
+              <input id="map-address-search-input" class="bg-transparent text-ink-primary font-body-base text-xs placeholder:text-ink-tertiary focus:outline-none w-full truncate" placeholder="Search neighborhood or address..." type="text" aria-label="Search neighborhood or address" />
             </div>
             <button id="map-gps-btn" class="w-8 h-8 rounded-full bg-primary-container text-on-primary-dark flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shrink-0 shadow-md">
               <span class="material-symbols-outlined text-[16px]">my_location</span>
