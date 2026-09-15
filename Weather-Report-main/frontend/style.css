@@ -1,0 +1,282 @@
+/* ============================================================
+   WeatherGPT • Atmospheric Intelligence Design System
+   Tokens derived from atmospheric_intelligence/DESIGN.md
+   ============================================================ */
+
+:root {
+  --surface-dim: #090d16;
+  --surface: #0e1225;
+  --surface-bright: #1e293b;
+  --surface-container-lowest: #090d20;
+  --surface-container-low: #161a2e;
+  --surface-container: #1b1e32;
+  --surface-container-high: #25293d;
+  --surface-container-highest: #303448;
+  --surface-navy: #1b3b6f;
+  --primary: #ffdcb1;
+  --primary-container: #ffb84f;
+  --primary-fixed-dim: #ffb953;
+  --secondary: #95cdf5;
+  --secondary-container: #014e70;
+  --ink-primary: #f5f7fa;
+  --ink-secondary: rgba(245, 247, 250, 0.78);
+  --ink-tertiary: rgba(245, 247, 250, 0.52);
+  --alert-coral: #ff6b5e;
+  --alert-coral-bg: rgba(255, 107, 94, 0.18);
+  --alert-coral-border: rgba(255, 107, 94, 0.50);
+  --amber-glow: rgba(255, 184, 79, 0.25);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-border-subtle: rgba(255, 255, 255, 0.08);
+}
+
+/* Reset & Ergonomics */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--surface-dim);
+  color: var(--ink-primary);
+  font-family: 'Inter', 'Noto Sans Devanagari', 'Noto Sans Telugu', system-ui, -apple-system, sans-serif;
+  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Safe-area insets for modern edge-to-edge mobile screens */
+.pt-safe {
+  padding-top: max(16px, env(safe-area-inset-top, 16px));
+}
+
+.pb-safe {
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+}
+
+/* Scrollbar Hiding */
+::-webkit-scrollbar {
+  display: none !important;
+}
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Utility: Hide scrollbars but allow scrolling */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Glassmorphic Surfaces */
+.glass-card {
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-elevated {
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+/* Dynamic Ambient Glow Transitions */
+body[data-condition="clear-day"] #ambient-glow-1 {
+  background: rgba(255, 184, 79, 0.22);
+}
+body[data-condition="clear-day"] #ambient-glow-2 {
+  background: rgba(56, 189, 248, 0.25);
+}
+
+body[data-condition="clear-night"] #ambient-glow-1 {
+  background: rgba(27, 59, 111, 0.45);
+}
+body[data-condition="clear-night"] #ambient-glow-2 {
+  background: rgba(79, 70, 229, 0.20);
+}
+
+body[data-condition="rain"] #ambient-glow-1,
+body[data-condition="drizzle"] #ambient-glow-1 {
+  background: rgba(14, 165, 233, 0.35);
+}
+body[data-condition="rain"] #ambient-glow-2,
+body[data-condition="drizzle"] #ambient-glow-2 {
+  background: rgba(30, 41, 59, 0.60);
+}
+
+body[data-condition="thunder"] #ambient-glow-1 {
+  background: rgba(239, 68, 68, 0.25);
+}
+body[data-condition="thunder"] #ambient-glow-2 {
+  background: rgba(99, 102, 241, 0.30);
+}
+
+/* Language Switcher Buttons */
+.lang-btn {
+  color: var(--ink-tertiary);
+  font-weight: 500;
+}
+.lang-btn.is-active {
+  color: #241705;
+  background-color: var(--primary-container);
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(255, 184, 79, 0.45);
+}
+
+/* Navigation Tab Active State */
+.nav-tab.is-active {
+  color: var(--primary) !important;
+  background-color: var(--amber-glow) !important;
+  box-shadow: 0 0 16px rgba(255, 184, 79, 0.35) !important;
+}
+
+/* Voice Recording Ripple Animations */
+.voice-ripple-1 {
+  animation: pulseAura 1.8s infinite ease-out;
+}
+.voice-ripple-2 {
+  animation: pulseAura 1.8s infinite 0.4s ease-out;
+}
+.voice-ripple-3 {
+  animation: pulseAura 1.8s infinite 0.8s ease-out;
+}
+
+@keyframes pulseAura {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+/* Forecast Scroll Card */
+.forecast-hourly-card, .microclimate-chip {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s;
+}
+.forecast-hourly-card:active, .microclimate-chip:active {
+  transform: scale(0.95);
+}
+
+/* Map Layer Pills */
+.map-layer-pill.active {
+  background-color: var(--primary-container) !important;
+  color: #241705 !important;
+  border-color: transparent !important;
+}
+
+/* Light Markdown rendering */
+.report-content h4 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+.report-content ul {
+  padding-left: 18px;
+  margin: 4px 0;
+}
+.report-content li {
+  font-size: 12px;
+  color: var(--ink-secondary);
+  line-height: 1.6;
+  list-style-type: disc;
+}
+.report-content p {
+  font-size: 12px;
+  color: var(--ink-primary);
+  line-height: 1.6;
+  margin: 4px 0;
+}
+.report-content strong {
+  color: var(--ink-primary);
+  font-weight: 600;
+}
+
+/* Action Cards Inside AI Chat */
+.assistant-action-card {
+  background: rgba(30, 41, 59, 0.70);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+/* Native-like Smooth Touch Scroll */
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* ============================================================
+   REAL RADAR MAP (Leaflet + RainViewer)
+   ============================================================ */
+
+#radar-map {
+  width: 100%;
+  height: 100%;
+  background: #090e1c;
+}
+
+/* Keep Leaflet's own UI from clashing with our floating custom controls */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 15;
+}
+
+.leaflet-control-attribution {
+  background: rgba(9, 14, 28, 0.75) !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+  font-size: 9px !important;
+}
+
+.leaflet-control-attribution a {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.radar-marker-label {
+  background: rgba(15, 20, 35, 0.9) !important;
+  border: 1px solid rgba(255, 184, 79, 0.5) !important;
+  color: #f5f7fa !important;
+  font-size: 11px !important;
+  font-weight: 600;
+  padding: 3px 8px !important;
+  border-radius: 999px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.radar-marker-label::before {
+  border-top-color: rgba(255, 184, 79, 0.5) !important;
+}
+
+/* "Soon" badge on layer pills not yet backed by live tile data */
+.map-layer-pill[data-soon="true"] {
+  opacity: 0.6;
+}
+
+.soon-badge {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1px 5px;
+  border-radius: 999px;
+  margin-left: 2px;
+}
