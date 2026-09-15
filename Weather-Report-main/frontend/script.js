@@ -43,6 +43,7 @@ const state = {
   reportCache: null,
   farmAdvice: null,
   farmCacheKey: null,
+  farmStale: true,
 };
 
 // ============================================================
@@ -260,6 +261,13 @@ function switchView(targetViewId) {
     renderInsightsScreen();
   }
 
+  // Farm advisor loads lazily: fetch when its view is opened and the
+  // advisory is missing or stale (location/weather changed since last view).
+  if (targetViewId === "view-farmer" && state.farmStale) {
+    state.farmStale = false;
+    refreshFarmAdvice();
+  }
+
   // Update bottom navigation tabs
   document.querySelectorAll(".nav-tab").forEach((tab) => {
     const isTarget = tab.dataset.view === targetViewId;
@@ -309,9 +317,14 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
     updatePromptChipsForLanguage(state.voiceLang);
 
     // Re-render farm advisory in the selected language (server-side
-    // translation is keyed by language, so refetch when it changes)
+    // translation is keyed by language) — refetch when its view is open,
+    // otherwise mark stale so it picks the new language on next open.
     state.farmCacheKey = null;
-    if (state.weather) refreshFarmAdvice();
+    if (state.weather && state.activeView === "view-farmer") {
+      refreshFarmAdvice();
+    } else if (state.weather) {
+      state.farmStale = true;
+    }
 
     // Refresh weather synopsis in new language if data already loaded
     if (state.weather) {
@@ -543,9 +556,14 @@ async function refreshWeatherData() {
     renderMapScreen();
     renderInsightsScreen();
 
-    // Smart Farm Advisor follows the same real data pipeline
-    state.farmCacheKey = null; // new location -> refetch advisory
-    refreshFarmAdvice();
+    // Smart Farm Advisor follows the same real data pipeline — invalidate
+    // and refetch only if its view is currently open (lazy loading).
+    state.farmCacheKey = null;
+    state.farmStale = true;
+    if (state.activeView === "view-farmer") {
+      state.farmStale = false;
+      refreshFarmAdvice();
+    }
 
     // Trigger AI report synthesis asynchronously
     generateAiReport();
@@ -666,7 +684,7 @@ function renderForecastScreen() {
         const isActive = i === 0;
 
         return `
-        <div class="forecast-hourly-card flex flex-col items-center justify-between w-20 py-3 rounded-2xl ${
+        <div class="forecast-hourly-card flex flex-col items-center justify-between w-20 lg:w-24 py-3 rounded-2xl ${
           isActive
             ? "bg-amber-glow-surface border border-primary/40 shadow-md"
             : "bg-surface-container-high border border-glass-border/10"
@@ -700,21 +718,21 @@ function renderForecastScreen() {
 
         return `
         <div class="flex items-center justify-between py-2 px-1 border-b border-glass-border-subtle last:border-b-0">
-          <div class="w-16">
+          <div class="w-16 shrink-0">
             <span class="font-pill-text text-xs ${i === 0 ? "text-primary font-bold" : "text-ink-secondary"}">${dayLabel}</span>
           </div>
-          <div class="flex items-center gap-1.5 w-20 justify-start">
+          <div class="flex items-center gap-1.5 w-20 justify-start shrink-0">
             <span class="material-symbols-outlined ${i === 0 ? "text-primary" : "text-secondary"} text-[19px]">${
           CONDITION_ICONS[dCat] || "wb_sunny"
         }</span>
             <span class="font-label-caps text-[10px] text-secondary">${dRain}%</span>
           </div>
-          <div class="flex-1 flex items-center justify-end gap-2.5">
-            <span class="font-body-dim text-xs text-ink-tertiary w-6 text-right">${dMin}°</span>
-            <div class="w-24 h-1.5 bg-surface-container rounded-full relative overflow-hidden">
+          <div class="flex-1 flex items-center justify-end gap-2.5 md:gap-4">
+            <span class="font-body-dim text-xs text-ink-tertiary w-6 text-right shrink-0">${dMin}°</span>
+            <div class="w-24 md:w-56 h-1.5 bg-surface-container rounded-full relative overflow-hidden">
               <div class="absolute inset-y-0 left-[20%] right-[15%] bg-gradient-to-r from-secondary to-primary-container rounded-full"></div>
             </div>
-            <span class="font-pill-text text-xs text-ink-primary w-6 text-left font-semibold">${dMax}°</span>
+            <span class="font-pill-text text-xs text-ink-primary w-6 text-left font-semibold shrink-0">${dMax}°</span>
           </div>
         </div>`;
       })
@@ -863,7 +881,7 @@ function renderInsightsScreen() {
           <span class="material-symbols-outlined text-[16px] ${c.color}">${c.icon}</span>
         </div>
         <div class="mt-2">
-          <span class="font-headline-card text-base sm:text-lg font-bold text-ink-primary tracking-tight">${escapeHTML(c.val)}</span>
+          <span class="font-headline-card text-base sm:text-lg lg:text-xl font-bold text-ink-primary tracking-tight">${escapeHTML(c.val)}</span>
           <span class="font-body-dim text-[10px] text-ink-tertiary block mt-0.5">${escapeHTML(c.sub)}</span>
         </div>
       </div>`

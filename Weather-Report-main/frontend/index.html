@@ -81,7 +81,7 @@
             "pill-text": ["Inter", "sans-serif"]
           },
           spacing: {
-            "container-max": "640px",
+            "container-max": "1140px",
             "gutter-mobile": "16px",
             "gutter-desktop": "24px"
           }
@@ -103,7 +103,7 @@
 
   <!-- FIXED APP HEADER -->
   <header class="fixed top-0 w-full z-50 pt-safe bg-surface-dim/85 backdrop-blur-xl border-b border-glass-border-subtle shadow-[0_1px_16px_rgba(0,0,0,0.5)]">
-    <div class="h-16 max-w-container-max mx-auto px-2.5 sm:px-gutter-mobile flex items-center justify-between gap-1.5 sm:gap-2">
+    <div class="h-16 max-w-container-max mx-auto px-3 sm:px-gutter-mobile lg:px-gutter-desktop flex items-center justify-between gap-1.5 sm:gap-2">
       <!-- Logo & Title -->
       <div class="flex items-center gap-2 cursor-pointer shrink-0" id="header-logo-btn" title="WeatherGPT Home">
         <div class="w-8 h-8 rounded-xl bg-surface-container-high flex items-center justify-center border border-glass-border-subtle shadow-inner shrink-0">
@@ -148,7 +148,7 @@
 
   <!-- SEARCH & LOCATION MODAL POPUP -->
   <div id="search-modal" class="fixed inset-0 z-50 bg-surface-dim/80 backdrop-blur-md flex items-start justify-center pt-20 px-4 hidden transition-opacity" role="dialog" aria-modal="true" aria-label="Search location">
-    <div class="w-full max-w-container-max bg-surface-container-high border border-glass-border rounded-3xl p-5 shadow-2xl space-y-4">
+    <div class="w-full max-w-[640px] bg-surface-container-high border border-glass-border rounded-3xl p-5 shadow-2xl space-y-4">
       <div class="flex items-center justify-between">
         <h3 class="font-headline-card text-ink-primary flex items-center gap-2">
           <span class="material-symbols-outlined text-primary">travel_explore</span>
@@ -214,7 +214,7 @@
   </div>
 
   <!-- MAIN SCROLLABLE CONTAINER -->
-  <main class="flex-1 flex flex-col relative w-full max-w-container-max mx-auto px-3 sm:px-gutter-mobile pt-20 pb-48">
+  <main class="flex-1 flex flex-col relative w-full max-w-container-max mx-auto px-3 sm:px-gutter-mobile lg:px-gutter-desktop pt-20 pb-48">
 
     <!-- GLOBAL STATUS LINE / BANNER -->
     <div id="app-status-bar" class="w-full py-1.5 px-3 mb-3 rounded-xl bg-surface-container/60 border border-glass-border-subtle text-xs text-ink-tertiary flex items-center justify-between hidden" role="status" aria-live="polite">
@@ -228,16 +228,15 @@
     <!-- ======================================================== -->
     <!-- SCREEN 1: FORECAST VIEW (Default Active) -->
     <!-- ======================================================== -->
-    <section id="view-forecast" class="app-view flex flex-col w-full gap-5">
+    <section id="view-forecast" class="app-view flex flex-col w-full gap-5 md:flex-row md:flex-wrap md:items-start">
 
-      <!-- Ambient Sky Canvas Card -->
-      <div class="relative w-full overflow-hidden rounded-3xl p-5 bg-gradient-to-b from-surface-navy/40 via-surface-container/60 to-surface-container-low border border-glass-border/30 shadow-2xl">
+      <!-- Ambient Sky Canvas Card -->        <div class="relative w-full overflow-hidden rounded-3xl p-5 md:p-6 bg-gradient-to-b from-surface-navy/40 via-surface-container/60 to-surface-container-low border border-glass-border/30 shadow-2xl md:order-1 md:w-[420px] md:shrink-0 flex flex-col">
         <!-- Visual Glow Circles -->
         <div class="absolute -top-12 -left-10 w-48 h-48 rounded-full bg-secondary-container/40 blur-3xl pointer-events-none"></div>
         <div class="absolute top-4 -right-10 w-56 h-56 rounded-full bg-primary-container/20 blur-3xl pointer-events-none"></div>
 
         <!-- Location Pin & Sync Status -->
-        <div class="relative z-10 flex items-center justify-between">
+        <div class="relative z-10 flex items-center justify-between md:justify-center">
           <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-glass-base backdrop-blur-md text-ink-primary border border-glass-border/20">
             <span class="material-symbols-outlined text-primary text-[15px]">location_on</span>
             <span id="hero-place-label" class="font-pill-text text-xs tracking-wide truncate">San Francisco, CA</span>
@@ -249,7 +248,7 @@
         </div>
 
         <!-- Hero Dynamic Core -->
-        <div class="relative z-10 flex flex-col items-center text-center mt-3 mb-2">
+        <div class="relative z-10 flex flex-col items-center text-center mt-3 mb-2 md:w-80">
           <!-- Animated Weather Glyph Component -->
           <div id="hero-weather-glyph" class="relative w-28 h-20 flex items-center justify-center">
             <div class="absolute top-1 right-5 w-12 h-12 rounded-full bg-gradient-to-tr from-primary-container to-amber-300 shadow-[0_0_24px_rgba(255,184,79,0.5)]"></div>
@@ -295,7 +294,7 @@
       </div>
 
       <!-- AI Quick Synopsis Banner (Handoff to Assistant) -->
-      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-surface-container-high via-surface-container to-surface-container-high border border-glass-border/30 p-4 shadow-lg">
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-surface-container-high via-surface-container to-surface-container-high border border-glass-border/30 p-4 shadow-lg md:order-2 md:flex-1 md:min-w-[380px]">
         <div class="absolute -right-8 -bottom-8 w-28 h-28 rounded-full bg-amber-glow-surface blur-2xl pointer-events-none"></div>
         <div class="flex items-start gap-3">
           <div class="w-9 h-9 rounded-xl bg-amber-glow-surface border border-primary/30 flex items-center justify-center shrink-0 text-primary shadow-inner">
@@ -320,65 +319,8 @@
         </div>
       </div>
 
-      <!-- ============ SMART FARM WEATHER ADVISOR ============ -->
-      <section id="farm-advisor-section" aria-labelledby="farm-advisor-title"
-        class="relative overflow-hidden rounded-3xl bg-gradient-to-b from-surface-navy/30 via-surface-container/60 to-surface-container-low border border-glass-border/30 shadow-xl p-4 sm:p-5">
-        <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-primary-container/15 blur-3xl pointer-events-none"></div>
-
-        <!-- Header -->
-        <div class="relative z-10 flex items-start justify-between gap-2">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <div class="w-10 h-10 rounded-xl bg-amber-glow-surface border border-primary/30 flex items-center justify-center shrink-0" aria-hidden="true">
-              <span class="text-[22px] leading-none" id="farm-crop-emoji">🌾</span>
-            </div>
-            <div class="min-w-0">
-              <h3 id="farm-advisor-title" class="font-headline-card text-[15px] sm:text-base text-primary font-semibold truncate">What should I do today?</h3>
-              <p id="farm-advisor-subtitle" class="font-label-caps text-[9px] sm:text-[10px] text-ink-tertiary uppercase tracking-wider truncate">Smart Farm Weather Advisor</p>
-            </div>
-          </div>
-          <span id="farm-alert-count" class="hidden shrink-0 px-2 py-1 rounded-full bg-alert-coral-bg border border-alert-coral/40 text-alert-coral font-label-caps text-[10px] font-bold" role="status" aria-live="polite">0 Alerts</span>
-        </div>
-
-        <!-- Crop & Stage selectors -->
-        <div class="relative z-10 grid grid-cols-2 gap-2 mt-3">
-          <div class="flex flex-col gap-1 min-w-0">
-            <label for="farm-crop-select" class="font-label-caps text-[9px] text-ink-tertiary uppercase tracking-wider">Crop</label>
-            <select id="farm-crop-select" class="farm-select" aria-describedby="farm-crop-help">
-              <option value="rice">🌾 Rice (Paddy)</option>
-              <option value="cotton">🪴 Cotton</option>
-              <option value="maize">🌽 Maize</option>
-              <option value="groundnut">🥜 Groundnut</option>
-              <option value="wheat">🌾 Wheat</option>
-              <option value="sugarcane">🎍 Sugarcane</option>
-            </select>
-            <span id="farm-crop-help" class="sr-only">Select the crop growing in your field</span>
-          </div>
-          <div class="flex flex-col gap-1 min-w-0">
-            <label for="farm-stage-select" class="font-label-caps text-[9px] text-ink-tertiary uppercase tracking-wider">Crop Stage</label>
-            <select id="farm-stage-select" class="farm-select" aria-describedby="farm-stage-help">
-              <option value="sowing">🌱 Sowing</option>
-              <option value="growing">🌿 Growing</option>
-              <option value="flowering">🌼 Flowering</option>
-              <option value="harvesting">🚜 Harvesting</option>
-            </select>
-            <span id="farm-stage-help" class="sr-only">Select the current growth stage of your crop</span>
-          </div>
-        </div>
-
-        <!-- Advisory cards -->
-        <div id="farm-advice-cards" class="relative z-10 flex flex-col gap-2 mt-3" role="list" aria-label="Farm advisory list">
-          <div class="farm-advice-card rounded-2xl bg-surface-container-high/80 border border-glass-border/20 p-3" role="listitem">
-            <p class="font-body-base text-xs text-ink-secondary">Select your crop and stage to get today's farm advisory.</p>
-          </div>
-        </div>
-
-        <!-- Crop note + disclaimer -->
-        <p id="farm-crop-note" class="relative z-10 mt-3 font-body-dim text-[10px] text-ink-tertiary"></p>
-        <p id="farm-disclaimer" class="relative z-10 mt-1 font-body-dim text-[9px] text-ink-tertiary/80"></p>
-      </section>
-
       <!-- Microclimate Comparative Bar -->
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-2 md:order-3 md:w-full">
         <div class="flex items-center justify-between px-1">
           <span class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Regional Microclimates</span>
           <button id="view-map-matrix-btn" class="font-label-caps text-xs text-primary cursor-pointer hover:underline">View Map Matrix →</button>
@@ -389,7 +331,7 @@
       </div>
 
       <!-- 24-Hour Horizon Hourly Scroller -->
-      <div class="flex flex-col gap-2.5">
+      <div class="flex flex-col gap-2.5 md:order-4 md:w-full">
         <div class="flex items-center justify-between px-1">
           <span class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Hourly Trajectory</span>
           <div class="flex items-center gap-2 text-ink-tertiary font-label-caps text-[10px]">
@@ -403,12 +345,12 @@
       </div>
 
       <!-- Precision Telemetry Grid (2x2) -->
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-2 md:order-5 md:w-full">
         <div class="flex items-center justify-between px-1">
           <span class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Precision Telemetry</span>
           <span class="font-label-caps text-[10px] text-ink-tertiary">High-Resolution Sensor Array</span>
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <!-- 1. Wind & Gusts -->
           <div class="flex flex-col justify-between p-3.5 rounded-2xl bg-surface-container-high border border-glass-border/20 shadow-sm min-w-0">
             <div class="flex items-center justify-between">
@@ -479,12 +421,12 @@
       </div>
 
       <!-- 7-Day Synoptic Outlook -->
-      <div class="flex flex-col gap-2.5">
+      <div class="flex flex-col gap-2.5 md:order-6 md:w-full">
         <div class="flex items-center justify-between px-1">
           <span class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">7-Day Synoptic Outlook</span>
           <span class="font-label-caps text-[10px] text-ink-tertiary">Next 168 Hours</span>
         </div>
-        <div id="daily-forecast-container" class="flex flex-col gap-2 rounded-2xl bg-surface-container-high border border-glass-border/20 p-3.5 shadow-md">
+        <div id="daily-forecast-container" class="flex flex-col gap-2 rounded-2xl bg-surface-container-high border border-glass-border/20 p-3.5 md:p-4 shadow-md">
           <!-- 7-Day rows dynamically rendered -->
         </div>
       </div>
@@ -496,7 +438,7 @@
     <!-- SCREEN 2: HYPER-LOCAL RADAR MAP VIEW -->
     <!-- ======================================================== -->
     <section id="view-map" class="app-view flex flex-col w-full relative hidden">
-      <div class="relative w-full h-[640px] rounded-3xl overflow-hidden bg-surface-container-lowest border border-glass-border/30 shadow-2xl isolate">
+      <div class="relative w-full h-[640px] lg:h-[720px] rounded-3xl overflow-hidden bg-surface-container-lowest border border-glass-border/30 shadow-2xl isolate">
 
         <!-- Top Floating Controls: Search Address & Layer Pills -->
         <div class="absolute top-3 inset-x-3 z-30 flex flex-col gap-2 pointer-events-auto">
@@ -604,7 +546,7 @@
     <!-- ======================================================== -->
     <!-- SCREEN 3: WEATHERGPT AI ASSISTANT VIEW -->
     <!-- ======================================================== -->
-    <section id="view-weathergpt" class="app-view flex flex-col w-full space-y-4 hidden">
+    <section id="view-weathergpt" class="app-view flex flex-col w-full space-y-4 hidden md:max-w-[760px] md:mx-auto">
 
       <!-- Neural Engine Status Banner -->
       <div class="relative overflow-hidden rounded-2xl bg-surface-container/70 border border-glass-border/30 backdrop-blur-xl p-3.5 shadow-lg">
@@ -689,7 +631,68 @@
     </section>
 
     <!-- ======================================================== -->
-    <!-- SCREEN 4: PRECISION TELEMETRY INSIGHTS VIEW -->
+    <!-- SCREEN 4: SMART FARM WEATHER ADVISOR VIEW -->
+    <!-- ======================================================== -->
+    <section id="view-farmer" class="app-view flex flex-col w-full gap-5 hidden md:max-w-[760px] md:mx-auto">
+      <div id="farm-advisor-section" aria-labelledby="farm-advisor-title"
+        class="relative overflow-hidden rounded-3xl bg-gradient-to-b from-surface-navy/30 via-surface-container/60 to-surface-container-low border border-glass-border/30 shadow-xl p-4 sm:p-5">
+        <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-primary-container/15 blur-3xl pointer-events-none"></div>
+
+        <!-- Header -->
+        <div class="relative z-10 flex items-start justify-between gap-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-amber-glow-surface border border-primary/30 flex items-center justify-center shrink-0" aria-hidden="true">
+              <span class="text-[22px] leading-none" id="farm-crop-emoji">🌾</span>
+            </div>
+            <div class="min-w-0">
+              <h3 id="farm-advisor-title" class="font-headline-card text-[15px] sm:text-base text-primary font-semibold truncate">What should I do today?</h3>
+              <p id="farm-advisor-subtitle" class="font-label-caps text-[9px] sm:text-[10px] text-ink-tertiary uppercase tracking-wider truncate">Smart Farm Weather Advisor</p>
+            </div>
+          </div>
+          <span id="farm-alert-count" class="hidden shrink-0 px-2 py-1 rounded-full bg-alert-coral-bg border border-alert-coral/40 text-alert-coral font-label-caps text-[10px] font-bold" role="status" aria-live="polite">0 Alerts</span>
+        </div>
+
+        <!-- Crop & Stage selectors -->
+        <div class="relative z-10 grid grid-cols-2 gap-2 mt-3">
+          <div class="flex flex-col gap-1 min-w-0">
+            <label for="farm-crop-select" class="font-label-caps text-[9px] text-ink-tertiary uppercase tracking-wider">Crop</label>
+            <select id="farm-crop-select" class="farm-select" aria-describedby="farm-crop-help">
+              <option value="rice">🌾 Rice (Paddy)</option>
+              <option value="cotton">🪴 Cotton</option>
+              <option value="maize">🌽 Maize</option>
+              <option value="groundnut">🥜 Groundnut</option>
+              <option value="wheat">🌾 Wheat</option>
+              <option value="sugarcane">🎍 Sugarcane</option>
+            </select>
+            <span id="farm-crop-help" class="sr-only">Select the crop growing in your field</span>
+          </div>
+          <div class="flex flex-col gap-1 min-w-0">
+            <label for="farm-stage-select" class="font-label-caps text-[9px] text-ink-tertiary uppercase tracking-wider">Crop Stage</label>
+            <select id="farm-stage-select" class="farm-select" aria-describedby="farm-stage-help">
+              <option value="sowing">🌱 Sowing</option>
+              <option value="growing">🌿 Growing</option>
+              <option value="flowering">🌼 Flowering</option>
+              <option value="harvesting">🚜 Harvesting</option>
+            </select>
+            <span id="farm-stage-help" class="sr-only">Select the current growth stage of your crop</span>
+          </div>
+        </div>
+
+        <!-- Advisory cards -->
+        <div id="farm-advice-cards" class="relative z-10 flex flex-col gap-2 mt-3" role="list" aria-label="Farm advisory list">
+          <div class="farm-advice-card rounded-2xl bg-surface-container-high/80 border border-glass-border/20 p-3" role="listitem">
+            <p class="font-body-base text-xs text-ink-secondary">Select your crop and stage to get today's farm advisory.</p>
+          </div>
+        </div>
+
+        <!-- Crop note + disclaimer -->
+        <p id="farm-crop-note" class="relative z-10 mt-3 font-body-dim text-[10px] text-ink-tertiary"></p>
+        <p id="farm-disclaimer" class="relative z-10 mt-1 font-body-dim text-[9px] text-ink-tertiary/80"></p>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- SCREEN 5: PRECISION TELEMETRY INSIGHTS VIEW -->
     <!-- ======================================================== -->
     <section id="view-insights" class="app-view flex flex-col w-full gap-5 hidden">
 
@@ -788,7 +791,7 @@
 
   <!-- PERSISTENT FIXED BOTTOM DOCK: UNIFIED QUERY BAR + NAVIGATION DOCK -->
   <div id="persistent-bottom-dock" class="fixed bottom-0 inset-x-0 z-50 pointer-events-none pb-safe">
-    <div class="w-full max-w-container-max mx-auto px-3 sm:px-gutter-mobile flex flex-col gap-2 pb-2">
+    <div class="w-full max-w-[640px] mx-auto px-3 sm:px-gutter-mobile flex flex-col gap-2 pb-2">
 
       <!-- UNIFIED FLOATING QUERY INPUT (Fixed & visible across ALL menus) -->
       <div class="pointer-events-auto w-full">
@@ -815,25 +818,31 @@
           <!-- Tab 1: Forecast -->
           <button class="nav-tab is-active min-w-[50px] min-h-[44px] px-3 py-1.5 rounded-full flex flex-col items-center justify-center transition-all text-primary bg-amber-glow-surface shadow-[0_0_16px_rgba(255,184,79,0.30)]" data-view="view-forecast">
             <span class="material-symbols-outlined text-[20px]">partly_cloudy_day</span>
-            <span class="font-label-caps text-[10px] mt-0.5">Forecast</span>
+            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap">Forecast</span>
           </button>
 
           <!-- Tab 2: Map -->
           <button class="nav-tab min-w-[50px] min-h-[44px] px-3 py-1.5 rounded-full flex flex-col items-center justify-center transition-all text-ink-tertiary hover:text-ink-primary" data-view="view-map">
             <span class="material-symbols-outlined text-[20px]">radar</span>
-            <span class="font-label-caps text-[10px] mt-0.5">Radar Map</span>
+            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap">Radar Map</span>
           </button>
 
           <!-- Tab 3: WeatherGPT Assistant -->
           <button class="nav-tab min-w-[50px] min-h-[44px] px-3 py-1.5 rounded-full flex flex-col items-center justify-center transition-all text-ink-tertiary hover:text-ink-primary" data-view="view-weathergpt">
             <span class="material-symbols-outlined text-[20px]">neurology</span>
-            <span class="font-label-caps text-[10px] mt-0.5">WeatherGPT</span>
+            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap">WeatherGPT</span>
           </button>
 
-          <!-- Tab 4: Insights -->
-          <button class="nav-tab min-w-[50px] min-h-[44px] px-3 py-1.5 rounded-full flex flex-col items-center justify-center transition-all text-ink-tertiary hover:text-ink-primary" data-view="view-insights">
+          <!-- Tab 4: Smart Farm Advisor -->
+          <button class="nav-tab min-w-[50px] min-h-[44px] px-2 sm:px-3 py-1.5 rounded-full flex flex-col items-center justify-center transition-all text-ink-tertiary hover:text-ink-primary" data-view="view-farmer" aria-label="Smart Farm Weather Advisor">
+            <span class="material-symbols-outlined text-[20px]" aria-hidden="true">agriculture</span>
+            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap">Farmer</span>
+          </button>
+
+          <!-- Tab 5: Insights -->
+          <button class="nav-tab min-w-[50px] min-h-[44px] px-2 sm:px-3 py-1.5 rounded-full flex flex-col items-center justify-center transition-all text-ink-tertiary hover:text-ink-primary" data-view="view-insights">
             <span class="material-symbols-outlined text-[20px]">pulse_alert</span>
-            <span class="font-label-caps text-[10px] mt-0.5">Insights</span>
+            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap">Insights</span>
           </button>
 
         </div>

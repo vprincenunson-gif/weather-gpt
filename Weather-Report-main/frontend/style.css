@@ -210,6 +210,19 @@ body[data-condition="thunder"] #ambient-glow-2 {
   font-weight: 600;
 }
 
+/* Desktop: report typography scales up for the wider dashboard layout */
+@media (min-width: 768px) {
+  .report-content h4 {
+    font-size: 15px;
+  }
+  .report-content li {
+    font-size: 13.5px;
+  }
+  .report-content p {
+    font-size: 13.5px;
+  }
+}
+
 /* Action Cards Inside AI Chat */
 .assistant-action-card {
   background: rgba(30, 41, 59, 0.70);

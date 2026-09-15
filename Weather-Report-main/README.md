@@ -67,7 +67,7 @@ The application's purpose is to act as a **conversational, multilingual "atmosph
 | 7 | Live interactive radar map (Leaflet + real RainViewer precipitation/satellite tiles) centered on the real location | Radar Map tab |
 | 8 | Precision analytics / insights dashboard (alerts ledger, pressure, UV, microclimate variance) | Insights tab |
 | 9 | Installable Progressive Web App with offline app-shell caching | Global |
-| 10 | **Smart Farm Weather Advisor** — crop & stage-aware action advice (irrigation, rain, harvest windows, wind/heat safety, field operations) in EN/HI/TE | Forecast tab |
+| 10 | **Smart Farm Weather Advisor** — crop & stage-aware action advice (irrigation, rain, harvest windows, wind/heat safety, field operations) in EN/HI/TE | Farmer tab |
 | 11 | Illustrative "regional microclimate" chips derived from the current temperature | Forecast tab |
 
 ## 5. Feature Details
@@ -132,7 +132,7 @@ A `manifest.json` defines the app's name, icons, theme colors, start URL, and Ho
 
 ### 5.11 Smart Farm Weather Advisor
 
-A prominent **"What should I do today?"** card on the Forecast tab turns the same real Open-Meteo payload already powering the app into simple, actionable farm guidance:
+A dedicated **Farmer** tab in the bottom navigation opens the **"What should I do today?"** panel, which turns the same real Open-Meteo payload already powering the app into simple, actionable farm guidance:
 
 1. The farmer selects a **crop** (Rice/Paddy, Cotton, Maize, Groundnut, Wheat, Sugarcane) and **stage** (Sowing, Growing, Flowering, Harvesting).
 2. The backend (`backend/farm_advisor.py`) runs a **deterministic, transparent rules engine** over the live forecast — current temp/feels-like, wind + gusts, 3-day rainfall sum, max daily rain probability, and 3-day minimum temperature — and emits topic cards for:

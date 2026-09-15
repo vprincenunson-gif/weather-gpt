@@ -22,10 +22,16 @@ with sync_playwright() as p:
 
     page.goto(BASE, wait_until="networkidle", timeout=60000)
 
-    # 1. Section present, prominent (top of forecast view, after hero)
-    check("farm section rendered", page.is_visible("#farm-advisor-section"))
+    # 1. Section hidden on load; opens via the Farmer nav tab
+    check("farm view hidden on initial load", not page.is_visible("#farm-advisor-section"))
+    check("farmer nav tab present", page.locator('.nav-tab[data-view="view-farmer"]').count() == 1)
+    page.click('.nav-tab[data-view="view-farmer"]')
+    page.wait_for_timeout(500)
+    check("farm section shown after Farmer tab click", page.is_visible("#farm-advisor-section"))
     title = page.text_content("#farm-advisor-title")
     check("prominent headline", title and "What should I do today?" in title, f"got: {title!r}")
+    check("farmer tab activates", page.evaluate(
+        "document.querySelector('.nav-tab[data-view=\"view-farmer\"]').classList.contains('is-active')"))
 
     # 2. Real advice loads (after weather pipeline completes)
     page.wait_for_selector("#farm-advice-cards .farm-advice-card.sev-action, #farm-advice-cards .farm-advice-card.sev-caution, #farm-advice-cards .farm-advice-card.sev-info", timeout=20000)
@@ -76,6 +82,21 @@ with sync_playwright() as p:
     badges = page.locator("#farm-advice-cards .farm-sev-badge").count()
     check("severity badges rendered", badges >= 3, f"{badges} badges")
 
+    # 9b. Switching away and back keeps the advisory (cached, not stale)
+    page.click('.nav-tab[data-view="view-forecast"]')
+    page.wait_for_timeout(300)
+    check("farm view hides when switching to Forecast", not page.is_visible("#farm-advisor-section"))
+    page.click('.nav-tab[data-view="view-farmer"]')
+    page.wait_for_timeout(400)
+    check("farm view restores content on return", page.locator("#farm-advice-cards .farm-advice-card").count() >= 2)
+
+    # 9c. Other four tabs still show their own content
+    for view, probe_id in (("view-forecast", "view-forecast"), ("view-map", "radar-map"),
+                           ("view-weathergpt", "chat-stream"), ("view-insights", "insights-scope-metrics")):
+        page.click(f'.nav-tab[data-view="{view}"]')
+        page.wait_for_timeout(300)
+        check(f"tab {view} still shows its content", page.is_visible(f"#{probe_id}"))
+
     # 9. Alert count chip visible when actionable advice exists
     actionable = page.evaluate(
         "document.querySelectorAll('#farm-advice-cards .farm-advice-card.sev-action, #farm-advice-cards .farm-advice-card.sev-caution').length")
@@ -97,6 +118,8 @@ with sync_playwright() as p:
     pg2.goto(BASE, wait_until="networkidle", timeout=60000)
     overflow2 = pg2.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
     check("no horizontal overflow (360px)", overflow2 <= 0, f"{overflow2}px")
+    pg2.click('.nav-tab[data-view="view-farmer"]')
+    pg2.wait_for_timeout(1500)
     select_w = pg2.evaluate("document.getElementById('farm-crop-select').getBoundingClientRect().width")
     check("selects usable at 360px", select_w > 120, f"{select_w}px")
     pg2.close()

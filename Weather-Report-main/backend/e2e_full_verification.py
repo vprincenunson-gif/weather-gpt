@@ -62,8 +62,6 @@ with sync_playwright() as p:
             uiHumidity: document.getElementById('telemetry-humidity').textContent,
             apiAqi: data.air_quality.us_aqi,
             uiAqi: document.getElementById('telemetry-aqi-num').textContent,
-            farmSnapTemp: state.farmAdvice?.weather_snapshot?.temperature_c,
-            weatherTemp: data.weather.current.temperature_2m,
         };
     }""")
     check("consistency: hero temp == API temp", consistency["apiTemp"] == consistency["uiTemp"],
@@ -72,9 +70,8 @@ with sync_playwright() as p:
           f"api={consistency['apiHumidity']} ui={consistency['uiHumidity']}")
     check("consistency: AQI == API", str(consistency["apiAqi"]) == consistency["uiAqi"],
           f"api={consistency['apiAqi']} ui={consistency['uiAqi']}")
-    check("consistency: farm snapshot == weather payload",
-          consistency["farmSnapTemp"] == consistency["weatherTemp"],
-          f"farm={consistency['farmSnapTemp']} api={consistency['weatherTemp']}")
+    # (farm snapshot consistency is verified in the FARM ADVISOR section below,
+    #  after the Farmer tab has been opened and the advisory fetched)
 
     # ---------- 3. HOURLY TRAJECTORY ----------
     hourly = page.evaluate("""(() => {
@@ -154,7 +151,6 @@ with sync_playwright() as p:
 
     # ---------- 10. ALERTS (real, from payload) ----------
     alerts = page.evaluate("state.alerts.length")
-    insights_badge = page.evaluate("document.getElementById('farm-alert-count')?.classList.contains('hidden')")
     check("alerts: real alerts present (Hyderabad monsoon)", alerts >= 1, f"{alerts} alerts")
     page.click('.nav-tab[data-view="view-insights"]')
     page.wait_for_timeout(400)
@@ -256,9 +252,9 @@ with sync_playwright() as p:
     overlay_hidden = page.evaluate("document.getElementById('voice-overlay').classList.contains('hidden')")
     check("voice: overlay closes after stop", overlay_hidden)
 
-    # ---------- 16. FARM ADVISOR: UI combos ----------
-    page.click('.nav-tab[data-view="view-forecast"]')
-    page.wait_for_timeout(500)
+    # ---------- 16. FARM ADVISOR: UI combos (open via Farmer tab) ----------
+    page.click('.nav-tab[data-view="view-farmer"]')
+    page.wait_for_timeout(1500)
     for crop, stage, expect_topic in (("rice", "harvesting", "Harvesting"), ("cotton", "flowering", None),
                                       ("groundnut", "sowing", None), ("maize", "growing", None)):
         page.select_option("#farm-crop-select", crop)
@@ -326,8 +322,8 @@ with sync_playwright() as p:
     context.set_offline(True)
     page.reload(wait_until="domcontentloaded", timeout=20000)
     page.wait_for_timeout(1500)
-    offline_ok = page.evaluate("!!document.getElementById('hero-temperature') && !!document.getElementById('farm-advisor-section')")
-    check("PWA: offline reload serves app shell (hero + farm sections present)", offline_ok)
+    offline_ok = page.evaluate("!!document.getElementById('hero-temperature') && !!document.getElementById('view-farmer')")
+    check("PWA: offline reload serves app shell (hero + farmer views present)", offline_ok)
     context.set_offline(False)
     page.wait_for_timeout(800)
 
