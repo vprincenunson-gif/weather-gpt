@@ -193,7 +193,7 @@
 
     map.setView([latitude, longitude], 8, { animate: true });
     marker.setLatLng([latitude, longitude]);
-    marker.setTooltipContent(`${name} · ${temp}`);
+    marker.setTooltipContent(`${name || "Locating…"} · ${temp}`);
   }
 
   function onViewShown() {

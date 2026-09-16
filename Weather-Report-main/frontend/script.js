@@ -66,11 +66,13 @@ function geoErrorMessage(err) {
   return (err && err.message) || "Unknown geolocation error.";
 }
 
-// Shape used whenever reverse-geocoding fails, so every consumer still
-// gets name/admin1/country keys (never "undefined" in the UI).
+// Shape used when no reverse-geocoded name is available, so every consumer
+// still gets name/admin1/country keys (never "undefined" in the UI). The
+// name stays EMPTY until a real locality is resolved — the display layer
+// shows coordinates/"Locating…" rather than a fabricated label.
 function fallbackLocation(latitude, longitude) {
   return {
-    name: "My Location",
+    name: "",
     admin1: "",
     country: "",
     latitude: Number(latitude),
@@ -85,7 +87,7 @@ async function setCurrentLocation(loc) {
   if (!loc) return;
   const requestId = ++state.locationRequestId;
   state.currentLocation = {
-    name: loc.name || "My Location",
+    name: loc.name || "",
     admin1: loc.admin1 || "",
     country: loc.country || "",
     latitude: loc.latitude,
@@ -98,12 +100,27 @@ async function setCurrentLocation(loc) {
 
 function updateLocationDisplay() {
   const { name, country } = state.currentLocation;
-  if (els.headerLocationName) els.headerLocationName.textContent = name;
-  if (els.heroPlaceLabel) els.heroPlaceLabel.textContent = `${name}${country ? ", " + country : ""}`;
-  if (els.mapAddressSearchInput && document.activeElement !== els.mapAddressSearchInput) {
+  // Empty name = coordinates known but locality not resolved yet (or
+  // unresolvable) — show "Locating…" rather than a fabricated label.
+  const label = name || "Locating…";
+  if (els.headerLocationName) els.headerLocationName.textContent = label;
+  if (els.heroPlaceLabel) els.heroPlaceLabel.textContent = name ? `${name}${country ? ", " + country : ""}` : "Locating…";
+  if (els.mapAddressSearchInput && name && document.activeElement !== els.mapAddressSearchInput) {
     // Don't clobber the address bar while the user is typing a search.
     els.mapAddressSearchInput.value = `${name}${country ? ", " + country : ""}`;
   }
+}
+
+// Best available human-readable location name for secondary UI (map
+// tooltip, sensor card, assistant context). Never a fabricated city —
+// falls back to coordinates, then a neutral phrase.
+function locationDisplayName() {
+  const loc = state.currentLocation || {};
+  if (loc.name) return loc.name;
+  if (Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude)) {
+    return `${loc.latitude.toFixed(2)}, ${loc.longitude.toFixed(2)}`;
+  }
+  return "Local Area";
 }
 
 // ============================================================
@@ -893,7 +910,10 @@ async function requestDeviceGps() {
 
         const revPromise = getJSON(`/api/reverse-geocode?latitude=${lat}&longitude=${lon}`)
           .then((rev) => ({
-            name: rev.name || "My Location",
+            // Empty (not a placeholder) when the provider could not resolve —
+            // the UI keeps "Locating…" instead of inventing a name. Legacy
+            // placeholder strings from older backends are filtered too.
+            name: rev.name && rev.name !== "Current Location" && rev.name !== "My Location" ? rev.name : "",
             admin1: rev.admin1 || "",
             country: rev.country || "",
             latitude: lat,
@@ -1158,7 +1178,7 @@ function renderMapScreen() {
   const hasTemp = current.temperature_2m !== undefined;
 
   if (els.sensorCardTitle) {
-    els.sensorCardTitle.textContent = `${state.currentLocation.name} — Live Reading`;
+    els.sensorCardTitle.textContent = `${locationDisplayName()} — Live Reading`;
   }
   if (els.sensorMetricTemp) els.sensorMetricTemp.textContent = hasTemp ? `${temp}°C` : "—";
   if (els.sensorMetricWind) {
@@ -1174,7 +1194,7 @@ function renderMapScreen() {
       state.airQuality?.us_aqi !== undefined ? state.airQuality.us_aqi : "—";
   }
 
-  if (els.mapAddressSearchInput && document.activeElement !== els.mapAddressSearchInput) {
+  if (els.mapAddressSearchInput && state.currentLocation.name && document.activeElement !== els.mapAddressSearchInput) {
     // Don't clobber the address bar while the user is typing a search.
     const country = state.currentLocation.country || "";
     els.mapAddressSearchInput.value = `${state.currentLocation.name}${country ? ", " + country : ""}`;
@@ -1184,7 +1204,7 @@ function renderMapScreen() {
     window.RadarMap.updateLocation({
       latitude: state.currentLocation.latitude,
       longitude: state.currentLocation.longitude,
-      name: state.currentLocation.name,
+      name: locationDisplayName(),
       temp: hasTemp ? `${temp}°C` : "—",
     });
   }
@@ -1715,7 +1735,7 @@ async function submitAssistantQuery(userQuery) {
   try {
     const res = await postJSON("/api/assistant", {
       query: userQuery,
-      location_name: state.currentLocation.name,
+      location_name: locationDisplayName(),
       weather_summary: weatherSummary,
       language: language,
     });
@@ -1730,7 +1750,7 @@ async function submitAssistantQuery(userQuery) {
         ? `${Math.round(realTemp)}°C, ${CONDITION_TITLES[document.body.dataset.condition] || "current conditions"}`
         : "Live weather data unavailable";
     appendAssistantResponseNode({
-      answer: `Unable to reach the AI service right now (${err.message}). Current conditions in ${state.currentLocation.name}: ${fallbackLine}.`,
+      answer: `Unable to reach the AI service right now (${err.message}). Current conditions in ${locationDisplayName()}: ${fallbackLine}.`,
     });
   }
 }

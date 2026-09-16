@@ -700,6 +700,66 @@ def api_geocode():
         return jsonify({"error": "Geocoding service temporarily unavailable"}), 502
 
 
+# Small TTL cache for reverse-geocode lookups: GPS fixes cluster around the
+# same spot, so repeated UI refreshes should not re-hit upstream providers.
+_REV_GEO_CACHE = OrderedDict()  # (lat, lon) -> {name, admin1, country, ...}
+_REV_GEO_CACHE_TTL = 600  # seconds
+
+
+def _rev_geo_cache_get(latitude, longitude):
+    key = (round(latitude, 4), round(longitude, 4))  # ~11 m precision
+    entry = _REV_GEO_CACHE.get(key)
+    if entry and time.time() - entry["ts"] < _REV_GEO_CACHE_TTL:
+        _REV_GEO_CACHE.move_to_end(key)
+        return {k: v for k, v in entry.items() if k != "ts"}
+    if entry:
+        _REV_GEO_CACHE.pop(key, None)
+    return None
+
+
+def _rev_geo_cache_set(latitude, longitude, payload):
+    key = (round(latitude, 4), round(longitude, 4))
+    _REV_GEO_CACHE[key] = {**payload, "ts": time.time()}
+    _REV_GEO_CACHE.move_to_end(key)
+    while len(_REV_GEO_CACHE) > 128:
+        _REV_GEO_CACHE.popitem(last=False)
+
+
+def _reverse_geocode_nominatim(latitude, longitude):
+    """Fallback provider: OSM Nominatim public reverse endpoint.
+    Returns a payload dict or raises — never a placeholder name."""
+    r = requests.get(
+        "https://nominatim.openstreetmap.org/reverse",
+        params={
+            "format": "jsonv2",
+            "lat": latitude,
+            "lon": longitude,
+            "zoom": 14,
+            "addressdetails": 1,
+            "accept-language": "en",
+        },
+        headers={
+            "User-Agent": "WeatherGPT/1.0 (weather dashboard; personal project)",
+            "Accept": "application/json",
+        },
+        timeout=_REQUEST_TIMEOUT,
+    )
+    if r.status_code != 200:
+        raise RuntimeError(f"nominatim HTTP {r.status_code}")
+    data = r.json()
+    addr = data.get("address") or {}
+    name = addr.get("city") or addr.get("town") or addr.get("village") or addr.get("municipality") or addr.get("suburb") or addr.get("county") or addr.get("state")
+    if not name:
+        return None
+    return {
+        "name": name,
+        "admin1": addr.get("state") or data.get("name") or "",
+        "country": addr.get("country") or "",
+        "latitude": latitude,
+        "longitude": longitude,
+    }
+
+
 @app.route("/api/reverse-geocode")
 def api_reverse_geocode():
     try:
@@ -711,6 +771,11 @@ def api_reverse_geocode():
     if not _valid_latlon(latitude, longitude):
         return jsonify({"error": "latitude must be in [-90, 90] and longitude in [-180, 180]"}), 400
 
+    cached = _rev_geo_cache_get(latitude, longitude)
+    if cached:
+        return jsonify(cached)
+
+    # Provider 1: BigDataCloud client API.
     try:
         r = requests.get(
             "https://api.bigdatacloud.net/data/reverse-geocode-client",
@@ -719,20 +784,34 @@ def api_reverse_geocode():
         )
         if r.status_code == 200:
             data = r.json()
-            city = data.get("locality") or data.get("city") or data.get("principalSubdivision") or "Current Location"
-            country = data.get("countryName") or data.get("countryCode") or ""
-            return jsonify({
-                "name": city,
-                "admin1": data.get("principalSubdivision"),
-                "country": country,
-                "latitude": latitude,
-                "longitude": longitude,
-            })
+            city = data.get("locality") or data.get("city") or data.get("principalSubdivision") or ""
+            if city:
+                payload = {
+                    "name": city,
+                    "admin1": data.get("principalSubdivision") or "",
+                    "country": data.get("countryName") or data.get("countryCode") or "",
+                    "latitude": latitude,
+                    "longitude": longitude,
+                }
+                _rev_geo_cache_set(latitude, longitude, payload)
+                return jsonify(payload)
     except Exception as e:
-        print("[reverse-geocode] Error:", e)
+        print("[reverse-geocode] BigDataCloud failed:", e)
 
+    # Provider 2 (fallback): OSM Nominatim — a real name or nothing.
+    try:
+        payload = _reverse_geocode_nominatim(latitude, longitude)
+        if payload:
+            _rev_geo_cache_set(latitude, longitude, payload)
+            return jsonify(payload)
+    except Exception as e:
+        print("[reverse-geocode] Nominatim failed:", e)
+
+    # Both providers unavailable: coordinates-only shape — never a fake
+    # "Current Location" name that could overwrite a good cached label.
     return jsonify({
-        "name": "Current Location",
+        "name": "",
+        "admin1": "",
         "country": "",
         "latitude": latitude,
         "longitude": longitude,

@@ -10,6 +10,9 @@ network access; everything else runs offline.
 import json
 import sys
 import unittest
+import unittest.mock
+
+import requests
 
 sys.path.insert(0, ".")
 
@@ -424,6 +427,97 @@ class TestLiveApiContract(unittest.TestCase):
         r = self.client.get("/api/geocode?location=Tokyo")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.get_json()["name"], "Tokyo")
+
+
+class _FakeResponse:
+    def __init__(self, status_code=200, payload=None):
+        self.status_code = status_code
+        self._payload = payload or {}
+
+    def json(self):
+        return self._payload
+
+
+class TestReverseGeocode(unittest.TestCase):
+    """GPS coordinates -> real locality name, including provider fallback.
+    Upstream HTTP is mocked so these run offline and deterministically."""
+
+    @classmethod
+    def setUpClass(cls):
+        wgpt.app.config["TESTING"] = True
+        cls.client = wgpt.app.test_client()
+
+    def setUp(self):
+        wgpt._REV_GEO_CACHE.clear()
+
+    def test_primary_resolves_locality(self):
+        with unittest.mock.patch.object(
+            wgpt.requests, "get",
+            return_value=_FakeResponse(payload={
+                "locality": "Suginami-ku", "principalSubdivision": "Tokyo",
+                "countryName": "Japan"}),
+        ):
+            r = self.client.get("/api/reverse-geocode?latitude=35.70&longitude=139.65")
+        self.assertEqual(r.status_code, 200)
+        body = r.get_json()
+        self.assertEqual(body["name"], "Suginami-ku")
+        self.assertEqual(body["country"], "Japan")
+        self.assertNotEqual(body["name"], "Current Location")
+
+    def test_primary_missing_fields_falls_back_to_nominatim(self):
+        def fake_get(url, **kwargs):
+            if "bigdatacloud" in url:
+                return _FakeResponse(payload={})  # 200 but no usable fields
+            return _FakeResponse(payload={
+                "address": {"city": "São Paulo", "state": "São Paulo", "country": "Brazil"}})
+        with unittest.mock.patch.object(wgpt.requests, "get", side_effect=fake_get):
+            r = self.client.get("/api/reverse-geocode?latitude=-23.55&longitude=-46.63")
+        body = r.get_json()
+        self.assertEqual(body["name"], "São Paulo")
+        self.assertEqual(body["country"], "Brazil")
+
+    def test_primary_error_falls_back_to_nominatim(self):
+        def fake_get(url, **kwargs):
+            if "bigdatacloud" in url:
+                raise requests.exceptions.ConnectionError("upstream down")
+            return _FakeResponse(payload={
+                "address": {"town": "Reading", "county": "Berkshire", "country": "United Kingdom"}})
+        with unittest.mock.patch.object(wgpt.requests, "get", side_effect=fake_get):
+            r = self.client.get("/api/reverse-geocode?latitude=51.45&longitude=-0.97")
+        body = r.get_json()
+        self.assertEqual(body["name"], "Reading")
+        self.assertEqual(body["country"], "United Kingdom")
+
+    def test_both_providers_down_never_returns_placeholder_name(self):
+        with unittest.mock.patch.object(
+            wgpt.requests, "get", side_effect=requests.exceptions.ConnectionError("offline"),
+        ):
+            r = self.client.get("/api/reverse-geocode?latitude=10.0&longitude=20.0")
+        self.assertEqual(r.status_code, 200)
+        body = r.get_json()
+        self.assertEqual(body["name"], "")  # coordinates-only shape
+        self.assertNotEqual(body["name"], "Current Location")
+        self.assertEqual(body["latitude"], 10.0)
+        self.assertEqual(body["longitude"], 20.0)
+
+    def test_cache_hit_skips_upstream(self):
+        calls = []
+        def fake_get(url, **kwargs):
+            calls.append(url)
+            return _FakeResponse(payload={
+                "locality": "Suginami-ku", "principalSubdivision": "Tokyo",
+                "countryName": "Japan"})
+        with unittest.mock.patch.object(wgpt.requests, "get", side_effect=fake_get):
+            self.client.get("/api/reverse-geocode?latitude=35.70&longitude=139.65")
+            # GPS jitter below the cache's ~11 m rounding reuses the same key.
+            self.client.get("/api/reverse-geocode?latitude=35.700004&longitude=139.649998")
+        self.assertEqual(len(calls), 1)  # second call served from TTL cache
+
+    def test_invalid_coordinates_rejected(self):
+        r = self.client.get("/api/reverse-geocode?latitude=999&longitude=999")
+        self.assertEqual(r.status_code, 400)
+        r = self.client.get("/api/reverse-geocode")
+        self.assertEqual(r.status_code, 400)
 
 
 if __name__ == "__main__":
