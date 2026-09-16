@@ -55,8 +55,9 @@
 
   function refreshBasemap() {
     if (!basemapLayer) return;
+    // Light basemap matches the Living Sky redesign's paper surfaces.
     basemapLayer.setUrl(
-      `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${CARTO_API_KEY}`
+      `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=${CARTO_API_KEY}`
     );
   }
 
@@ -72,9 +73,10 @@
       zoom: 3,
     });
 
-    // Dark basemap (CARTO's "Dark Matter" tiles) to match the app's theme.
+    // Light basemap (CARTO "Voyager"-style light tiles) to match the
+    // Living Sky redesign's paper surfaces.
     basemapLayer = L.tileLayer(
-      `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${CARTO_API_KEY}`,
+      `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=${CARTO_API_KEY}`,
       {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         maxZoom: 19,
@@ -83,9 +85,9 @@
 
     marker = L.circleMarker([0, 0], {
       radius: 8,
-      color: "#ffb84f",
+      color: "#B45309",
       weight: 2,
-      fillColor: "#ffb84f",
+      fillColor: "#F59E0B",
       fillOpacity: 0.85,
     }).addTo(map);
 

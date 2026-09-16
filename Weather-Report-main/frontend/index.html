@@ -4,11 +4,11 @@
   <meta charset="utf-8" />
   <!-- Allow pinch-zoom (WCAG 1.4.4); viewport-fit for notch devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>WeatherGPT • Atmospheric Intelligence</title>
+  <title>WeatherGPT • Your Sky, Explained</title>
 
   <!-- PWA & Mobile App Meta -->
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#090d16" />
+  <meta name="theme-color" content="#3D7CC9" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="WeatherGPT" />
@@ -17,10 +17,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/logo.svg" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
-  <!-- Google Fonts: Outfit (Display) + Inter (Body/Telemetry) + Noto Sans (Devanagari & Telugu) -->
+  <!-- Google Fonts: Plus Jakarta Sans (Display) + Inter (Body) + Noto Sans (Devanagari & Telugu) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Telugu:wght@400;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Telugu:wght@400;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
 
   <!-- Tailwind CSS Engine -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -30,50 +30,54 @@
       theme: {
         extend: {
           colors: {
-            "surface-dim": "#090d16",
-            "surface": "#0e1225",
-            "surface-bright": "#1e293b",
-            "surface-container-lowest": "#090d20",
-            "surface-container-low": "#161a2e",
-            "surface-container": "#1b1e32",
-            "surface-container-high": "#25293d",
-            "surface-container-highest": "#303448",
-            "surface-navy": "#1b3b6f",
-            "on-surface": "#dee1fc",
-            "primary": "#ffdcb1",
-            "primary-container": "#ffb84f",
-            "primary-fixed-dim": "#ffb953",
-            "on-primary": "#452b00",
-            "on-primary-dark": "#241705",
-            "on-primary-container": "#241705",
-            "secondary": "#95cdf5",
-            "secondary-container": "#014e70",
-            "secondary-fixed": "#c8e6ff",
-            "secondary-fixed-dim": "#95cdf5",
-            "tertiary": "#cae5ff",
-            "tertiary-container": "#90ccff",
-            "tertiary-fixed": "#cce5ff",
-            "tertiary-fixed-dim": "#91cdff",
-            "ink-primary": "#f5f7fa",
-            "ink-secondary": "rgba(245, 247, 250, 0.78)",
-            "ink-tertiary": "rgba(245, 247, 250, 0.52)",
-            "amber-glow-surface": "rgba(255, 184, 79, 0.22)",
-            "alert-coral": "#ff6b5e",
-            "alert-coral-bg": "rgba(255, 107, 94, 0.18)",
-            "alert-coral-border": "rgba(255, 107, 94, 0.50)",
-            "alert-coral-text": "#ffe3df",
-            "glass-base": "rgba(255, 255, 255, 0.12)",
-            "glass-elevated": "rgba(255, 255, 255, 0.18)",
-            "glass-highest": "rgba(255, 255, 255, 0.24)",
-            "glass-border": "rgba(255, 255, 255, 0.20)",
-            "glass-border-subtle": "rgba(255, 255, 255, 0.10)"
+            /* ---- "Living Sky" palette ---------------------------------
+               Paper surfaces + slate ink keep text at AA contrast on every
+               condition; the animated sky lives BEHIND the content. ------ */
+            "surface-dim": "#E8EDF3",
+            "surface": "#F5F7FA",
+            "surface-bright": "#F0F4F9",
+            "surface-container-lowest": "#FFFFFF",
+            "surface-container-low": "#F5F8FB",
+            "surface-container": "#F0F4F8",
+            "surface-container-high": "#FFFFFF",
+            "surface-container-highest": "#EAF0F6",
+            "surface-navy": "#DCE7F2",
+            "on-surface": "#1A2332",
+            "primary": "#B45309",
+            "primary-container": "#F59E0B",
+            "primary-fixed-dim": "#D97706",
+            "on-primary": "#FFFFFF",
+            "on-primary-dark": "#FFFFFF",
+            "on-primary-container": "#FFFFFF",
+            "on-amber": "#78350F",
+            "secondary": "#0369A1",
+            "secondary-container": "#E0F2FE",
+            "secondary-fixed": "#075985",
+            "secondary-fixed-dim": "#0369A1",
+            "tertiary": "#115E59",
+            "tertiary-container": "#CCFBF1",
+            "tertiary-fixed": "#0F766E",
+            "tertiary-fixed-dim": "#0D9488",
+            "ink-primary": "#1A2332",
+            "ink-secondary": "rgba(26, 35, 50, 0.74)",
+            "ink-tertiary": "rgba(26, 35, 50, 0.68)",
+            "amber-glow-surface": "#FEF3C7",
+            "alert-coral": "#C0392B",
+            "alert-coral-bg": "#FDECEA",
+            "alert-coral-border": "rgba(192, 57, 43, 0.35)",
+            "alert-coral-text": "#A93226",
+            "glass-base": "rgba(255, 255, 255, 0.72)",
+            "glass-elevated": "rgba(255, 255, 255, 0.88)",
+            "glass-highest": "rgba(255, 255, 255, 0.95)",
+            "glass-border": "rgba(20, 40, 70, 0.10)",
+            "glass-border-subtle": "rgba(20, 40, 70, 0.07)"
           },
           fontFamily: {
-            "display-hero": ["Outfit", "sans-serif"],
-            "headline-brand": ["Outfit", "sans-serif"],
-            "headline-card": ["Outfit", "sans-serif"],
-            "headline-lg": ["Outfit", "sans-serif"],
-            "label-section": ["Outfit", "sans-serif"],
+            "display-hero": ["Plus Jakarta Sans", "sans-serif"],
+            "headline-brand": ["Plus Jakarta Sans", "sans-serif"],
+            "headline-card": ["Plus Jakarta Sans", "sans-serif"],
+            "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
+            "label-section": ["Plus Jakarta Sans", "sans-serif"],
             "body-base": ["Inter", "Noto Sans Devanagari", "Noto Sans Telugu", "sans-serif"],
             "body-report": ["Inter", "Noto Sans Devanagari", "Noto Sans Telugu", "sans-serif"],
             "body-dim": ["Inter", "sans-serif"],
@@ -92,40 +96,37 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 </head>
-<body class="bg-surface-dim font-body-base text-body-base text-on-surface min-h-screen flex flex-col selection:bg-primary-container selection:text-on-primary-container antialiased" data-condition="clear-day">
+<body class="bg-surface-dim font-body-base text-body-base text-on-surface min-h-screen flex flex-col selection:bg-amber-200 selection:text-ink-primary antialiased" data-condition="clear-day" data-temp-band="mild">
 
-  <!-- Ambient Dynamic Sky Canvas Back-Glow -->
+  <!-- LIVING SKY: two stacked condition gradients crossfade smoothly;
+       cards and ink float above on solid paper, so contrast never dips. -->
   <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
-    <div id="ambient-glow-1" class="absolute -top-32 -left-20 w-96 h-96 rounded-full bg-surface-navy/50 blur-3xl transition-colors duration-1000"></div>
-    <div id="ambient-glow-2" class="absolute top-1/4 -right-20 w-96 h-96 rounded-full bg-primary-container/15 blur-3xl transition-colors duration-1000"></div>
-    <div class="absolute inset-0 bg-surface-dim/40 backdrop-blur-[100px]"></div>
+    <div id="sky-layer-a" class="sky-layer"></div>
+    <div id="sky-layer-b" class="sky-layer"></div>
+    <div id="sky-stars" class="sky-stars"></div>
+    <div id="sky-veil" class="sky-veil"></div>
   </div>
 
   <!-- FIXED APP HEADER -->
-  <header class="fixed top-0 w-full z-50 pt-safe bg-surface-dim/85 backdrop-blur-xl border-b border-glass-border-subtle shadow-[0_1px_16px_rgba(0,0,0,0.5)]">
+  <header class="fixed top-0 w-full z-50 pt-safe bg-surface-dim/80 backdrop-blur-xl border-b border-glass-border-subtle">
     <div class="h-16 max-w-container-max mx-auto px-3 sm:px-gutter-mobile lg:px-gutter-desktop flex items-center justify-between gap-1.5 sm:gap-2">
       <!-- Logo & Title -->
       <div class="flex items-center gap-2 cursor-pointer shrink-0" id="header-logo-btn" title="WeatherGPT Home">
         <div class="w-8 h-8 rounded-xl bg-surface-container-high flex items-center justify-center border border-glass-border-subtle shadow-inner shrink-0">
           <svg class="w-6 h-6" viewBox="0 0 100 100" fill="none">
             <defs>
-              <linearGradient id="cloudGradHead" x1="10" y1="20" x2="90" y2="90" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#38bdf8"/>
-                <stop offset="100%" stop-color="#6366f1"/>
-              </linearGradient>
-              <linearGradient id="glowGradHead" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#ffb84f"/>
-                <stop offset="100%" stop-color="#f43f5e"/>
+              <linearGradient id="cloudGradHead" x1="20" y1="30" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#DCEBF7"/>
+                <stop offset="100%" stop-color="#AFCBE3"/>
               </linearGradient>
             </defs>
-            <circle cx="68" cy="36" r="18" fill="url(#glowGradHead)"/>
+            <circle cx="66" cy="34" r="17" fill="#FBBF24"/>
             <path d="M30 68h40a16 16 0 0 0 4-31.5 22 22 0 0 0-42-4A15 15 0 0 0 30 68z" fill="url(#cloudGradHead)"/>
-            <path d="M48 57l6 14m-12-8l5 12" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
           </svg>
         </div>
         <div class="flex flex-col">
           <span class="font-headline-brand text-[15px] sm:text-[17px] text-ink-primary tracking-tight leading-tight">WeatherGPT</span>
-          <span class="font-label-caps text-[9px] sm:text-[10px] text-primary tracking-wider uppercase font-semibold hidden sm:block">Groq &amp; Ollama Intel</span>
+          <span class="font-label-caps text-[9px] sm:text-[10px] text-secondary tracking-wider uppercase font-semibold hidden sm:block">Your sky, explained</span>
         </div>
       </div>
 
@@ -194,7 +195,7 @@
       <div class="voice-ripple-3 absolute w-56 h-56 rounded-full bg-alert-coral/15 animate-ping"></div>
       <div class="voice-ripple-2 absolute w-44 h-44 rounded-full bg-alert-coral/25 animate-pulse"></div>
       <div class="voice-ripple-1 absolute w-32 h-32 rounded-full bg-alert-coral/40"></div>
-      <button id="voice-stop-btn" class="relative z-10 w-20 h-20 rounded-full bg-alert-coral text-on-error flex items-center justify-center shadow-[0_0_35px_rgba(255,107,94,0.6)] active:scale-90 transition-transform" aria-label="Stop recording">
+      <button id="voice-stop-btn" class="relative z-10 w-20 h-20 rounded-full bg-alert-coral text-white flex items-center justify-center shadow-[0_8px_28px_rgba(192,57,43,0.4)] active:scale-90 transition-transform" aria-label="Stop recording">
         <span class="material-symbols-outlined text-[36px]">mic</span>
       </button>
     </div>
@@ -222,7 +223,7 @@
         <span id="status-spinner" class="w-2 h-2 rounded-full bg-primary animate-ping shrink-0"></span>
         <span id="status-message" class="truncate font-body-dim text-ink-secondary">Syncing atmospheric telemetry…</span>
       </div>
-      <span id="status-model-badge" class="font-label-caps text-[9px] text-secondary font-mono shrink-0">Groq + Ollama</span>
+      <span id="status-model-badge" class="font-label-caps text-[9px] text-secondary shrink-0">Live update</span>
     </div>
 
     <!-- ======================================================== -->
@@ -230,11 +231,7 @@
     <!-- ======================================================== -->
     <section id="view-forecast" class="app-view flex flex-col w-full gap-5 md:flex-row md:flex-wrap md:items-start">
 
-      <!-- Ambient Sky Canvas Card -->        <div class="relative w-full overflow-hidden rounded-3xl p-5 md:p-6 bg-gradient-to-b from-surface-navy/40 via-surface-container/60 to-surface-container-low border border-glass-border/30 shadow-2xl md:order-1 md:w-[420px] md:shrink-0 flex flex-col">
-        <!-- Visual Glow Circles -->
-        <div class="absolute -top-12 -left-10 w-48 h-48 rounded-full bg-secondary-container/40 blur-3xl pointer-events-none"></div>
-        <div class="absolute top-4 -right-10 w-56 h-56 rounded-full bg-primary-container/20 blur-3xl pointer-events-none"></div>
-
+      <!-- Ambient Sky Canvas Card -->        <div class="relative w-full overflow-hidden rounded-3xl p-5 md:p-6 bg-surface-container-lowest border border-glass-border shadow-xl md:order-1 md:w-[420px] md:shrink-0 flex flex-col">
         <!-- Location Pin & Sync Status -->
         <div class="relative z-10 flex items-center justify-between md:justify-center">
           <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-glass-base backdrop-blur-md text-ink-primary border border-glass-border/20">
@@ -242,8 +239,8 @@
             <span id="hero-place-label" class="font-pill-text text-xs tracking-wide truncate">San Francisco, CA</span>
           </div>
           <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-glass-base border border-glass-border/20 text-ink-secondary font-label-caps text-[10px]">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span id="telemetry-sync-badge">RADAR SYNCED</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="telemetry-sync-badge">Live radar</span>
           </div>
         </div>
 
@@ -251,13 +248,13 @@
         <div class="relative z-10 flex flex-col items-center text-center mt-3 mb-2 md:w-80">
           <!-- Animated Weather Glyph Component -->
           <div id="hero-weather-glyph" class="relative w-28 h-20 flex items-center justify-center">
-            <div class="absolute top-1 right-5 w-12 h-12 rounded-full bg-gradient-to-tr from-primary-container to-amber-300 shadow-[0_0_24px_rgba(255,184,79,0.5)]"></div>
+            <div class="absolute top-1 right-5 w-12 h-12 rounded-full bg-gradient-to-tr from-amber-400 to-amber-300"></div>
             <svg class="relative z-10 w-24 h-16 drop-shadow-[0_10px_16px_rgba(0,0,0,0.35)]" fill="none" viewBox="0 0 100 64">
               <path d="M26 56h52a16 16 0 0 0 4-31.5 22 22 0 0 0-41.8-8.5A17.99 17.99 0 0 0 14 36c0 11 9 20 20 20h-8z" fill="url(#heroCloudGrad)"></path>
               <defs>
                 <linearGradient gradientUnits="userSpaceOnUse" id="heroCloudGrad" x1="10" x2="84" y1="12" y2="56">
-                  <stop stop-color="#95cdf5"></stop>
-                  <stop offset="1" stop-color="#3d82c4"></stop>
+                <stop stop-color="#DCEBF7"></stop>
+                <stop offset="1" stop-color="#AFCBE3"></stop>
                 </linearGradient>
               </defs>
             </svg>
@@ -302,15 +299,15 @@
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center justify-between gap-2 mb-1">
-              <span class="font-headline-card text-[15px] text-primary font-semibold">WeatherGPT Atmospheric Intel</span>
-              <span class="px-2 py-0.5 rounded-full bg-glass-base border border-glass-border-subtle text-ink-tertiary font-label-caps text-[9px] uppercase">Ollama • Groq</span>
+              <span class="font-headline-card text-[15px] text-primary font-semibold">Today's briefing</span>
+              <span class="px-2 py-0.5 rounded-full bg-glass-base border border-glass-border-subtle text-ink-tertiary font-label-caps text-[9px] uppercase">AI generated</span>
             </div>
             <p id="hero-synopsis-text" class="report-content font-body-report text-xs text-ink-secondary leading-relaxed">
               Loading localized atmospheric synthesis...
             </p>
             <div class="mt-3 flex items-center gap-2">
               <button id="ask-ai-quick-btn" class="px-3 py-1 rounded-full bg-primary text-on-primary-dark font-pill-text text-xs flex items-center gap-1 shadow-sm hover:brightness-110 active:scale-95 transition-all font-semibold">
-                <span class="material-symbols-outlined text-[15px]">neurology</span>
+                <span class="material-symbols-outlined text-[15px]">chat</span>
                 <span>Ask WeatherGPT</span>
               </button>
               <span id="hero-synopsis-meta" class="font-body-dim text-[10px] text-ink-tertiary">Real-time inference</span>
@@ -372,15 +369,15 @@
           <div class="flex flex-col justify-between p-3.5 rounded-2xl bg-surface-container-high border border-glass-border/20 shadow-sm min-w-0">
             <div class="flex items-center justify-between">
               <span class="font-label-caps text-[11px] text-ink-tertiary uppercase font-medium">Air Quality</span>
-              <span class="material-symbols-outlined text-emerald-400 text-[18px]">eco</span>
+              <span class="material-symbols-outlined text-tertiary text-[18px]">eco</span>
             </div>
             <div class="my-2 flex items-baseline gap-1.5">
-              <span id="telemetry-aqi-num" class="font-headline-lg text-2xl text-emerald-400 font-bold">32</span>
+              <span id="telemetry-aqi-num" class="font-headline-lg text-2xl font-bold">32</span>
               <span id="telemetry-aqi-label" class="font-pill-text text-xs text-ink-primary">Good</span>
             </div>
             <div class="flex flex-col gap-1">
               <div class="w-full h-1.5 rounded-full bg-surface-container overflow-hidden relative">
-                <div id="telemetry-aqi-bar" class="h-full w-1/4 rounded-full bg-emerald-400"></div>
+                <div id="telemetry-aqi-bar" class="h-full w-1/4 rounded-full bg-emerald-500"></div>
               </div>
               <span id="telemetry-aqi-sub" class="font-label-caps text-[10px] text-ink-tertiary truncate">PM2.5: 7.2 µg/m³ • Pristine</span>
             </div>
@@ -412,7 +409,7 @@
               <span id="telemetry-pressure" class="font-headline-lg text-2xl text-ink-primary font-bold">1014.2</span>
               <span class="font-body-dim text-xs text-ink-secondary">hPa</span>
             </div>
-            <div class="flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-container text-emerald-400 font-label-caps text-[10px]">
+            <div class="flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-container text-tertiary font-label-caps text-[10px]">
               <span class="material-symbols-outlined text-[13px]">trending_up</span>
               <span id="telemetry-pressure-trend">Steady High</span>
             </div>
@@ -448,14 +445,14 @@
               <span class="material-symbols-outlined text-primary text-[18px]">manage_search</span>
               <input id="map-address-search-input" class="bg-transparent text-ink-primary font-body-base text-xs placeholder:text-ink-tertiary focus:outline-none w-full truncate" placeholder="Search neighborhood or address..." type="text" aria-label="Search neighborhood or address" />
             </div>
-            <button id="map-gps-btn" class="w-8 h-8 rounded-full bg-primary-container text-on-primary-dark flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shrink-0 shadow-md">
+            <button id="map-gps-btn" class="w-8 h-8 rounded-full bg-primary-container text-on-amber flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shrink-0 shadow-md">
               <span class="material-symbols-outlined text-[16px]">my_location</span>
             </button>
           </div>
 
           <!-- Layer Toggle Strip -->
           <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" id="map-layer-pills">
-            <button class="map-layer-pill active shrink-0 px-3 py-1.5 rounded-full bg-primary-container text-on-primary-dark font-pill-text text-[11px] flex items-center gap-1.5 shadow-md font-semibold transition-all" data-layer="precip">
+            <button class="map-layer-pill active shrink-0 px-3 py-1.5 rounded-full bg-primary-container text-on-amber font-pill-text text-[11px] flex items-center gap-1.5 shadow-md font-semibold transition-all" data-layer="precip">
               <span class="material-symbols-outlined text-[14px]">rainy</span>
               <span>Precipitation</span>
               <span class="w-1.5 h-1.5 rounded-full bg-on-primary-dark animate-ping"></span>
@@ -471,7 +468,7 @@
               <span class="soon-badge">Soon</span>
             </button>
             <button class="map-layer-pill shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high/90 border border-glass-border-subtle text-ink-secondary font-pill-text text-[11px] flex items-center gap-1.5 transition-all" data-layer="aqi" data-soon="true">
-              <span class="material-symbols-outlined text-emerald-400 text-[14px]">eco</span>
+              <span class="material-symbols-outlined text-tertiary text-[14px]">eco</span>
               <span>AQI Plume</span>
               <span class="soon-badge">Soon</span>
             </button>
@@ -497,7 +494,7 @@
                 </div>
                 <div>
                   <h4 id="sensor-card-title" class="font-headline-card text-xs text-ink-primary font-semibold">Active Sensor Node</h4>
-                  <p id="sensor-card-sub" class="font-label-caps text-[9px] text-ink-tertiary">Hyper-Local Atmospheric Cell • Live Sockets</p>
+                  <p id="sensor-card-sub" class="font-label-caps text-[9px] text-ink-tertiary">Live reading at this location</p>
                 </div>
               </div>
               <button id="close-sensor-card-btn" class="text-ink-tertiary hover:text-ink-primary p-1" aria-label="Close sensor card">
@@ -520,7 +517,7 @@
               </div>
               <div class="bg-surface-container-lowest/80 rounded-xl p-1.5 flex flex-col">
                 <span class="font-label-caps text-[9px] text-ink-tertiary uppercase">AQI</span>
-                <span id="sensor-metric-aqi" class="font-headline-card text-xs text-emerald-400 font-bold">35</span>
+                <span id="sensor-metric-aqi" class="font-headline-card text-xs font-bold">35</span>
               </div>
             </div>
           </div>
@@ -552,21 +549,21 @@
       <div class="relative overflow-hidden rounded-2xl bg-surface-container/70 border border-glass-border/30 backdrop-blur-xl p-3.5 shadow-lg">
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-2.5 min-w-0">
-            <div class="relative flex items-center justify-center w-8 h-8 rounded-full bg-secondary-container/60 text-secondary shrink-0 shadow-inner">
-              <span class="material-symbols-outlined text-[19px] animate-pulse">neurology</span>
+            <div class="relative flex items-center justify-center w-8 h-8 rounded-full bg-secondary-container/60 text-secondary shrink-0">
+              <span class="material-symbols-outlined text-[19px]">chat</span>
               <span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary ring-2 ring-surface-container"></span>
             </div>
             <div class="flex flex-col min-w-0">
               <div class="flex items-center gap-1.5">
                 <span class="font-headline-card text-sm text-ink-primary font-semibold">WeatherGPT 3.5</span>
-                <span class="px-1.5 py-1 rounded-full bg-secondary/15 text-secondary font-label-caps text-[9px] uppercase font-mono">Groq + Ollama</span>
+                <span class="px-1.5 py-1 rounded-full bg-secondary-container/60 text-secondary font-label-caps text-[9px] uppercase">AI weather chat</span>
               </div>
-              <span class="font-body-dim text-[11px] text-ink-tertiary truncate">Atmospheric Multimodal Neural Engine</span>
+              <span class="font-body-dim text-[11px] text-ink-tertiary truncate">Ask anything about your local forecast</span>
             </div>
           </div>
           <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-bright/70 border border-glass-border-subtle shrink-0">
             <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-ping"></span>
-            <span class="font-label-caps text-[10px] text-primary-container font-mono">Online • Groq LPU</span>
+            <span class="font-label-caps text-[10px] text-tertiary">Online</span>
           </div>
         </div>
       </div>
@@ -603,11 +600,11 @@
             <span>Will it rain during evening commute?</span>
           </button>
           <button class="assistant-chip shrink-0 px-3 py-1.5 rounded-full bg-surface-container border border-glass-border-subtle hover:bg-surface-bright text-ink-secondary hover:text-ink-primary text-xs transition-all flex items-center gap-1.5 active:scale-95">
-            <span class="material-symbols-outlined text-amber-400 text-[15px]">translate</span>
+            <span class="material-symbols-outlined text-secondary text-[15px]">translate</span>
             <span>कल का मौसम कैसा रहेगा? (Hindi)</span>
           </button>
           <button class="assistant-chip shrink-0 px-3 py-1.5 rounded-full bg-surface-container border border-glass-border-subtle hover:bg-surface-bright text-ink-secondary hover:text-ink-primary text-xs transition-all flex items-center gap-1.5 active:scale-95">
-            <span class="material-symbols-outlined text-emerald-400 text-[15px]">translate</span>
+            <span class="material-symbols-outlined text-secondary text-[15px]">translate</span>
             <span>ఈ రోజు వర్షం పడుతుందా? (Telugu)</span>
           </button>
           <button class="assistant-chip shrink-0 px-3 py-1.5 rounded-full bg-surface-container border border-glass-border-subtle hover:bg-surface-bright text-ink-secondary hover:text-ink-primary text-xs transition-all flex items-center gap-1.5 active:scale-95">
@@ -765,7 +762,7 @@
               <span id="insights-pressure-val" class="font-headline-lg text-2xl text-ink-primary font-bold">1014.2</span>
               <span class="font-body-dim text-xs text-ink-secondary">hPa</span>
             </div>
-            <p id="insights-pressure-desc" class="font-body-dim text-xs text-emerald-400 mt-0.5">Isobaric stability maintained. Frontal boundary > 180 km away.</p>
+            <p id="insights-pressure-desc" class="font-body-dim text-xs text-tertiary mt-0.5">Steady pressure. Frontal boundary more than 180 km away.</p>
           </div>
         </div>
 
@@ -829,7 +826,7 @@
 
           <!-- Tab 3: WeatherGPT Assistant -->
           <button class="nav-tab min-w-[50px] min-h-[44px] px-3 py-1.5 rounded-full flex flex-col items-center justify-center transition-all text-ink-tertiary hover:text-ink-primary" data-view="view-weathergpt">
-            <span class="material-symbols-outlined text-[20px]">neurology</span>
+            <span class="material-symbols-outlined text-[20px]">chat</span>
             <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap">WeatherGPT</span>
           </button>
 

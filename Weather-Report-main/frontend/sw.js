@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v5";
+const CACHE_NAME = "weathergpt-shell-v6"; // v6: Living Sky redesign
 
 const SHELL_FILES = [
   "/",

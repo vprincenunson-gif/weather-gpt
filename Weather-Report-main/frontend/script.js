@@ -41,10 +41,70 @@ const state = {
   recordTimer: null,
   countdownInterval: null,
   reportCache: null,
+  reportCache: null,
   farmAdvice: null,
   farmCacheKey: null,
   farmStale: true,
+  reportAiTick: 0, // incremented per request; only the newest AI report may commit
+  locationRequestId: 0, // monotonic token — only the newest location request may commit
+  gpsInFlight: false,
 };
+
+// ============================================================
+// GPS / CURRENT LOCATION HELPERS
+// ============================================================
+
+// Human-readable, actionable messages per GeolocationPositionError code.
+const GEO_ERROR_MESSAGES = {
+  1: "Location access was denied. Allow location permission for this site (padlock icon in the address bar) and try again.",
+  2: "Your location is currently unavailable (no GPS fix or network location). Check that location services are on, then try again.",
+  3: "Getting your location timed out. Please try again.",
+};
+
+function geoErrorMessage(err) {
+  if (err && GEO_ERROR_MESSAGES[err.code]) return GEO_ERROR_MESSAGES[err.code];
+  return (err && err.message) || "Unknown geolocation error.";
+}
+
+// Shape used whenever reverse-geocoding fails, so every consumer still
+// gets name/admin1/country keys (never "undefined" in the UI).
+function fallbackLocation(latitude, longitude) {
+  return {
+    name: "My Location",
+    admin1: "",
+    country: "",
+    latitude: Number(latitude),
+    longitude: Number(longitude),
+  };
+}
+
+// Set a new location, update the display immediately, then refresh all
+// weather views. Resolves once the weather pipeline for THIS location
+// request settles (or is superseded by a newer one).
+async function setCurrentLocation(loc) {
+  if (!loc) return;
+  const requestId = ++state.locationRequestId;
+  state.currentLocation = {
+    name: loc.name || "My Location",
+    admin1: loc.admin1 || "",
+    country: loc.country || "",
+    latitude: loc.latitude,
+    longitude: loc.longitude,
+  };
+  // Header + hero labels update right away — no waiting on the weather fetch.
+  updateLocationDisplay();
+  await refreshWeatherData(requestId);
+}
+
+function updateLocationDisplay() {
+  const { name, country } = state.currentLocation;
+  if (els.headerLocationName) els.headerLocationName.textContent = name;
+  if (els.heroPlaceLabel) els.heroPlaceLabel.textContent = `${name}${country ? ", " + country : ""}`;
+  if (els.mapAddressSearchInput && document.activeElement !== els.mapAddressSearchInput) {
+    // Don't clobber the address bar while the user is typing a search.
+    els.mapAddressSearchInput.value = `${name}${country ? ", " + country : ""}`;
+  }
+}
 
 // ============================================================
 // I18N STRINGS FOR THE FARM ADVISOR UI
@@ -136,6 +196,98 @@ const CONDITION_ICONS = {
   "snow": "ac_unit",
   "thunder": "thunderstorm",
 };
+
+// ============================================================
+// LIVING SKY — dynamic background driven by REAL weather data
+// Maps the existing WMO condition category (+ actual temperature
+// band) onto full-viewport sky gradients. Two layers crossfade,
+// so condition changes dissolve smoothly instead of snapping.
+// ============================================================
+
+const SKY_CLASS_BY_CONDITION = {
+  "clear-day": "sky-clear-day",
+  "clear-night": "sky-clear-night",
+  "partly-cloudy-day": "sky-partly-cloudy-day",
+  "partly-cloudy-night": "sky-partly-cloudy-night",
+  "cloudy": "sky-cloudy",
+  "fog": "sky-fog",
+  "drizzle": "sky-drizzle",
+  "rain": "sky-rain",
+  "snow": "sky-snow",
+  "thunder": "sky-thunder",
+};
+
+// Temperature bands only override FAIR skies (clear/partly cloudy):
+// rain, snow, fog, and storms already carry their own mood.
+const SKY_CLASS_BY_TEMP_BAND = {
+  hot: "sky-hot",
+  cold: "sky-cold",
+};
+
+const NIGHT_CONDITIONS = new Set(["clear-night", "partly-cloudy-night", "thunder"]);
+
+function skyClassFor(condition, tempBand) {
+  if ((tempBand === "hot" || tempBand === "cold") && (condition === "clear-day" || condition === "partly-cloudy-day")) {
+    return SKY_CLASS_BY_TEMP_BAND[tempBand];
+  }
+  return SKY_CLASS_BY_CONDITION[condition] || SKY_CLASS_BY_CONDITION["clear-day"];
+}
+
+function tempBandFor(celsius) {
+  if (!Number.isFinite(celsius)) return "mild";
+  if (celsius >= 33) return "hot";
+  if (celsius <= 0) return "cold";
+  return "mild";
+}
+
+// Swaps the live sky: the incoming layer fades in over the outgoing
+// one, then the old layer is parked under it ready for next time.
+// Tracks which layer is currently in front (0 = layer-a, 1 = layer-b),
+// so consecutive swaps alternate deterministically instead of guessing
+// from the DOM mid-transition.
+let skyFront = 0;
+let skyRetireTimer = null;
+
+// Skies that already end pale — the bottom mist veil would be invisible.
+const PALE_SKIES = new Set(["sky-snow", "sky-fog", "sky-cloudy", "sky-drizzle"]);
+
+function applyDynamicSky(condition, tempBand = "mild") {
+  const nextClass = skyClassFor(condition, tempBand);
+  const layers = [document.getElementById("sky-layer-a"), document.getElementById("sky-layer-b")];
+  const stars = document.getElementById("sky-stars");
+  const veil = document.getElementById("sky-veil");
+  if (!layers[0] || !layers[1]) return;
+
+  if (stars) stars.classList.toggle("is-visible", NIGHT_CONDITIONS.has(condition));
+  if (veil) veil.classList.toggle("is-visible", !PALE_SKIES.has(nextClass));
+
+  const front = layers[skyFront];
+  // Same sky already showing — nothing to animate.
+  if (front.classList.contains(nextClass) && front.classList.contains("is-live")) return;
+
+  const outgoing = layers[skyFront];
+  const incoming = layers[(skyFront + 1) % 2];
+  skyFront = (skyFront + 1) % 2;
+
+  // The incoming layer sits ON TOP with opacity 0, gets the new gradient,
+  // then fades in over the old sky. Explicit z-index keeps the stacking
+  // correct regardless of DOM order.
+  incoming.style.zIndex = "2";
+  outgoing.style.zIndex = "1";
+  incoming.classList.remove("is-live");
+  incoming.classList.remove(...Object.values(SKY_CLASS_BY_CONDITION), ...Object.values(SKY_CLASS_BY_TEMP_BAND));
+  incoming.classList.add(nextClass);
+
+  // Double rAF: guarantee the gradient change paints before the fade starts.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      incoming.classList.add("is-live");
+      // Once fully faded in, retire the old layer underneath it.
+      clearTimeout(skyRetireTimer);
+      skyRetireTimer = setTimeout(() => outgoing.classList.remove("is-live"), 2600);
+    });
+  });
+}
 
 // ============================================================
 // DOM ELEMENTS
@@ -389,7 +541,7 @@ function bindAssistantChips() {
 // STATUS HELPERS
 // ============================================================
 
-function showStatus(msg, badge = "Groq + Ollama") {
+function showStatus(msg, badge = "Live update") {
   if (els.appStatusBar && els.statusMessage) {
     els.statusMessage.textContent = msg;
     if (els.statusModelBadge) els.statusModelBadge.textContent = badge;
@@ -434,10 +586,9 @@ els.citySearchForm?.addEventListener("submit", async (e) => {
   try {
     showStatus(`Geocoding '${query}' with Open-Meteo...`);
     const loc = await getJSON(`/api/geocode?location=${encodeURIComponent(query)}`);
-    state.currentLocation = loc;
     els.searchModal?.classList.add("hidden");
     els.citySearchInput.value = "";
-    await refreshWeatherData();
+    await setCurrentLocation(loc);
   } catch (err) {
     alert(`Could not find '${query}': ${err.message}`);
   } finally {
@@ -452,9 +603,8 @@ document.querySelectorAll(".popular-city-chip").forEach((chip) => {
     try {
       showStatus(`Loading ${city}...`);
       const loc = await getJSON(`/api/geocode?location=${encodeURIComponent(city)}`);
-      state.currentLocation = loc;
       els.searchModal?.classList.add("hidden");
-      await refreshWeatherData();
+      await setCurrentLocation(loc);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -483,8 +633,7 @@ els.mapAddressSearchInput?.addEventListener("keydown", async (e) => {
   try {
     showStatus(`Geocoding '${query}'...`);
     const loc = await getJSON(`/api/geocode?location=${encodeURIComponent(query)}`);
-    state.currentLocation = loc;
-    await refreshWeatherData();
+    await setCurrentLocation(loc);
   } catch (err) {
     alert(`Could not find '${query}': ${err.message}`);
   } finally {
@@ -492,43 +641,88 @@ els.mapAddressSearchInput?.addEventListener("keydown", async (e) => {
   }
 });
 
-function requestDeviceGps() {
+async function requestDeviceGps() {
   if (!navigator.geolocation) {
-    alert("Geolocation is not supported by your browser/device.");
+    alert("Geolocation is not supported by your browser/device. Search for your city instead.");
     return;
   }
 
-  showStatus("Acquiring GPS coordinates...");
+  // Guard against double-taps and overlapping GPS sessions.
+  if (state.gpsInFlight) return;
+  state.gpsInFlight = true;
+
+  const requestId = ++state.locationRequestId;
+  showStatus("Acquiring your current location...");
+
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      try {
-        const rev = await getJSON(`/api/reverse-geocode?latitude=${lat}&longitude=${lon}`);
-        state.currentLocation = {
-          name: rev.name || "My Location",
-          admin1: rev.admin1 || "",
-          country: rev.country || "",
-          latitude: lat,
-          longitude: lon,
-        };
-        await refreshWeatherData();
-      } catch (err) {
-        state.currentLocation = {
-          name: "My Location",
-          latitude: lat,
-          longitude: lon,
-        };
-        await refreshWeatherData();
-      } finally {
+      // Abort if a newer location request was started while the GPS fix
+      // was pending — never commit a stale position.
+      if (requestId !== state.locationRequestId) {
+        state.gpsInFlight = false;
+        return;
+      }
+
+      const lat = pos?.coords?.latitude;
+      const lon = pos?.coords?.longitude;
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        state.gpsInFlight = false;
         hideStatus();
+        alert("Your location could not be determined (no coordinates returned). Please try again.");
+        return;
+      }
+
+      try {
+        // Reverse-geocode (for the city name) and fetch weather run in
+        // PARALLEL — the weather pipeline must not wait on geocoding.
+        showStatus(`Using your location (${lat.toFixed(3)}, ${lon.toFixed(3)})...`);
+
+        const coordsLocation = fallbackLocation(lat, lon);
+        // Show real coordinates immediately; the city name replaces it
+        // the moment reverse-geocoding responds.
+        state.currentLocation = coordsLocation;
+        updateLocationDisplay();
+
+        const revPromise = getJSON(`/api/reverse-geocode?latitude=${lat}&longitude=${lon}`)
+          .then((rev) => ({
+            name: rev.name || "My Location",
+            admin1: rev.admin1 || "",
+            country: rev.country || "",
+            latitude: lat,
+            longitude: lon,
+          }))
+          .catch(() => coordsLocation);
+
+        // Kick the weather fetch with the raw coordinates right away.
+        await refreshWeatherData(requestId);
+
+        // Adopt the resolved city name (or the coordinate fallback) and
+        // update labels/map; weather is already current for these coords.
+        const rev = await revPromise;
+        if (requestId === state.locationRequestId) {
+          state.currentLocation = rev;
+          updateLocationDisplay();
+          renderMapScreen(); // marker tooltip + sensor card title use the real city
+        }
+      } finally {
+        // Always release the GPS slot — a superseded session must not
+        // permanently block future GPS attempts.
+        state.gpsInFlight = false;
       }
     },
     (err) => {
+      state.gpsInFlight = false;
+      if (requestId !== state.locationRequestId) return;
       hideStatus();
-      alert(`GPS access error: ${err.message}. Using default location.`);
+      // Keep the current (already sensible) location — e.g. the last
+      // searched city or the app default — and explain exactly what to do.
+      alert(`Could not get your location: ${geoErrorMessage(err)}`);
     },
-    { timeout: 10000, enableHighAccuracy: true }
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0, // never satisfy with a cached/stale position
+    }
   );
 }
 
@@ -536,17 +730,20 @@ function requestDeviceGps() {
 // WEATHER DATA REFRESH & PIPELINE
 // ============================================================
 
-async function refreshWeatherData() {
+async function refreshWeatherData(requestId = state.locationRequestId) {
   const { latitude, longitude, name } = state.currentLocation;
-  if (!latitude || !longitude) return;
-
-  if (els.headerLocationName) els.headerLocationName.textContent = name;
-  if (els.heroPlaceLabel) els.heroPlaceLabel.textContent = `${name}, ${state.currentLocation.country || ""}`;
+  // Accept 0/0 (Gulf of Guinea) as valid coordinates; only reject missing ones.
+  if (latitude == null || longitude == null || Number.isNaN(Number(latitude)) || Number.isNaN(Number(longitude))) return;
 
   showStatus(`Connecting to Open-Meteo & WeatherAPI for ${name}...`);
 
   try {
     const data = await getJSON(`/api/weather?latitude=${latitude}&longitude=${longitude}&forecast_days=7`);
+
+    // A newer location request started while this fetch was in flight —
+    // discard the stale response so it can never override fresh data.
+    if (requestId !== state.locationRequestId) return;
+
     state.weather = data.weather;
     state.alerts = data.alerts || [];
     state.airQuality = data.air_quality || data.weather?.air_quality || {};
@@ -566,12 +763,15 @@ async function refreshWeatherData() {
     }
 
     // Trigger AI report synthesis asynchronously
-    generateAiReport();
+    generateAiReport(requestId);
   } catch (err) {
-    console.error("Weather fetch failed:", err);
-    showStatus(`Weather sync error: ${err.message}`, "Offline");
+    if (requestId === state.locationRequestId) {
+      console.error("Weather fetch failed:", err);
+      showStatus(`Weather sync error: ${err.message}`, "Offline");
+    }
   } finally {
-    hideStatus();
+    // A superseded request must not hide the active request's status bar.
+    if (requestId === state.locationRequestId) hideStatus();
   }
 }
 
@@ -589,6 +789,8 @@ function renderForecastScreen() {
   const cat = getConditionCategory(wCode, isDay);
 
   document.body.dataset.condition = cat;
+  document.body.dataset.tempBand = tempBandFor(temp);
+  applyDynamicSky(cat, tempBandFor(temp));
 
   if (els.heroTemperature) els.heroTemperature.textContent = temp;
   if (els.heroTempFeels) els.heroTempFeels.textContent = `${feels}°`;
@@ -614,7 +816,7 @@ function renderForecastScreen() {
   // only if US AQI is genuinely absent, and never fabricate a value.
   const aqiVal = state.airQuality?.us_aqi ?? state.airQuality?.european_aqi ?? null;
   const aqiLabel = aqiVal == null ? "—" : aqiVal <= 50 ? "Good" : aqiVal <= 100 ? "Moderate" : "Unhealthy";
-  const aqiColor = aqiVal == null ? "#64748b" : aqiVal <= 50 ? "#34d399" : aqiVal <= 100 ? "#fbbf24" : "#f87171";
+  const aqiColor = aqiVal == null ? "#64748B" : aqiVal <= 50 ? "#15803D" : aqiVal <= 100 ? "#B45309" : "#C0392B";
 
   if (els.telemetryAqiNum) {
     els.telemetryAqiNum.textContent = aqiVal == null ? "—" : aqiVal;
@@ -764,10 +966,11 @@ function renderMapScreen() {
 
   if (els.mapAddressSearchInput && document.activeElement !== els.mapAddressSearchInput) {
     // Don't clobber the address bar while the user is typing a search.
-    els.mapAddressSearchInput.value = `${state.currentLocation.name}, ${state.currentLocation.country || ""}`;
+    const country = state.currentLocation.country || "";
+    els.mapAddressSearchInput.value = `${state.currentLocation.name}${country ? ", " + country : ""}`;
   }
 
-  if (window.RadarMap && state.currentLocation.latitude) {
+  if (window.RadarMap && state.currentLocation.latitude != null && state.currentLocation.longitude != null) {
     window.RadarMap.updateLocation({
       latitude: state.currentLocation.latitude,
       longitude: state.currentLocation.longitude,
@@ -854,21 +1057,21 @@ function renderInsightsScreen() {
         { label: "Diurnal Range", val: `${todayMin}° / ${todayMax}°`, sub: "Today's Min / Max", icon: "device_thermostat", color: "text-primary" },
         { label: "Precip Risk", val: `${todayRain}%`, sub: "Max Rain Prob", icon: "rainy", color: "text-secondary" },
         { label: "Peak Velocity", val: `${todayWind} km/h`, sub: "Max Sustained Wind", icon: "air", color: "text-alert-coral" },
-        { label: "Humidity Index", val: `${todayHum}%`, sub: "Relative Density", icon: "water_drop", color: "text-emerald-400" },
+        { label: "Humidity Index", val: `${todayHum}%`, sub: "Relative Density", icon: "water_drop", color: "text-tertiary" },
       ];
     } else if (scope === "48h") {
       cards = [
         { label: "48h Envelope", val: `${minTemp48}° – ${maxTemp48}°`, sub: "Min to Peak Temp", icon: "thermostat", color: "text-primary" },
         { label: "48h Rain Peak", val: `${maxRain48}%`, sub: "Peak Rain Chance", icon: "umbrella", color: "text-secondary" },
         { label: "48h Max Gust", val: `${maxWind48} km/h`, sub: "Peak Wind Speed", icon: "air", color: "text-alert-coral" },
-        { label: "Mean Moisture", val: `${avgHum48}%`, sub: "48h Mean Humidity", icon: "humidity_mid", color: "text-emerald-400" },
+        { label: "Mean Moisture", val: `${avgHum48}%`, sub: "48h Mean Humidity", icon: "humidity_mid", color: "text-tertiary" },
       ];
     } else {
       cards = [
         { label: "Weekly Spread", val: `${minTemp7d}° – ${maxTemp7d}°`, sub: "7-Day Min to Max", icon: "calendar_today", color: "text-primary" },
         { label: "Cumulative Rain", val: `${totalRain7d} mm`, sub: "7-Day Total Precip", icon: "water", color: "text-secondary" },
         { label: "Peak Rain Risk", val: `${maxRain7d}%`, sub: "Highest Rain Day", icon: "grain", color: "text-alert-coral" },
-        { label: "Weekly Max Wind", val: `${maxWind7d} km/h`, sub: "Peak Jet Velocity", icon: "cyclone", color: "text-emerald-400" },
+        { label: "Weekly Max Wind", val: `${maxWind7d} km/h`, sub: "Peak Jet Velocity", icon: "cyclone", color: "text-tertiary" },
       ];
     }
 
@@ -959,7 +1162,7 @@ function renderInsightsScreen() {
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1 flex-wrap">
-                <span class="px-2 py-0.5 rounded-full font-label-caps text-[9px] bg-alert-coral text-on-error uppercase font-bold tracking-wider">${alert.severity || "Advisory"}</span>
+                <span class="px-2 py-0.5 rounded-full font-label-caps text-[9px] bg-alert-coral text-white uppercase font-bold tracking-wider">${alert.severity || "Advisory"}</span>
                 <span class="font-headline-card text-xs text-alert-coral-text font-semibold">${escapeHTML(alert.type || "Meteorological Notice")}</span>
               </div>
               <p class="font-body-base text-xs text-alert-coral-text/90">${escapeHTML(alert.text || "")}</p>
@@ -989,7 +1192,7 @@ function renderInsightsScreen() {
       const scopeLabel = scope === "48h" ? "for Next 48 Hours" : scope === "7d" ? "for Extended 7-Day Forecast" : "Today";
       els.insightsAlertsContainer.innerHTML = `
         <div class="rounded-2xl bg-surface-container-high border border-glass-border/20 p-4 flex items-center gap-3">
-          <div class="w-8 h-8 rounded-full bg-emerald-400/20 text-emerald-400 flex items-center justify-center shrink-0">
+          <div class="w-8 h-8 rounded-full bg-emerald-500/15 text-emerald-700 flex items-center justify-center shrink-0">
             <span class="material-symbols-outlined text-[20px]">verified_user</span>
           </div>
           <div>
@@ -1207,10 +1410,11 @@ function initFarmAdvisor() {
 // OLLAMA AI REPORT SYNTHESIS
 // ============================================================
 
-async function generateAiReport() {
+async function generateAiReport(requestId = state.locationRequestId) {
   const language = state.voiceLang === "hi" ? "Hindi" : state.voiceLang === "te" ? "Telugu" : "English";
 
   try {
+    const tick = ++state.reportAiTick;
     const payload = {
       location: state.currentLocation,
       weather_data: state.weather,
@@ -1227,6 +1431,8 @@ async function generateAiReport() {
     }
 
     const res = await postJSON("/api/report", payload);
+    if (requestId !== state.locationRequestId) return; // stale — a newer location won
+    if (tick !== state.reportAiTick) return; // stale — a newer AI report superseded this one
     state.reportCache = { key: cacheKey, report: res.report };
     state.synopsis = res.report;
     if (els.heroSynopsisText) {
@@ -1350,7 +1556,7 @@ function appendThinkingBubble() {
     <span class="w-2 h-2 rounded-full bg-secondary animate-bounce"></span>
     <span class="w-2 h-2 rounded-full bg-primary animate-bounce [animation-delay:0.2s]"></span>
     <span class="w-2 h-2 rounded-full bg-secondary-fixed animate-bounce [animation-delay:0.4s]"></span>
-    <span class="font-label-caps text-[10px] uppercase tracking-wider text-secondary font-mono">Synthesizing on Groq LPU &amp; Ollama...</span>
+    <span class="font-label-caps text-[10px] uppercase tracking-wider text-secondary font-mono">Thinking...</span>
   `;
   els.chatStream?.appendChild(div);
   window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
@@ -1375,12 +1581,12 @@ function appendAssistantResponseNode(data) {
     <div class="rounded-xl bg-surface-bright/70 border border-glass-border-subtle p-3 shadow-inner space-y-1.5">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-1.5">
-          <span class="material-symbols-outlined text-primary-container text-[18px]">timelapse</span>
+          <span class="material-symbols-outlined text-primary text-[18px]">timelapse</span>
           <span class="font-headline-card text-xs text-ink-primary font-semibold">${escapeHTML(
             data.optimal_window.title || "Optimal Activity Window"
           )}</span>
         </div>
-        <span class="px-2 py-0.5 rounded-full bg-primary-container/20 text-primary-container font-label-caps text-[9px] font-semibold">
+        <span class="px-2 py-0.5 rounded-full bg-primary-container/20 text-primary font-label-caps text-[9px] font-semibold">
           ${escapeHTML(data.optimal_window.reliability || "High Confidence")}
         </span>
       </div>
@@ -1460,11 +1666,11 @@ function appendAssistantResponseNode(data) {
 
   div.innerHTML = `
     <div class="flex items-center gap-2">
-      <div class="w-6 h-6 rounded-full bg-amber-glow-surface text-primary-container flex items-center justify-center">
+      <div class="w-6 h-6 rounded-full bg-amber-glow-surface text-primary flex items-center justify-center">
         <span class="material-symbols-outlined text-[15px]">auto_awesome</span>
       </div>
       <span class="font-label-section text-xs text-ink-primary font-semibold">WeatherGPT Synoptic Intelligence</span>
-      <span class="font-label-caps text-[9px] text-secondary font-mono px-1.5 py-1 rounded bg-secondary-container/40">Groq Accelerated</span>
+      <span class="font-label-caps text-[9px] text-secondary font-mono px-1.5 py-1 rounded bg-secondary-container/40">AI</span>
     </div>
     <div class="w-full bg-surface-container/70 border border-glass-border/30 backdrop-blur-xl rounded-2xl p-4 shadow-xl space-y-3">
       <p class="font-body-base text-xs text-ink-primary leading-relaxed">${escapeHTML(data.answer || "")}</p>
@@ -1587,7 +1793,7 @@ async function handleVoiceRecordingFinished() {
   if (state.isRecording || state.recordedChunks.length === 0) return;
   state.isRecording = true; // guard: MediaRecorder 'onstop' can fire twice
 
-  showStatus("Transcribing speech with Groq Whisper Large v3 Turbo...");
+  showStatus("Transcribing your recording...");
 
   try {
     const mime = state.mediaRecorder?.mimeType || "audio/webm";
@@ -1773,6 +1979,12 @@ window.addEventListener("DOMContentLoaded", () => {
   bindAssistantChips();
   bindInsightsScopeChips();
   initFarmAdvisor();
+  // Render the default location's labels immediately (the old pipeline set
+  // them inside refreshWeatherData; label updates now live in
+  // updateLocationDisplay and must run once at startup too).
+  updateLocationDisplay();
+  // Paint the initial sky before the first weather payload lands.
+  applyDynamicSky("clear-day", "mild");
   // Request GPS or load initial weather for default city
   refreshWeatherData();
 });
