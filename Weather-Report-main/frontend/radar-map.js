@@ -184,10 +184,9 @@
     applyFrame(liveIndex + steps);
   }
 
-  async function updateLocation({ latitude, longitude, name, temp }) {
-    ensureMapInitialized();
-    if (!map) return;
+  let stagedLocation = null; // location waiting for the map view to be shown
 
+  async function applyLocation({ latitude, longitude, name, temp }) {
     await loadFramesIfNeeded();
     if (!tileLayer) applyFrame(activeFrameIndex);
 
@@ -196,12 +195,29 @@
     marker.setTooltipContent(`${name || "Locating…"} · ${temp}`);
   }
 
+  async function updateLocation(payload) {
+    // Map is off-screen: do NOT initialize Leaflet or fetch map frames —
+    // that would burn tile/frame requests nobody can see (and abort them
+    // mid-flight when the location changes again). Stage it instead.
+    if (payload.deferInit) {
+      stagedLocation = payload;
+      return;
+    }
+    ensureMapInitialized();
+    if (!map) return;
+    await applyLocation(payload);
+  }
+
   function onViewShown() {
     ensureMapInitialized();
+    const staged = stagedLocation;
+    stagedLocation = null;
     // Leaflet can't size itself correctly while its container was
     // display:none, so nudge it once the view is actually visible.
-    setTimeout(() => {
-      if (map) map.invalidateSize();
+    setTimeout(async () => {
+      if (!map) return;
+      map.invalidateSize();
+      if (staged) await applyLocation(staged);
     }, 80);
   }
 

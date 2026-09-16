@@ -14,18 +14,22 @@ if ("serviceWorker" in navigator) {
 
 const API_BASE = "";
 
+// Startup location used until GPS resolves (or as the graceful fallback
+// when geolocation is denied, unsupported, or times out).
+const DEFAULT_LOCATION = {
+  name: "San Francisco",
+  admin1: "California",
+  country: "United States",
+  latitude: 37.7749,
+  longitude: -122.4194,
+};
+
 // ============================================================
 // APP STATE
 // ============================================================
 
 const state = {
-  currentLocation: {
-    name: "San Francisco",
-    admin1: "California",
-    country: "United States",
-    latitude: 37.7749,
-    longitude: -122.4194,
-  },
+  currentLocation: { ...DEFAULT_LOCATION },
   weather: null,
   alerts: [],
   airQuality: null,
@@ -866,27 +870,56 @@ els.mapAddressSearchInput?.addEventListener("keydown", async (e) => {
   }
 });
 
-async function requestDeviceGps() {
+async function requestDeviceGps(options = {}) {
   if (!navigator.geolocation) {
-    alert("Geolocation is not supported by your browser/device. Search for your city instead.");
-    return;
+    if (!options.auto) {
+      alert("Geolocation is not supported by your browser/device. Search for your city instead.");
+    }
+    return false;
   }
 
   // Guard against double-taps and overlapping GPS sessions.
-  if (state.gpsInFlight) return;
+  if (state.gpsInFlight) return false;
   state.gpsInFlight = true;
 
-  const requestId = ++state.locationRequestId;
+  // First-load auto mode may DEFER the request token: the default-city
+  // refresh that is already in flight keeps its token and still commits
+  // if the GPS attempt never resolves (denied, timeout, ignored prompt).
+  const requestId = options.deferRequestId ? state.locationRequestId : ++state.locationRequestId;
   showStatus("Acquiring your current location...");
+
+  // Watchdog: some browsers never invoke the error callback while a
+  // permission prompt sits unanswered, so guarantee the fallback fires.
+  let settled = false;
+  const watchdog = setTimeout(() => {
+    if (settled) return;
+    settled = true;
+    state.gpsInFlight = false;
+    if (requestId !== state.locationRequestId) return;
+    hideStatus();
+    if (options.auto) {
+      startDefaultCityIfIdle(); // graceful: keep the default city loading
+    } else {
+      alert("Getting your location timed out. Please try again.");
+    }
+  }, options.auto ? 9000 : 15000);
 
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
+      // A watchdog-rescued session ignores late fixes — except in deferred
+      // auto mode, where the user may have granted AFTER the watchdog fired
+      // and an explicit grant should still be honored.
+      if (settled && !options.deferRequestId) return;
+      settled = true;
+      clearTimeout(watchdog);
       // Abort if a newer location request was started while the GPS fix
       // was pending — never commit a stale position.
       if (requestId !== state.locationRequestId) {
         state.gpsInFlight = false;
         return;
       }
+      // Deferred mode takes its token only now, at commit time.
+      const commitId = options.deferRequestId ? ++state.locationRequestId : requestId;
 
       const lat = pos?.coords?.latitude;
       const lon = pos?.coords?.longitude;
@@ -922,12 +955,12 @@ async function requestDeviceGps() {
           .catch(() => coordsLocation);
 
         // Kick the weather fetch with the raw coordinates right away.
-        await refreshWeatherData(requestId);
+        await refreshWeatherData(commitId);
 
         // Adopt the resolved city name (or the coordinate fallback) and
         // update labels/map; weather is already current for these coords.
         const rev = await revPromise;
-        if (requestId === state.locationRequestId) {
+        if (commitId === state.locationRequestId) {
           state.currentLocation = rev;
           updateLocationDisplay();
           renderMapScreen(); // marker tooltip + sensor card title use the real city
@@ -939,12 +972,19 @@ async function requestDeviceGps() {
       }
     },
     (err) => {
+      if (settled && !options.deferRequestId) return;
+      settled = true;
+      clearTimeout(watchdog);
       state.gpsInFlight = false;
       if (requestId !== state.locationRequestId) return;
       hideStatus();
-      // Keep the current (already sensible) location — e.g. the last
-      // searched city or the app default — and explain exactly what to do.
-      alert(`Could not get your location: ${geoErrorMessage(err)}`);
+      // Manual attempts explain the failure; automatic first-load attempts
+      // fail silently into the already-loading default location.
+      if (options.auto) {
+        startDefaultCityIfIdle();
+      } else {
+        alert(`Could not get your location: ${geoErrorMessage(err)}`);
+      }
     },
     {
       enableHighAccuracy: true,
@@ -1206,6 +1246,7 @@ function renderMapScreen() {
       longitude: state.currentLocation.longitude,
       name: locationDisplayName(),
       temp: hasTemp ? `${temp}°C` : "—",
+      deferInit: state.activeView !== "view-map", // lazy: no Leaflet/tiles off-screen
     });
   }
 }
@@ -2205,6 +2246,91 @@ async function postJSON(path, body) {
 // INITIALIZATION
 // ============================================================
 
+// Fallback used by auto-GPS watchdog/error paths: loads the default city
+// only when the pipeline is still idle (nothing newer, nothing committed).
+function startDefaultCityIfIdle() {
+  // Nothing newer owns the pipeline and no weather has landed: restore
+  // the default city fully (labels + weather). If weather DID land while
+  // GPS was pending, just restore its labels (name may still be "Locating…").
+  if (state.locationRequestId === 0 && !state.weather) {
+    state.currentLocation = { ...DEFAULT_LOCATION };
+    updateLocationDisplay();
+    refreshWeatherData();
+  } else if (state.currentLocation && !state.currentLocation.name) {
+    state.currentLocation = { ...DEFAULT_LOCATION };
+    updateLocationDisplay();
+  }
+}
+
+// ----------------------------------------------------------
+// FIRST-LOAD AUTO GPS
+// Prompts at most once per browser profile (Permissions API
+// gate), shows the status-bar "Locating…" state, loads the
+// default city in the meantime, and swaps to the detected
+// locality if the user grants. Denied/unsupported/error paths
+// fall back silently — the user is never nagged twice.
+// ----------------------------------------------------------
+function autoGpsOnFirstLoad() {
+  // Manual interactions may have already started a location session —
+  // never race them.
+  if (state.gpsInFlight || state.locationRequestId > 0) return;
+
+  if (!(navigator.geolocation && navigator.geolocation.getCurrentPosition)) {
+    refreshWeatherData(); // unsupported: straight to the default city
+    return;
+  }
+
+  // Offline (e.g. PWA offline relaunch): neither the GPS fix's reverse
+  // geocode nor its weather fetch can succeed — load the default city
+  // and skip the prompt entirely. The GPS button still works online.
+  if (navigator.onLine === false) {
+    refreshWeatherData();
+    return;
+  }
+
+  const startDefaultCity = () => {
+    // Only if nothing newer owns the pipeline and no weather has landed
+    // yet — avoids a duplicate fetch when the default city is already loading.
+    if (state.locationRequestId === 0 && !state.weather) refreshWeatherData();
+  };
+  // Small "Locating…" state in header/hero while the fix resolves (empty
+  // name renders as "Locating…" via updateLocationDisplay).
+  const showLocatingState = () => {
+    if (!state.weather) {
+      state.currentLocation = { name: "", admin1: "", country: "", latitude: DEFAULT_LOCATION.latitude, longitude: DEFAULT_LOCATION.longitude };
+      updateLocationDisplay();
+    }
+  };
+  const startAutoGps = () => requestDeviceGps({ auto: true, deferRequestId: true });
+
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: "geolocation" }).then((perm) => {
+      if (perm.state === "granted") {
+        showLocatingState();
+        startAutoGps(); // silent fix, no prompt
+      } else if (perm.state === "prompt") {
+        // Keep the app useful while the user decides: load the default
+        // city now; GPS supersedes it if granted (deferred token).
+        startDefaultCity();
+        showLocatingState();
+        startAutoGps(); // the one allowed automatic prompt
+        // If the user answers the prompt only after the watchdog has
+        // already fallen back to the default city, an explicit grant
+        // still resolves the fix.
+        perm.onchange = () => {
+          if (perm.state === "granted" && !state.gpsInFlight && state.locationRequestId === 0) {
+            startAutoGps();
+          }
+        };
+      } else {
+        startDefaultCity(); // denied: never prompt
+      }
+    }).catch(() => startDefaultCity());
+  } else {
+    startDefaultCity(); // conservative: no Permissions API support
+  }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   bindAssistantChips();
   bindInsightsScopeChips();
@@ -2216,6 +2342,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // Paint the initial sky before the first weather payload lands.
   applyDynamicSky("clear-day", "mild");
   applyPrecipFx("clear-day"); // rain/lightning layers start hidden
-  // Request GPS or load initial weather for default city
-  refreshWeatherData();
+  // Auto-request GPS on first load (graceful fallback to the default
+  // city on denial/timeout/unsupported) instead of always loading SF.
+  autoGpsOnFirstLoad();
 });
