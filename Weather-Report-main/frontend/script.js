@@ -290,6 +290,214 @@ function applyDynamicSky(condition, tempBand = "mild") {
 }
 
 // ============================================================
+// RAIN FX — precipitation overlay driven by REAL weather data
+// Drizzle/rain/thunder conditions (from the actual WMO code) get a
+// pooled raindrop overlay; the drop count and fall speed also scale
+// with the real precipitation amount. Thunderstorms additionally get
+// occasional lightning flashes with synthesized thunder (WebAudio,
+// lazily created — browsers that block autoplay keep the context
+// suspended, which is caught and ignored). Reduced-motion users get
+// a still, faint streak field instead of any animation.
+// Perf: drops animate transform-only on the compositor; the pool is
+// rebuilt only when the tier/count changes — zero JS per frame.
+// ============================================================
+
+const RAIN_TIER_BY_CONDITION = {
+  drizzle: { count: 42, durMin: 1.35, durMax: 1.95, lenMin: 10, lenMax: 15, wMin: 1.0, wMax: 1.5, oMin: 0.20, oMax: 0.40, color: "rgba(226, 239, 250, 0.55)" },
+  rain:    { count: 90, durMin: 0.85, durMax: 1.35, lenMin: 14, lenMax: 22, wMin: 1.2, wMax: 2.0, oMin: 0.32, oMax: 0.60, color: "rgba(224, 238, 250, 0.66)" },
+  thunder: { count: 140, durMin: 0.60, durMax: 1.00, lenMin: 18, lenMax: 28, wMin: 1.4, wMax: 2.4, oMin: 0.42, oMax: 0.72, color: "rgba(228, 240, 252, 0.78)" },
+};
+
+const rainFx = {
+  builtTier: null,     // condition tier the current pool was built for
+  builtCount: 0,       // drop count the current pool was built for
+  builtStatic: false,  // whether the pool was built for reduced motion
+  lightningTimer: null,
+  flashTimer: null,
+  audioCtx: null,
+  thunderBuffer: null,
+};
+
+function prefersReducedMotion() {
+  return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
+function buildRainPool(container, tier, count, reduced) {
+  let layer = container.querySelector(".rain-fx-layer");
+  if (!layer) {
+    layer = document.createElement("div");
+    layer.className = "rain-fx-layer";
+    container.appendChild(layer);
+  }
+  layer.style.setProperty("--rain-color", tier.color);
+
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < count; i++) {
+    const drop = document.createElement("span");
+    drop.className = "rain-drop";
+    // Natural variation in width, length, speed, opacity, position;
+    // negative delays start drops mid-fall so the field is full at t=0.
+    const w = tier.wMin + Math.random() * (tier.wMax - tier.wMin);
+    const h = tier.lenMin + Math.random() * (tier.lenMax - tier.lenMin);
+    const dur = tier.durMin + Math.random() * (tier.durMax - tier.durMin);
+    const o = tier.oMin + Math.random() * (tier.oMax - tier.oMin);
+    drop.style.left = (Math.random() * 100).toFixed(2) + "%";
+    drop.style.setProperty("--w", w.toFixed(2) + "px");
+    drop.style.setProperty("--h", h.toFixed(1) + "px");
+    drop.style.setProperty("--dur", dur.toFixed(2) + "s");
+    drop.style.setProperty("--delay", (-Math.random() * 2.5).toFixed(2) + "s");
+    drop.style.setProperty("--o", o.toFixed(2));
+    if (reduced) {
+      // No animation: freeze each streak at a random height, very faint.
+      drop.style.top = (Math.random() * 100).toFixed(2) + "%";
+      drop.style.setProperty("--o-static", (0.08 + Math.random() * 0.08).toFixed(2));
+    }
+    frag.appendChild(drop);
+  }
+  layer.textContent = "";
+  layer.appendChild(frag);
+}
+
+function applyPrecipFx(condition, precipMm, windDirFrom) {
+  const container = document.getElementById("rain-fx");
+  if (!container) return;
+
+  const reduced = prefersReducedMotion();
+  const tier = RAIN_TIER_BY_CONDITION[condition] || null;
+
+  if (!tier) {
+    container.classList.remove("is-visible");
+    rainFx.builtTier = null;
+    // Empty the pool so hidden drops stop compositing entirely.
+    const staleLayer = container.querySelector(".rain-fx-layer");
+    if (staleLayer) staleLayer.textContent = "";
+    stopLightningCycle();
+    return;
+  }
+
+  // Real precipitation amount modulates density (heavier = more drops).
+  const amount = Number.isFinite(precipMm) ? precipMm : null;
+  const density = amount == null ? 1 : amount <= 0.4 ? 0.7 : amount >= 5 ? 1.3 : 1;
+  const wantCount = Math.max(10, Math.round(tier.count * density));
+
+  if (rainFx.builtTier !== condition || rainFx.builtCount !== wantCount || rainFx.builtStatic !== reduced) {
+    buildRainPool(container, tier, wantCount, reduced);
+    rainFx.builtTier = condition;
+    rainFx.builtCount = wantCount;
+    rainFx.builtStatic = reduced;
+  }
+  container.classList.add("is-visible");
+
+  // Wind slant from the REAL wind_direction_10m (meteorological: the
+  // direction the wind blows FROM — drops slant the way it blows TO).
+  const layer = container.querySelector(".rain-fx-layer");
+  if (layer && Number.isFinite(windDirFrom)) {
+    let to = ((windDirFrom + 180) % 360 + 360) % 360;
+    if (to > 180) to -= 360;
+    const angle = Math.max(-18, Math.min(18, to));
+    layer.style.setProperty("--rain-angle", angle.toFixed(1) + "deg");
+  }
+
+  if (condition === "thunder" && !reduced) startLightningCycle();
+  else stopLightningCycle();
+}
+
+function startLightningCycle() {
+  if (rainFx.lightningTimer) return; // already running
+  scheduleNextStrike(2500 + Math.random() * 5000);
+}
+
+function scheduleNextStrike(delayMs) {
+  rainFx.lightningTimer = setTimeout(() => {
+    rainFx.lightningTimer = null;
+    if (document.hidden) {
+      // Tab in background: skip the invisible strike silently.
+    } else {
+      fireLightningStrike();
+    }
+    scheduleNextStrike(6000 + Math.random() * 9000);
+  }, delayMs);
+}
+
+function stopLightningCycle() {
+  clearTimeout(rainFx.lightningTimer);
+  rainFx.lightningTimer = null;
+  clearTimeout(rainFx.flashTimer);
+  rainFx.flashTimer = null;
+  const fx = document.getElementById("lightning-fx");
+  if (fx) fx.classList.remove("is-flash");
+}
+
+function fireLightningStrike() {
+  const fx = document.getElementById("lightning-fx");
+  if (!fx) return;
+  fx.style.setProperty("--flash-x", (15 + Math.random() * 70).toFixed(0) + "%");
+  fx.style.setProperty("--flash-y", (8 + Math.random() * 30).toFixed(0) + "%");
+  fx.style.setProperty("--flash-i", (0.45 + Math.random() * 0.5).toFixed(2));
+  const dur = Math.round(420 + Math.random() * 380);
+  fx.style.setProperty("--flash-dur", dur + "ms");
+  // Restart the CSS animation even if one is already mid-flight.
+  fx.classList.remove("is-flash");
+  void fx.offsetWidth;
+  fx.classList.add("is-flash");
+  clearTimeout(rainFx.flashTimer);
+  rainFx.flashTimer = setTimeout(() => fx.classList.remove("is-flash"), dur + 80);
+  // Thunder arrives after the flash — the farther strike, the longer.
+  playThunder(400 + Math.random() * 1600);
+}
+
+// Synthesized thunder: filtered noise burst with exponential decay,
+// generated ONCE into a cached AudioBuffer. The AudioContext is created
+// lazily and only resumed on strike; browsers that block autoplay keep
+// it suspended and the resume rejection is swallowed — the flash still
+// runs, nothing throws, and audio starts after the first user gesture.
+function playThunder(delayMs) {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    if (!rainFx.audioCtx) rainFx.audioCtx = new AudioCtx();
+    const ctx = rainFx.audioCtx;
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    const src = ctx.createBufferSource();
+    src.buffer = getThunderBuffer(ctx);
+    const gain = ctx.createGain();
+    gain.gain.value = 0.22; // subtle, not startling
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 320;
+    src.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+    src.start(ctx.currentTime + delayMs / 1000);
+  } catch (err) { /* audio unavailable — the visual flash still runs */ }
+}
+
+function getThunderBuffer(ctx) {
+  if (rainFx.thunderBuffer) return rainFx.thunderBuffer;
+  const sampleRate = ctx.sampleRate;
+  const frames = Math.floor(sampleRate * (2.6 + Math.random() * 1.4));
+  const buf = ctx.createBuffer(1, frames, sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < frames; i++) {
+    const t = i / sampleRate;
+    const crack = (Math.random() * 2 - 1) * Math.exp(-t * 3.2) * 0.5;
+    const rumble = (Math.random() * 2 - 1) * Math.exp(-t * 0.9) * 0.5;
+    const low = Math.sin(2 * Math.PI * (55 + Math.sin(t * 1.7) * 12) * t) * Math.exp(-t * 1.1) * 0.35;
+    const envelope = Math.exp(-t * 0.85) * (1 - Math.exp(-t * 12));
+    data[i] = (crack + rumble + low) * envelope;
+  }
+  rainFx.thunderBuffer = buf;
+  return buf;
+}
+
+// If the OS-level reduced-motion preference flips mid-session, rebuild
+// the pool (animated field ↔ static field) for the current condition.
+if (window.matchMedia) {
+  const rmQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const onRmChange = () => applyPrecipFx(document.body.dataset.condition || "clear-day");
+  if (rmQuery.addEventListener) rmQuery.addEventListener("change", onRmChange);
+  else if (rmQuery.addListener) rmQuery.addListener(onRmChange);
+}
+
+// ============================================================
 // DOM ELEMENTS
 // ============================================================
 
@@ -791,6 +999,8 @@ function renderForecastScreen() {
   document.body.dataset.condition = cat;
   document.body.dataset.tempBand = tempBandFor(temp);
   applyDynamicSky(cat, tempBandFor(temp));
+  // Precipitation overlay + storm lightning, from the same real payload.
+  applyPrecipFx(cat, current.precipitation, current.wind_direction_10m);
 
   if (els.heroTemperature) els.heroTemperature.textContent = temp;
   if (els.heroTempFeels) els.heroTempFeels.textContent = `${feels}°`;
@@ -1985,6 +2195,7 @@ window.addEventListener("DOMContentLoaded", () => {
   updateLocationDisplay();
   // Paint the initial sky before the first weather payload lands.
   applyDynamicSky("clear-day", "mild");
+  applyPrecipFx("clear-day"); // rain/lightning layers start hidden
   // Request GPS or load initial weather for default city
   refreshWeatherData();
 });
