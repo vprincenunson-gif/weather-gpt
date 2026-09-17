@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v7"; // v7: Smart Rain Alert + Rain Timeline
+const CACHE_NAME = "weathergpt-shell-v8"; // v8: premium dual-theme Living Sky + Light/Dark toggle
 
 const SHELL_FILES = [
   "/",

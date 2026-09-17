@@ -151,6 +151,15 @@ The engine is translated at the data level — each rule carries English, Hindi 
 
 The forecast hero card displays a lightweight inline-SVG cloud/sun glyph whose colors reflect the current condition category. It is decorative and independent of live data.
 
+### 5.12b Premium Living Sky & Light/Dark Themes
+
+The background is a layered, weather-aware atmosphere built entirely from the real Open-Meteo payload (no new frameworks — pure CSS + a few lines of JS):
+
+- **Layered depth** — per-condition multi-stop gradients (12 skies × 2 themes) with embedded radial warm-horizon / electric-storm glows, up to four slowly drifting cloud bands, a sun/moon glow, gently swaying crepuscular rays on fair days, a twinkling sparkle field on snow, plus the existing stars, mist veil, rain and lightning. All state derives from the real WMO condition (`applySkyFx` writes `data-sky`/`data-clouds`/`data-day` on `#sky-fx`).
+- **Light/Dark toggle** — a header button (between location and language pills) flips `<html data-theme>`. The choice persists in `localStorage` (`weathergpt-theme`); with no saved choice the app follows the OS `prefers-color-scheme` and keeps following it until the user explicitly toggles. An inline head script applies the theme **before first paint**, so dark mode never flashes white on load. The PWA `theme-color` status-bar tint follows the active theme.
+- **Full-surface theming** — the entire Tailwind palette is mapped to rgb-triplet CSS variables re-declared under `html[data-theme="dark"]`, so every tab (Forecast, Radar Map, WeatherGPT, Farmer, Insights), the header, modals, the bottom dock, charts, cards and ink re-theme consistently. AQI status colors and the radar marker label read theme tokens; the radar basemap switches between CARTO light tiles and Dark Matter to match.
+- **Readability & motion care** — dark-theme accents are lightened for AA contrast, content sits on a dark paper wash below the hero, and `prefers-reduced-motion` freezes all atmosphere motion (clouds park, rays stop swaying, sparkle stills) alongside the existing rain/lightning rules. Rain drop tint follows the theme (paler drops on dark skies); the rain and thunderstorm effects remain fully functional in both themes.
+
 ### 5.13 Smart Rain Alert & Rain Timeline
 
 The Forecast tab gains two data-backed rain surfaces, both derived from the **same real hourly Open-Meteo payload** already powering the app (deterministic logic in `backend/app.py` — no invented numbers):
@@ -238,7 +247,8 @@ All client logic lives in `frontend/script.js` (vanilla JavaScript, no bundler).
 6. Switch to the **Radar Map** tab to view the live radar map and tap the marker for a sensor readout of the current location.
 7. Ask questions from any tab using the bottom "Ask anything" bar, or open the **WeatherGPT** tab, type a question, or tap the microphone to ask by voice; review the AI's answer, optimal activity window, route notes, and clothing guidance.
 8. Switch to the **Insights** tab to review any active hazard alerts and pressure/UV trends in more detail.
-8. Install the app to your home screen (Android: browser menu → "Install app"/"Add to Home screen"; iOS Safari: Share → "Add to Home Screen") for a full-screen, app-like experience.
+9. Toggle **Light/Dark mode** with the moon/sun button in the header — the choice is remembered across visits (and defaults to your device's own light/dark setting until you pick).
+10. Install the app to your home screen (Android: browser menu → "Install app"/"Add to Home screen"; iOS Safari: Share → "Add to Home Screen") for a full-screen, app-like experience.
 
 ## 10. Technologies, Frameworks, APIs & Libraries
 
@@ -264,6 +274,7 @@ All client logic lives in `frontend/script.js` (vanilla JavaScript, no bundler).
 | Google Fonts (Outfit, Inter, Noto Sans Devanagari, Noto Sans Telugu, Material Symbols) | Typography and icons |
 | Service Worker API | Offline app-shell caching |
 | Web Manifest (`manifest.json`) | PWA installability, icons, shortcuts |
+| CSS custom properties + `prefers-color-scheme` | Dual-theme token system (Light/Dark) without a framework |
 | MediaRecorder / getUserMedia (Web APIs) | In-browser audio recording for voice queries |
 | Geolocation API | Device GPS lookup |
 | Leaflet.js (CDN) | Interactive map rendering for the Radar Map tab |

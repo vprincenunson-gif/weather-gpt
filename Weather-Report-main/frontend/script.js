@@ -12,6 +12,67 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+// 1b. THEME MANAGER — Light/Dark with persistence.
+// The inline bootstrap script in <head> already applied the saved theme
+// before first paint (no flash); this adds the toggle, localStorage
+// persistence and live prefers-color-scheme tracking for "system".
+const THEME_KEY = "weathergpt-theme";
+
+function currentTheme() {
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+}
+
+function applyTheme(theme, { persist = false } = {}) {
+  const root = document.documentElement;
+  root.classList.toggle("dark", theme === "dark");
+  root.dataset.theme = theme;
+  const btn = document.getElementById("theme-toggle-btn");
+  if (btn) {
+    btn.setAttribute("aria-pressed", String(theme === "dark"));
+    btn.setAttribute("aria-label", theme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+  }
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch (e) {
+      /* private mode: theme still applies for the session */
+    }
+  }
+}
+
+function initThemeToggle() {
+  const btn = document.getElementById("theme-toggle-btn");
+  if (!btn) return;
+  // Reflect the bootstrapped theme into the button state immediately.
+  applyTheme(currentTheme());
+  btn.addEventListener("click", () => {
+    applyTheme(currentTheme() === "dark" ? "light" : "dark", { persist: true });
+    // Keep the PWA status-bar tint and any live rain tinted per theme.
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", currentTheme() === "dark" ? "#0F1626" : "#3D7CC9");
+    syncRainFxTheme();
+  });
+  // Keep "system-default" sessions in sync with OS changes until the
+  // user explicitly picks a side (an explicit pick persists and wins).
+  if (window.matchMedia) {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = (e) => {
+      let saved = null;
+      try {
+        saved = localStorage.getItem(THEME_KEY);
+      } catch (err) {
+        /* ignore */
+      }
+      if (saved !== "light" && saved !== "dark") applyTheme(e.matches ? "dark" : "light");
+      // Also refresh the PWA status bar color to match.
+      const meta = document.querySelector('meta[name="theme-color"]:not([media])');
+      if (meta) meta.setAttribute("content", e.matches ? "#0F1626" : "#3D7CC9");
+    };
+    if (mq.addEventListener) mq.addEventListener("change", onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  }
+}
+
 const API_BASE = "";
 
 // Startup location used until GPS resolves (or as the graceful fallback
@@ -329,6 +390,36 @@ const SKY_CLASS_BY_TEMP_BAND = {
 
 const NIGHT_CONDITIONS = new Set(["clear-night", "partly-cloudy-night", "thunder"]);
 
+// ============================================================
+// ATMOSPHERE FX STATE — drives the premium depth layer (#sky-fx).
+// All inputs come from the REAL condition category; the density
+// tiers map to how much cloud/depth each sky should carry.
+// ============================================================
+
+const SKY_FX_STATE = {
+  // fair = clear / partly cloudy (gets sun glow + rays);
+  // cloudy/rain/drizzle/thunder/snow/fog get clouds, snow gets sparkle.
+  skyKind(condition) {
+    if (condition === "clear-day" || condition === "clear-night" ||
+        condition === "partly-cloudy-day" || condition === "partly-cloudy-night") return "fair";
+    return condition; // cloudy | rain | drizzle | thunder | snow | fog
+  },
+  clouds(condition) {
+    if (condition === "partly-cloudy-day" || condition === "partly-cloudy-night") return "1";
+    if (condition === "cloudy" || condition === "fog") return "2";
+    if (condition === "rain" || condition === "drizzle" || condition === "thunder") return "3";
+    return "0";
+  },
+};
+
+function applySkyFx(condition, isDay = 1) {
+  const fx = document.getElementById("sky-fx");
+  if (!fx) return;
+  fx.dataset.sky = SKY_FX_STATE.skyKind(condition);
+  fx.dataset.clouds = SKY_FX_STATE.clouds(condition);
+  fx.dataset.day = isDay !== 0 ? "1" : "0";
+}
+
 function skyClassFor(condition, tempBand) {
   if ((tempBand === "hot" || tempBand === "cold") && (condition === "clear-day" || condition === "partly-cloudy-day")) {
     return SKY_CLASS_BY_TEMP_BAND[tempBand];
@@ -459,6 +550,16 @@ function buildRainPool(container, tier, count, reduced) {
   }
   layer.textContent = "";
   layer.appendChild(frag);
+}
+
+function syncRainFxTheme() {
+  const layer = document.querySelector("#rain-fx .rain-fx-layer");
+  if (!layer) return;
+  const dark = document.documentElement.dataset.theme === "dark";
+  layer.style.setProperty(
+    "--rain-color",
+    dark ? "rgba(205, 224, 245, 0.8)" : null // null -> CSS tier default
+  );
 }
 
 function applyPrecipFx(condition, precipMm, windDirFrom) {
@@ -1133,8 +1234,11 @@ async function refreshWeatherData(requestId = state.locationRequestId) {
       refreshFarmAdvice();
     }
 
-    // Trigger AI report synthesis asynchronously
-    generateAiReport(requestId);
+  // Trigger AI report synthesis asynchronously
+  generateAiReport(requestId);
+
+  // Rain drop tint follows the theme (dark skies need paler drops).
+  syncRainFxTheme();
   } catch (err) {
     if (requestId === state.locationRequestId) {
       console.error("Weather fetch failed:", err);
@@ -1162,6 +1266,8 @@ function renderForecastScreen() {
   document.body.dataset.condition = cat;
   document.body.dataset.tempBand = tempBandFor(temp);
   applyDynamicSky(cat, tempBandFor(temp));
+  // Clouds / sun glow / rays / sparkle depth layer, same real condition.
+  applySkyFx(cat, isDay);
   // Precipitation overlay + storm lightning, from the same real payload.
   applyPrecipFx(cat, current.precipitation, current.wind_direction_10m);
   // Smart Rain Alert + Rain Timeline — same real hourly payload.
@@ -1190,9 +1296,12 @@ function renderForecastScreen() {
 
   // Air Quality — US AQI is the primary scale; fall back to European AQI
   // only if US AQI is genuinely absent, and never fabricate a value.
+  // Colors read the theme tokens so dark mode keeps AA contrast.
   const aqiVal = state.airQuality?.us_aqi ?? state.airQuality?.european_aqi ?? null;
   const aqiLabel = aqiVal == null ? "—" : aqiVal <= 50 ? "Good" : aqiVal <= 100 ? "Moderate" : "Unhealthy";
-  const aqiColor = aqiVal == null ? "#64748B" : aqiVal <= 50 ? "#15803D" : aqiVal <= 100 ? "#B45309" : "#C0392B";
+  const aqiColor = aqiVal == null
+    ? "rgb(var(--ink-tertiary))"
+    : aqiVal <= 50 ? "rgb(var(--tertiary-fixed-dim))" : aqiVal <= 100 ? "rgb(var(--primary))" : "rgb(var(--alert-coral))";
 
   if (els.telemetryAqiNum) {
     els.telemetryAqiNum.textContent = aqiVal == null ? "—" : aqiVal;
@@ -1331,7 +1440,12 @@ function renderSmartRainAlert() {
   // Title/badge stay localized even while the banner is hidden, so a
   // language switch never leaves stale text in the DOM.
   if (els.smartRainTitle) els.smartRainTitle.textContent = t.alertTitle;
-  if (els.smartRainBadge) els.smartRainBadge.textContent = t.badge;
+  if (els.smartRainBadge) {
+    els.smartRainBadge.textContent = t.badge;
+    // Badge text must stay readable on the accent fill in BOTH themes
+    // (dark --secondary is a light sky-blue, so ink beats white).
+    els.smartRainBadge.style.color = "rgb(var(--on-primary))";
+  }
 
   const alert = smartRainAlertLocalized();
   if (!alert) {
@@ -2501,6 +2615,7 @@ function autoGpsOnFirstLoad() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+  initThemeToggle();
   bindAssistantChips();
   bindInsightsScopeChips();
   initFarmAdvisor();
@@ -2510,6 +2625,7 @@ window.addEventListener("DOMContentLoaded", () => {
   updateLocationDisplay();
   // Paint the initial sky before the first weather payload lands.
   applyDynamicSky("clear-day", "mild");
+  applySkyFx("clear-day", 1); // clouds/sun-glow/rays layer starts on the fair-day default
   applyPrecipFx("clear-day"); // rain/lightning layers start hidden
   // Auto-request GPS on first load (graceful fallback to the default
   // city on denial/timeout/unsupported) instead of always loading SF.

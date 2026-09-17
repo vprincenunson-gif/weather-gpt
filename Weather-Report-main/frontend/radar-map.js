@@ -53,11 +53,17 @@
   let activeLayer = "precip"; // "precip" | "clouds" (satellite infrared)
   let activeFrameIndex = -1; // index into the active layer's frame array; -1 until loaded
 
+  // Basemap follows the app theme: light paper tiles in light mode,
+  // CARTO Dark Matter in dark mode (both free browser-embeddable rasters).
+  function themeBasemapStyle() {
+    const dark = document.documentElement.dataset.theme === "dark";
+    return dark ? "dark_all" : "light_all";
+  }
+
   function refreshBasemap() {
     if (!basemapLayer) return;
-    // Light basemap matches the Living Sky redesign's paper surfaces.
     basemapLayer.setUrl(
-      `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=${CARTO_API_KEY}`
+      `https://basemaps.cartocdn.com/rastertiles/${themeBasemapStyle()}/{z}/{x}/{y}.png?key=${CARTO_API_KEY}`
     );
   }
 
@@ -73,10 +79,9 @@
       zoom: 3,
     });
 
-    // Light basemap (CARTO "Voyager"-style light tiles) to match the
-    // Living Sky redesign's paper surfaces.
+    // Basemap tiles follow the current theme (see themeBasemapStyle).
     basemapLayer = L.tileLayer(
-      `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=${CARTO_API_KEY}`,
+      `https://basemaps.cartocdn.com/rastertiles/${themeBasemapStyle()}/{z}/{x}/{y}.png?key=${CARTO_API_KEY}`,
       {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         maxZoom: 19,
@@ -227,4 +232,15 @@
     setLayer,
     stepToOffsetMinutes,
   };
+
+  // Re-theme the basemap when the app toggles Light/Dark. The MutationObserver
+  // avoids any coupling to script.js (works even if the map is lazy-inited).
+  let basemapTheme = null;
+  const themeObserver = new MutationObserver(() => {
+    const theme = document.documentElement.dataset.theme;
+    if (!mapInitialized || !theme || theme === basemapTheme) return;
+    basemapTheme = theme;
+    refreshBasemap();
+  });
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 })();

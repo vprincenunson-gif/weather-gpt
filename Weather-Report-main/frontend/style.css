@@ -1,38 +1,151 @@
 /* ============================================================
    WeatherGPT • "Living Sky" Design System
-   The sky is the interface: one full-viewport animated sky
-   gradient mirrors the real weather + temperature (data-driven
-   from WMO codes). Content floats above on solid paper cards
-   with slate ink, so text contrast never dips below WCAG AA.
+   The sky is the interface: layered, weather-aware atmosphere
+   (gradient + drifting clouds + sun glow / light rays + snow
+   sparkle + real-precipitation rain) mirrors the actual weather.
+   Content floats above on solid paper cards, so text contrast
+   never dips below WCAG AA. Full LIGHT + DARK themes via
+   [data-theme] tokens (see theme-toggle in script.js).
    ============================================================ */
+
+/* Token notes:
+   - Surface/accent/ink tokens are RGB TRIPLETS ("26 35 50") so the
+     Tailwind config can map them with rgb(var(--x) / <alpha-value>),
+     keeping /50-style opacity modifiers working in both themes.
+   - --atmo-* / --content-wash-* / --header-bg are full rgba() values
+     (they use alpha and are consumed only here in style.css).
+   - --shadow-tint is an R,G,B triplet for box-shadow tinting. */
 
 :root {
   /* Paper surfaces + slate ink */
-  --surface-dim: #E8EDF3;
-  --surface: #F5F7FA;
-  --surface-bright: #F0F4F9;
-  --surface-container-lowest: #FFFFFF;
-  --surface-container-low: #F5F8FB;
-  --surface-container: #F0F4F8;
-  --surface-container-high: #FFFFFF;
-  --surface-container-highest: #EAF0F6;
-  --surface-navy: #DCE7F2;
+  --surface-dim: 232 237 243;
+  --surface: 245 247 250;
+  --surface-bright: 240 244 249;
+  --surface-container-lowest: 255 255 255;
+  --surface-container-low: 245 248 251;
+  --surface-container: 240 244 248;
+  --surface-container-high: 255 255 255;
+  --surface-container-highest: 234 240 246;
+  --surface-navy: 220 231 242;
 
   /* Accents (AA-checked on white) */
-  --primary: #B45309;
-  --primary-container: #F59E0B;
-  --primary-fixed-dim: #D97706;
-  --secondary: #0369A1;
-  --secondary-container: #E0F2FE;
-  --alert-coral: #C0392B;
-  --alert-coral-bg: #FDECEA;
-  --alert-coral-border: rgba(192, 57, 43, 0.35);
-  --ink-primary: #1A2332;
-  --ink-secondary: rgba(26, 35, 50, 0.74);
-  --ink-tertiary: rgba(26, 35, 50, 0.68);
+  --primary: 180 83 9;
+  --primary-container: 245 158 11;
+  --primary-fixed-dim: 217 119 6;
+  --on-primary: 255 255 255;
+  --on-primary-dark: 255 255 255;
+  --on-amber: 120 53 15;
+  --secondary: 3 105 161;
+  --secondary-container: 224 242 254;
+  --secondary-fixed: 7 89 133;
+  --secondary-fixed-dim: 3 105 161;
+  --tertiary: 17 94 89;
+  --tertiary-container: 204 251 241;
+  --tertiary-fixed: 15 118 110;
+  --tertiary-fixed-dim: 13 148 136;
+  --amber-glow-surface: 254 243 199;
+  --alert-coral: 192 57 43;
+  --alert-coral-bg: 253 236 234;
+  --alert-coral-border: 192 57 43;
+  --alert-coral-text: 169 50 38;
+  --ink-primary: 26 35 50;
+  --ink-secondary: 26 35 50;
+  --ink-tertiary: 26 35 50;
 
-  --glass-border: rgba(20, 40, 70, 0.10);
-  --glass-border-subtle: rgba(20, 40, 70, 0.07);
+  --glass-base: 255 255 255;
+  --glass-elevated: 255 255 255;
+  --glass-highest: 255 255 255;
+  --glass-border: 20 40 70;
+  --glass-border-subtle: 20 40 70;
+
+  /* Legacy alpha values (style.css-only consumers) */
+  --ink-secondary-alpha: 0.74;
+  --ink-tertiary-alpha: 0.68;
+  --alert-coral-border-alpha: 0.35;
+  --glass-border-alpha: 0.10;
+  --glass-border-subtle-alpha: 0.07;
+
+  /* Atmosphere (light theme) */
+  --atmo-cloud: rgba(255, 255, 255, 0.85);
+  --atmo-cloud-shade: rgba(148, 168, 190, 0.30);
+  --atmo-cloud-border: rgba(255, 255, 255, 0.65);
+  --atmo-glow: rgba(255, 214, 130, 0.55);
+  --atmo-ray: rgba(255, 232, 180, 0.30);
+  --atmo-mist: rgba(240, 245, 250, 0.55);
+  --atmo-sparkle: rgba(255, 255, 255, 0.95);
+  --atmo-vignette: rgba(20, 35, 60, 0.22);
+  --content-wash-1: rgba(238, 243, 248, 0);
+  --content-wash-2: rgba(238, 243, 248, 0.88);
+  --content-wash-3: rgba(240, 245, 250, 0.93);
+  --header-bg: rgba(232, 237, 243, 0.80);
+  --shadow-tint: 20, 40, 70;
+}
+
+/* Dark theme: deep navy night palette. Same token names, so the
+   entire Tailwind-config palette (mapped to these vars below)
+   re-themes with zero markup changes. */
+html[data-theme="dark"] {
+  --surface-dim: 16 21 31;
+  --surface: 19 25 38;
+  --surface-bright: 26 34 49;
+  --surface-container-lowest: 23 30 44;
+  --surface-container-low: 21 28 42;
+  --surface-container: 27 35 52;
+  --surface-container-high: 28 36 52;
+  --surface-container-highest: 35 45 64;
+  --surface-navy: 26 35 52;
+
+  /* Accents — lightened to keep AA contrast on dark cards */
+  --primary: 240 179 87;
+  --primary-container: 217 119 6;
+  --primary-fixed-dim: 240 179 87;
+  --on-primary: 255 255 255;
+  --on-primary-dark: 255 255 255;
+  --on-amber: 255 243 199;
+  --secondary: 124 196 238;
+  --secondary-container: 18 58 82;
+  --secondary-fixed: 125 178 217;
+  --secondary-fixed-dim: 124 196 238;
+  --tertiary: 77 208 194;
+  --tertiary-container: 18 68 63;
+  --tertiary-fixed: 102 214 200;
+  --tertiary-fixed-dim: 77 208 194;
+  --amber-glow-surface: 66 50 20;
+  --alert-coral: 240 138 122;
+  --alert-coral-bg: 62 28 24;
+  --alert-coral-border: 240 138 122;
+  --alert-coral-text: 247 165 152;
+  --ink-primary: 237 241 247;
+  --ink-secondary: 232 238 247;
+  --ink-tertiary: 232 238 247;
+
+  --glass-base: 28 36 52;
+  --glass-elevated: 32 41 58;
+  --glass-highest: 38 48 66;
+  --glass-border: 160 185 220;
+  --glass-border-subtle: 160 185 220;
+
+  /* Legacy alpha values (style.css-only consumers) */
+  --ink-secondary-alpha: 0.76;
+  --ink-tertiary-alpha: 0.60;
+  --alert-coral-border-alpha: 0.38;
+  --glass-border-alpha: 0.14;
+  --glass-border-subtle-alpha: 0.09;
+
+  /* Atmosphere (dark theme): moonlit clouds, cooler glow */
+  --atmo-cloud: rgba(196, 210, 232, 0.16);
+  --atmo-cloud-shade: rgba(8, 12, 24, 0.42);
+  --atmo-cloud-border: rgba(205, 220, 240, 0.10);
+  --atmo-glow: rgba(255, 190, 110, 0.20);
+  --atmo-ray: rgba(255, 224, 170, 0.07);
+  --atmo-mist: rgba(10, 14, 24, 0.55);
+  --atmo-sparkle: rgba(235, 244, 255, 0.9);
+  --atmo-vignette: rgba(0, 0, 0, 0.5);
+  --content-wash-1: rgba(13, 17, 27, 0);
+  --content-wash-2: rgba(13, 17, 27, 0.86);
+  --content-wash-3: rgba(13, 17, 27, 0.94);
+  --header-bg: rgba(13, 17, 27, 0.78);
+  --shadow-tint: 0, 0, 0;
 }
 
 /* Reset & Ergonomics */
@@ -46,21 +159,37 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
-  background-color: var(--surface-dim);
-  color: var(--ink-primary);
+  background-color: rgb(var(--surface-dim));
+  color: rgb(var(--ink-primary));
   font-family: 'Inter', 'Noto Sans Devanagari', 'Noto Sans Telugu', system-ui, -apple-system, sans-serif;
   overscroll-behavior-y: none;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Safe-area insets for modern edge-to-edge mobile screens */
-.pt-safe {
-  padding-top: max(16px, env(safe-area-inset-top, 16px));
+/* Frosted header in both themes (bg utility replaced with a var so the
+   dark theme gets a true dark frost). */
+header#app-header {
+  background: var(--header-bg);
 }
 
-.pb-safe {
-  padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+/* Smooth, GPU-composited theme crossfade (skies transition via their
+   own opacity rules; colors ease so the toggle never snaps). */
+body,
+header,
+main,
+#search-modal,
+#voice-overlay,
+#persistent-bottom-dock nav,
+#persistent-bottom-dock form,
+#map-sensor-card > div,
+.radar-map-shell {
+  transition: background-color 0.45s ease, color 0.45s ease, border-color 0.45s ease;
 }
+
+/* THEME TOGGLE: one icon per theme, CSS picks the visible one. */
+#theme-toggle-btn .theme-icon-dark { display: none; }
+html[data-theme="dark"] #theme-toggle-btn .theme-icon-light { display: none; }
+html[data-theme="dark"] #theme-toggle-btn .theme-icon-dark { display: inline; }
 
 /* Scrollbar Hiding */
 ::-webkit-scrollbar {
@@ -91,71 +220,264 @@ html, body {
   opacity: 1;
 }
 
-/* --- Clear day: morning-blue sky, warm horizon ------------- */
+/* --- Clear day: deep zenith blue easing into a warm sunlit horizon --- */
 .sky-layer.sky-clear-day {
-  background: linear-gradient(180deg, #2F6DB8 0%, #4A8CCB 34%, #8FBEE0 68%, #E8F2FA 100%);
+  background:
+    radial-gradient(120% 58% at 84% -8%, rgba(255, 208, 116, 0.38) 0%, rgba(255, 208, 116, 0) 58%),
+    linear-gradient(180deg, #1E5FA8 0%, #3E7FC2 26%, #7FB0DC 55%, #C8E2F4 82%, #F2F8FD 100%);
 }
 
-/* --- Clear night: deep indigo dusk, faint horizon glow ----- */
+/* --- Clear night: deep indigo, faint moon glow at the horizon -------- */
 .sky-layer.sky-clear-night {
-  background: linear-gradient(180deg, #101B33 0%, #1B2B4D 44%, #2A3F66 74%, #3D5480 100%);
+  background:
+    radial-gradient(90% 46% at 16% -6%, rgba(190, 214, 255, 0.16) 0%, rgba(190, 214, 255, 0) 60%),
+    linear-gradient(180deg, #0A1226 0%, #101B36 38%, #1B2C52 68%, #2E4470 100%);
 }
 
-/* --- Partly cloudy: soft blue with gentle cloud white ------ */
+/* --- Partly cloudy: blue sky giving way to soft cloud white ---------- */
 .sky-layer.sky-partly-cloudy-day {
-  background: linear-gradient(180deg, #5588BE 0%, #7FA9D4 40%, #B8D3E8 76%, #EDF3F9 100%);
+  background:
+    radial-gradient(110% 52% at 76% -6%, rgba(255, 218, 150, 0.24) 0%, rgba(255, 218, 150, 0) 55%),
+    linear-gradient(180deg, #3F74B0 0%, #6C9BD0 34%, #A6C6E6 66%, #E3EEF8 100%);
 }
 
-/* --- Partly cloudy night: blue-grey dusk ------------------- */
+/* --- Partly cloudy night: blue-grey dusk ----------------------------- */
 .sky-layer.sky-partly-cloudy-night {
-  background: linear-gradient(180deg, #182338 0%, #243350 48%, #33456A 78%, #46587D 100%);
+  background: linear-gradient(180deg, #131D33 0%, #1D2A48 42%, #2B3C63 74%, #3D5180 100%);
 }
 
-/* --- Cloudy: even layered slate cloud deck ----------------- */
+/* --- Cloudy: even layered slate cloud deck --------------------------- */
 .sky-layer.sky-cloudy {
-  background: linear-gradient(180deg, #6E7F91 0%, #8C9AA9 42%, #B4C0CB 74%, #E4E9EE 100%);
+  background: linear-gradient(180deg, #5F7183 0%, #7E8FA1 34%, #A8B6C3 68%, #DCE3EA 100%);
 }
 
-/* --- Rain: steel blue, rain-washed air --------------------- */
+/* --- Rain: steel blue, rain-washed air ------------------------------- */
 .sky-layer.sky-rain {
-  background: linear-gradient(180deg, #43607E 0%, #5C7794 42%, #8AA2BB 74%, #D9E2EC 100%);
+  background: linear-gradient(180deg, #334E68 0%, #4A6480 34%, #6F89A4 66%, #C2D2E2 100%);
 }
 
-/* --- Drizzle: lighter wash between rain and cloudy --------- */
+/* --- Drizzle: lighter wash between rain and cloudy ------------------- */
 .sky-layer.sky-drizzle {
-  background: linear-gradient(180deg, #56718C 0%, #718CA8 44%, #9FB4CB 76%, #E2EAF2 100%);
+  background: linear-gradient(180deg, #49647E 0%, #62809C 36%, #8CA6BF 68%, #D5E2ED 100%);
 }
 
-/* --- Thunderstorm: deep graphite indigo ------------------- */
+/* --- Thunderstorm: deep graphite indigo with an electric horizon ----- */
 .sky-layer.sky-thunder {
-  background: linear-gradient(180deg, #242B3D 0%, #333D57 46%, #4A5578 76%, #6D7794 100%);
+  background:
+    radial-gradient(120% 40% at 50% 112%, rgba(126, 146, 204, 0.35) 0%, rgba(126, 146, 204, 0) 60%),
+    linear-gradient(180deg, #1B2233 0%, #28324A 40%, #3B4766 72%, #5A6488 100%);
 }
 
-/* --- Snow: pale ice-blue porcelain ------------------------- */
+/* --- Snow: pale ice-blue porcelain ----------------------------------- */
 .sky-layer.sky-snow {
-  background: linear-gradient(180deg, #A9BFD4 0%, #C4D6E6 40%, #E2ECF4 72%, #F7FAFD 100%);
+  background: linear-gradient(180deg, #93AEC8 0%, #B7CCE0 36%, #D9E6F1 68%, #F6FAFD 100%);
 }
 
-/* --- Fog: milky layered haze ------------------------------- */
+/* --- Fog: milky layered haze ----------------------------------------- */
 .sky-layer.sky-fog {
-  background: linear-gradient(180deg, #9AA6B1 0%, #B4BEC7 44%, #D3DADF 74%, #EFF2F5 100%);
+  background: linear-gradient(180deg, #8D9AA6 0%, #A9B4BE 38%, #C9D1D7 70%, #EBEEF1 100%);
 }
 
-/* --- Hot: heat-bleached high sun --------------------------- */
+/* --- Hot: heat-bleached high sun -------------------------------------- */
 .sky-layer.sky-hot {
-  background: linear-gradient(180deg, #4A87C9 0%, #7FB0DB 38%, #D9E9F6 70%, #FFF3E2 100%);
+  background:
+    radial-gradient(130% 60% at 78% -10%, rgba(255, 178, 82, 0.42) 0%, rgba(255, 178, 82, 0) 58%),
+    linear-gradient(180deg, #2E6FB4 0%, #5E9AD0 30%, #A8CBE9 62%, #F4E4C8 100%);
 }
 
-/* --- Cold: porcelain winter blue --------------------------- */
+/* --- Cold: porcelain winter blue -------------------------------------- */
 .sky-layer.sky-cold {
-  background: linear-gradient(180deg, #7FA2C2 0%, #A5BFD8 44%, #CBDDEB 76%, #F0F5FA 100%);
+  background: linear-gradient(180deg, #6E94B8 0%, #93B3D0 40%, #BDD5E6 72%, #EDF4F9 100%);
+}
+
+/* ============================================================
+   DARK THEME SKIES — moonlit night palettes. Day conditions
+   become deep storm-glass blues (never pure black), keeping
+   the app alive while cards/ink stay comfortably readable.
+   ============================================================ */
+html[data-theme="dark"] .sky-layer.sky-clear-day {
+  background:
+    radial-gradient(120% 55% at 82% -8%, rgba(255, 190, 110, 0.16) 0%, rgba(255, 190, 110, 0) 56%),
+    linear-gradient(180deg, #0D1526 0%, #15203A 34%, #1F3054 62%, #2C4166 100%);
+}
+
+html[data-theme="dark"] .sky-layer.sky-clear-night {
+  background:
+    radial-gradient(90% 46% at 16% -6%, rgba(196, 218, 255, 0.20) 0%, rgba(196, 218, 255, 0) 60%),
+    linear-gradient(180deg, #060B18 0%, #0C1528 40%, #14203C 70%, #1E2F52 100%);
+}
+
+html[data-theme="dark"] .sky-layer.sky-partly-cloudy-day {
+  background:
+    radial-gradient(110% 50% at 76% -6%, rgba(255, 196, 130, 0.11) 0%, rgba(255, 196, 130, 0) 55%),
+    linear-gradient(180deg, #0F1728 0%, #182540 36%, #24365A 66%, #32486E 100%);
+}
+
+html[data-theme="dark"] .sky-layer.sky-partly-cloudy-night {
+  background: linear-gradient(180deg, #0A1220 0%, #131E36 42%, #1C2A48 74%, #28395E 100%);
+}
+
+html[data-theme="dark"] .sky-layer.sky-cloudy {
+  background: linear-gradient(180deg, #111827 0%, #1A2334 38%, #253048 70%, #334158 100%);
+}
+
+html[data-theme="dark"] .sky-layer.sky-rain {
+  background: linear-gradient(180deg, #0C1520 0%, #15222F 36%, #1F3040 68%, #2C4152 100%);
+}
+
+html[data-theme="dark"] .sky-layer.sky-drizzle {
+  background: linear-gradient(180deg, #101926 0%, #182535 38%, #22334A 70%, #31465E 100%);
+}
+
+html[data-theme="dark"] .sky-layer.sky-thunder {
+  background:
+    radial-gradient(120% 40% at 50% 112%, rgba(120, 142, 210, 0.30) 0%, rgba(120, 142, 210, 0) 60%),
+    linear-gradient(180deg, #070B14 0%, #101828 40%, #1A2438 72%, #26334D 100%);
+}
+
+html[data-theme="dark"] .sky-layer.sky-snow {
+  background: linear-gradient(180deg, #1A2740 0%, #27395A 36%, #3A5078 68%, #526C94 100%);
+}
+
+html[data-theme="dark"] .sky-layer.sky-fog {
+  background: linear-gradient(180deg, #141B28 0%, #1E2836 40%, #2A3646 72%, #3A485A 100%);
+}
+
+html[data-theme="dark"] .sky-layer.sky-hot {
+  background:
+    radial-gradient(130% 58% at 78% -10%, rgba(255, 160, 80, 0.20) 0%, rgba(255, 160, 80, 0) 58%),
+    linear-gradient(180deg, #0F1726 0%, #1B2A44 32%, #3C3650 64%, #6B4E42 100%);
+}
+
+html[data-theme="dark"] .sky-layer.sky-cold {
+  background: linear-gradient(180deg, #131E30 0%, #1E2E46 40%, #2C4260 72%, #3E5878 100%);
 }
 
 /* Night skies get a subtle vignette so pale cards sit gently */
 .sky-layer.sky-clear-night,
 .sky-layer.sky-partly-cloudy-night,
 .sky-layer.sky-thunder {
-  box-shadow: inset 0 0 140px rgba(5, 10, 25, 0.35);
+  box-shadow: inset 0 0 140px var(--atmo-vignette);
+}
+
+/* ============================================================
+   ATMOSPHERE FX — premium depth layer (pure CSS, no frameworks).
+   State comes from attributes on #sky-fx, set by script.js from the
+   REAL weather condition: data-sky (fair|cloudy|rain|snow|fog),
+   data-clouds (0-3 density tier), data-day ("1" = daylight).
+   ============================================================ */
+
+#sky-fx {
+  position: absolute;
+  inset: 0;
+}
+
+#sky-fx > div {
+  transition: opacity 2s ease;
+}
+
+/* Clouds: soft blurred pill bands drifting slowly across the sky. */
+.sky-clouds {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.cloud-band {
+  position: absolute;
+  border-radius: 999px;
+  background: radial-gradient(62% 100% at 50% 28%, var(--atmo-cloud) 0%, rgba(255, 255, 255, 0) 78%);
+  box-shadow:
+    inset 0 -12px 26px var(--atmo-cloud-shade),
+    inset 0 8px 18px var(--atmo-cloud-border);
+  filter: blur(2px);
+  will-change: transform;
+}
+
+.cb-1 { width: 46vw; height: 9vw;  min-height: 44px; top: 6%;  left: -50vw; animation: cloud-drift 95s linear infinite; }
+.cb-2 { width: 60vw; height: 11vw; min-height: 52px; top: 15%; left: -65vw; animation: cloud-drift 130s linear infinite; animation-delay: -40s; }
+.cb-3 { width: 38vw; height: 7vw;  min-height: 36px; top: 26%; left: -45vw; animation: cloud-drift 75s linear infinite;  animation-delay: -15s; }
+.cb-4 { width: 72vw; height: 12vw; min-height: 58px; top: 37%; left: -75vw; animation: cloud-drift 160s linear infinite; animation-delay: -90s; }
+
+@keyframes cloud-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(240vw, 0, 0); }
+}
+
+/* Density tiers: partly cloudy is a whisper, overcast/rain a deck. */
+#sky-fx[data-clouds="1"] .sky-clouds { opacity: 0.45; }
+#sky-fx[data-clouds="2"] .sky-clouds { opacity: 0.8; }
+#sky-fx[data-clouds="3"] .sky-clouds { opacity: 1; }
+
+/* Sun / moon glow: warm disc halo on fair day skies; the same element
+   doubles as moon glow at night and in dark theme via the token. */
+.sky-sun {
+  position: absolute;
+  top: -18vh;
+  right: -12vw;
+  width: 66vh;
+  height: 66vh;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--atmo-glow) 0%, rgba(255, 255, 255, 0) 62%);
+  opacity: 0;
+}
+
+/* Crepuscular rays: a soft conic beam fan swaying gently. */
+.sky-rays {
+  position: absolute;
+  top: -24vh;
+  right: -18vw;
+  width: 92vh;
+  height: 92vh;
+  opacity: 0;
+  background: conic-gradient(from 198deg at 76% 10%,
+    transparent 0deg, var(--atmo-ray) 7deg, transparent 15deg,
+    transparent 21deg, var(--atmo-ray) 29deg, transparent 37deg,
+    transparent 44deg, var(--atmo-ray) 52deg, transparent 60deg,
+    transparent 68deg, var(--atmo-ray) 76deg, transparent 84deg);
+  filter: blur(7px);
+  animation: rays-sway 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes rays-sway {
+  from { transform: rotate(-1.6deg); }
+  to   { transform: rotate(1.6deg); }
+}
+
+/* Fair daylight: sun glow + rays on. */
+#sky-fx[data-sky="fair"][data-day="1"] .sky-sun,
+#sky-fx[data-sky="fair"][data-day="1"] .sky-rays { opacity: 1; }
+
+/* Fair night: a faint moon glow instead (rays stay off). */
+#sky-fx[data-sky="fair"][data-day="0"] .sky-sun { opacity: 0.6; }
+
+/* Snow sparkle: a twinkling glitter field over pale skies. */
+.sky-sparkle {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-image:
+    radial-gradient(1.6px 1.6px at 12% 22%, var(--atmo-sparkle) 40%, transparent 60%),
+    radial-gradient(1.2px 1.2px at 34% 12%, var(--atmo-sparkle) 40%, transparent 60%),
+    radial-gradient(1.8px 1.8px at 55% 28%, var(--atmo-sparkle) 40%, transparent 60%),
+    radial-gradient(1.2px 1.2px at 72% 16%, var(--atmo-sparkle) 40%, transparent 60%),
+    radial-gradient(1.5px 1.5px at 86% 34%, var(--atmo-sparkle) 40%, transparent 60%),
+    radial-gradient(1.3px 1.3px at 22% 44%, var(--atmo-sparkle) 40%, transparent 60%),
+    radial-gradient(1.7px 1.7px at 48% 52%, var(--atmo-sparkle) 40%, transparent 60%),
+    radial-gradient(1.2px 1.2px at 68% 46%, var(--atmo-sparkle) 40%, transparent 60%),
+    radial-gradient(1.4px 1.4px at 92% 56%, var(--atmo-sparkle) 40%, transparent 60%),
+    radial-gradient(1.2px 1.2px at 8% 62%, var(--atmo-sparkle) 40%, transparent 60%);
+}
+
+#sky-fx[data-sky="snow"] .sky-sparkle {
+  opacity: 1;
+  animation: sparkle-twinkle 6s ease-in-out infinite;
+}
+
+@keyframes sparkle-twinkle {
+  0%, 100% { opacity: 0.30; }
+  50%      { opacity: 0.85; }
 }
 
 /* --- Stars: tiny CSS box-shadow field on the two night skies */
@@ -181,15 +503,15 @@ html, body {
   opacity: 0.9;
 }
 
-/* --- Veil: a whisper of white mist at the very bottom, so the
-       transition from sky into the content zone feels natural.
-       Skies that end pale (snow/fog/cloudy) don't need it. --- */
+/* --- Veil: a whisper of mist at the very bottom, so the transition
+       from sky into the content zone feels natural. Skies that end
+       pale (snow/fog/cloudy) don't need it. --- */
 .sky-veil {
   position: absolute;
   inset: 0;
   opacity: 0;
   transition: opacity 2.5s ease;
-  background: linear-gradient(180deg, transparent 0%, transparent 62%, rgba(240, 245, 250, 0.55) 100%);
+  background: linear-gradient(180deg, transparent 0%, transparent 62%, var(--atmo-mist) 100%);
 }
 
 .sky-veil.is-visible {
@@ -201,33 +523,33 @@ html, body {
    ============================================================ */
 
 .glass-card {
-  background: var(--surface-container-lowest);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 1px 3px rgba(20, 40, 70, 0.06);
+  background: rgb(var(--surface-container-lowest));
+  border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha));
+  box-shadow: 0 1px 3px rgba(var(--shadow-tint), 0.06);
 }
 
 .glass-elevated {
-  background: var(--glass-elevated);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 24px rgba(20, 40, 70, 0.10);
+  background: rgb(var(--glass-elevated));
+  border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha));
+  box-shadow: 0 8px 24px rgba(var(--shadow-tint), 0.10);
 }
 
 /* Language Switcher Buttons */
 .lang-btn {
-  color: var(--ink-secondary);
+  color: rgb(var(--ink-secondary) / var(--ink-secondary-alpha));
   font-weight: 500;
 }
 .lang-btn.is-active {
   color: #FFFFFF;
-  background-color: var(--primary-container);
+  background-color: rgb(var(--primary-container));
   font-weight: 700;
 }
 
 /* Navigation Tab Active State — quiet amber pill, no neon glow */
 .nav-tab.is-active {
-  color: #92400E !important;
-  background-color: #FDE9C8 !important;
-  box-shadow: 0 1px 4px rgba(180, 83, 9, 0.18) !important;
+  color: rgb(var(--on-amber)) !important;
+  background-color: rgb(var(--amber-glow-surface)) !important;
+  box-shadow: 0 1px 4px rgba(var(--shadow-tint), 0.18) !important;
 }
 
 /* Voice Recording Ripple Animations (kept, restrained) */
@@ -266,7 +588,7 @@ html, body {
 
 /* Map Layer Pills */
 .map-layer-pill.active {
-  background-color: var(--primary-container) !important;
+  background-color: rgb(var(--primary-container)) !important;
   color: #FFFFFF !important;
   border-color: transparent !important;
 }
@@ -276,7 +598,7 @@ html, body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13.5px;
   font-weight: 600;
-  color: var(--secondary);
+  color: rgb(var(--secondary));
   margin-top: 8px;
   margin-bottom: 4px;
 }
@@ -286,18 +608,18 @@ html, body {
 }
 .report-content li {
   font-size: 12px;
-  color: var(--ink-secondary);
+  color: rgb(var(--ink-secondary) / var(--ink-secondary-alpha));
   line-height: 1.6;
   list-style-type: disc;
 }
 .report-content p {
   font-size: 12px;
-  color: var(--ink-primary);
+  color: rgb(var(--ink-primary));
   line-height: 1.6;
   margin: 4px 0;
 }
 .report-content strong {
-  color: var(--ink-primary);
+  color: rgb(var(--ink-primary));
   font-weight: 600;
 }
 
@@ -316,8 +638,8 @@ html, body {
 
 /* Action Cards Inside AI Chat */
 .assistant-action-card {
-  background: var(--surface-container-low);
-  border: 1px solid var(--glass-border);
+  background: rgb(var(--surface-container-low));
+  border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha));
   border-radius: 14px;
   padding: 12px;
 }
@@ -338,9 +660,9 @@ html, body {
 main {
   background: linear-gradient(
     180deg,
-    rgba(238, 243, 248, 0) 0px,
-    rgba(238, 243, 248, 0.88) 300px,
-    rgba(240, 245, 250, 0.93) 420px
+    var(--content-wash-1) 0px,
+    var(--content-wash-2) 300px,
+    var(--content-wash-3) 420px
   );
 }
 
@@ -351,7 +673,7 @@ main {
 #radar-map {
   width: 100%;
   height: 100%;
-  background: #D8E2EC;
+  background: rgb(var(--surface-container-low));
 }
 
 /* Keep Leaflet's own UI from clashing with our floating custom controls */
@@ -361,28 +683,28 @@ main {
 }
 
 .leaflet-control-attribution {
-  background: rgba(255, 255, 255, 0.85) !important;
-  color: rgba(26, 35, 50, 0.6) !important;
+  background: rgb(var(--glass-highest) / 0.85) !important;
+  color: rgb(var(--ink-secondary) / 0.6) !important;
   font-size: 9px !important;
 }
 
 .leaflet-control-attribution a {
-  color: rgba(26, 35, 50, 0.8) !important;
+  color: rgb(var(--ink-secondary) / 0.8) !important;
 }
 
 .radar-marker-label {
-  background: rgba(255, 255, 255, 0.97) !important;
-  border: 1px solid var(--glass-border) !important;
-  color: #1A2332 !important;
+  background: rgb(var(--glass-highest) / 0.97) !important;
+  border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha)) !important;
+  color: rgb(var(--ink-primary)) !important;
   font-size: 11px !important;
   font-weight: 600;
   padding: 3px 8px !important;
   border-radius: 999px !important;
-  box-shadow: 0 4px 14px rgba(20, 40, 70, 0.18);
+  box-shadow: 0 4px 14px rgba(var(--shadow-tint), 0.18);
 }
 
 .radar-marker-label::before {
-  border-top-color: rgba(255, 255, 255, 0.97) !important;
+  border-top-color: rgb(var(--glass-highest) / 0.97) !important;
 }
 
 /* "Soon" badge on layer pills not yet backed by live tile data */
@@ -399,9 +721,9 @@ main {
   min-height: 44px; /* WCAG 2.5.5 target size */
   padding: 8px 34px 8px 12px;
   border-radius: 14px;
-  background-color: #FFFFFF;
-  border: 1px solid var(--glass-border);
-  color: var(--ink-primary);
+  background-color: rgb(var(--surface-container-lowest));
+  border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha));
+  color: rgb(var(--ink-primary));
   font-family: 'Inter', 'Noto Sans Devanagari', 'Noto Sans Telugu', sans-serif;
   font-size: 13px;
   appearance: none;
@@ -420,8 +742,8 @@ main {
 }
 
 .farm-select option {
-  background-color: #FFFFFF;
-  color: var(--ink-primary);
+  background-color: rgb(var(--surface-container-lowest));
+  color: rgb(var(--ink-primary));
 }
 
 .farm-advice-card {
@@ -433,18 +755,18 @@ main {
 }
 
 .farm-advice-card.sev-action {
-  background: #FDECEA;
-  border: 1px solid rgba(192, 57, 43, 0.35);
+  background: rgb(var(--alert-coral-bg));
+  border: 1px solid rgb(var(--alert-coral-border) / var(--alert-coral-border-alpha));
 }
 
 .farm-advice-card.sev-caution {
-  background: #FEF6E7;
+  background: rgb(var(--amber-glow-surface));
   border: 1px solid rgba(217, 119, 6, 0.35);
 }
 
 .farm-advice-card.sev-info {
-  background: #F5F8FB;
-  border: 1px solid var(--glass-border);
+  background: rgb(var(--surface-container-low));
+  border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha));
 }
 
 .farm-sev-badge {
@@ -458,18 +780,18 @@ main {
 }
 
 .farm-sev-badge.sev-action {
-  background: #C0392B;
+  background: rgb(var(--alert-coral));
   color: #FFFFFF;
 }
 
 .farm-sev-badge.sev-caution {
-  background: #D97706;
+  background: rgb(var(--primary-fixed-dim));
   color: #FFFFFF;
 }
 
 .farm-sev-badge.sev-info {
-  background: #E0F2FE;
-  color: #075985;
+  background: rgb(var(--secondary-container));
+  color: rgb(var(--secondary-fixed));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -493,6 +815,11 @@ main {
   div.lightning-fx {
     animation: none;
   }
+  /* Dark-theme rain needs pale drops; theme-scoped so both themes keep
+     a visible (but static) streak field. */
+  html[data-theme="dark"] .rain-fx .rain-drop {
+    --rain-drop-color: rgba(205, 224, 245, 0.85);
+  }
   .farm-advice-card,
   .forecast-hourly-card,
   .microclimate-chip {
@@ -503,6 +830,37 @@ main {
   .voice-ripple-3 {
     animation: none;
   }
+  /* Atmosphere fx: everything static, no drifting/swaying/twinkling.
+     Cloud bands park at visible positions instead of mid-flight. */
+  .cloud-band {
+    animation: none;
+    transform: translate3d(var(--cb-static, 60vw), 0, 0);
+  }
+  .cb-1 { --cb-static: 70vw; }
+  .cb-2 { --cb-static: 110vw; }
+  .cb-3 { --cb-static: 40vw; }
+  .cb-4 { --cb-static: 85vw; }
+  .sky-rays {
+    animation: none;
+  }
+  .sky-sparkle {
+    animation: none;
+    opacity: 0.5;
+  }
+  body,
+  header,
+  main,
+  #search-modal,
+  #voice-overlay,
+  #persistent-bottom-dock nav,
+  #persistent-bottom-dock form,
+  #map-sensor-card > div,
+  .radar-map-shell {
+    transition: none;
+  }
+  #theme-toggle-btn:active {
+    transform: none;
+  }
 }
 
 .soon-badge {
@@ -510,8 +868,8 @@ main {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  background: rgba(20, 40, 70, 0.08);
-  color: var(--ink-secondary);
+  background: rgb(var(--glass-border) / 0.08);
+  color: rgb(var(--ink-secondary) / var(--ink-secondary-alpha));
   padding: 1px 5px;
   border-radius: 999px;
   margin-left: 2px;
@@ -553,7 +911,7 @@ main {
   width: var(--w, 1.2px);
   height: var(--h, 16px);
   border-radius: 1px;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--rain-color, rgba(226, 239, 250, 0.7)));
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--rain-color, var(--rain-drop-color, rgba(226, 239, 250, 0.7))));
   animation: rain-fall var(--dur, 1.1s) linear var(--delay, 0s) infinite;
   opacity: var(--o, 0.55);
   will-change: transform;
