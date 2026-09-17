@@ -331,8 +331,42 @@
         </div>
       </div>
 
+      <!-- Smart Rain Alert (evidence-backed, from the real hourly payload) -->
+      <div id="smart-rain-alert" class="hidden relative overflow-hidden rounded-2xl bg-secondary-container/50 border border-secondary/30 shadow-lg p-3.5 md:order-4 md:w-full" role="status" aria-live="polite">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-xl bg-secondary-container border border-secondary/40 flex items-center justify-center shrink-0 text-secondary-fixed" aria-hidden="true">
+            <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">rainy</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2 mb-0.5">
+              <span id="smart-rain-title" class="font-headline-card text-[13px] text-secondary-fixed font-semibold">Smart Rain Alert</span>
+              <span id="smart-rain-badge" class="px-2 py-0.5 rounded-full bg-secondary text-white font-label-caps text-[9px] uppercase font-bold tracking-wider">Live</span>
+            </div>
+            <p id="smart-rain-text" class="font-body-base text-xs text-ink-secondary leading-relaxed">Rain expected…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rain Timeline (next 18h precipitation-probability window) -->
+      <div class="flex flex-col gap-2 md:order-5 md:w-full">
+        <div class="flex items-center justify-between px-1">
+          <span id="rain-timeline-heading" class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Rain Timeline</span>
+          <span id="rain-timeline-peak" class="font-label-caps text-[10px] text-secondary font-semibold"></span>
+        </div>
+        <div class="rounded-2xl bg-surface-container-high border border-glass-border/20 p-3.5 shadow-md">
+          <div class="flex items-center gap-2.5">
+            <span id="rain-timeline-start-label" class="font-label-caps text-[10px] text-ink-tertiary w-9 text-right shrink-0">now</span>
+            <div id="rain-timeline-track" class="flex-1 h-2.5 rounded-full bg-surface-container relative overflow-hidden" role="img" aria-label="Rain probability over the next 18 hours">
+              <div id="rain-timeline-bar" class="absolute inset-y-0 rounded-full bg-gradient-to-r from-secondary-container via-secondary to-secondary-fixed opacity-90 transition-all duration-500" style="left:0%;width:0%"></div>
+            </div>
+            <span id="rain-timeline-end-label" class="font-label-caps text-[10px] text-ink-tertiary w-10 shrink-0">+18h</span>
+          </div>
+          <p id="rain-timeline-note" class="mt-2 font-body-dim text-[11px] text-ink-tertiary">Checking the next 18 hours for rain windows…</p>
+        </div>
+      </div>
+
       <!-- 24-Hour Horizon Hourly Scroller -->
-      <div class="flex flex-col gap-2.5 md:order-4 md:w-full">
+      <div class="flex flex-col gap-2.5 md:order-6 md:w-full">
         <div class="flex items-center justify-between px-1">
           <span class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Hourly Trajectory</span>
           <div class="flex items-center gap-2 text-ink-tertiary font-label-caps text-[10px]">
@@ -346,7 +380,7 @@
       </div>
 
       <!-- Precision Telemetry Grid (2x2) -->
-      <div class="flex flex-col gap-2 md:order-5 md:w-full">
+      <div class="flex flex-col gap-2 md:order-7 md:w-full">
         <div class="flex items-center justify-between px-1">
           <span class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Precision Telemetry</span>
           <span class="font-label-caps text-[10px] text-ink-tertiary">High-Resolution Sensor Array</span>
@@ -422,7 +456,7 @@
       </div>
 
       <!-- 7-Day Synoptic Outlook -->
-      <div class="flex flex-col gap-2.5 md:order-6 md:w-full">
+      <div class="flex flex-col gap-2.5 md:order-8 md:w-full">
         <div class="flex items-center justify-between px-1">
           <span class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">7-Day Synoptic Outlook</span>
           <span class="font-label-caps text-[10px] text-ink-tertiary">Next 168 Hours</span>

@@ -282,7 +282,7 @@ def _fetch_open_meteo(latitude, longitude, forecast_days):
         ),
         "hourly": (
             "temperature_2m,relative_humidity_2m,precipitation_probability,"
-            "weather_code,uv_index,wind_speed_10m"
+            "precipitation,weather_code,uv_index,wind_speed_10m"
         ),
         "daily": (
             "weather_code,temperature_2m_max,temperature_2m_min,"
@@ -490,6 +490,174 @@ def build_alerts(weather_data):
             break
 
     return alerts
+
+
+# ============================================================
+# SMART RAIN ALERT + RAIN TIMELINE
+# Deterministic, transparent logic over the SAME hourly Open-Meteo
+# payload already powering the app. Every emitted alert/text is
+# auditable against the `rain_snapshot` echoed in the payload.
+# ============================================================
+
+# Hourly precipitation-probability (in %) considered "likely rain".
+RAIN_ALERT_PROB_THRESHOLD = 60
+# Consecutive hours at/above the threshold needed to call it an event.
+RAIN_ALERT_MIN_DURATION_H = 2
+# How far ahead (hours) the alert scans the hourly forecast.
+RAIN_ALERT_HORIZON_H = 18
+
+_RAIN_TEXT = {
+    "event_in": {
+        "en": "Rain likely from about {start} for about {dur}h — peak chance {peak}%. Carry an umbrella.",
+        "hi": "लगभग {start} से लगभग {dur} घंटे बारिश संभावित — अधिकतम संभावना {peak}%। छाता साथ रखें।",
+        "te": "సుమారు {start} నుండి {dur} గంటలు వర్షం సాధ్యమే — గరిష్ఠ అవకాశం {peak}%। గొడుగు తీసుకోండి।",
+    },
+    "event_now": {
+        "en": "Rain likely now for about {dur}h — peak chance {peak}%. Carry an umbrella.",
+        "hi": "अभी लगभग {dur} घंटे बारिश संभावित — अधिकतम संभावना {peak}%। छाता साथ रखें।",
+        "te": "ఇప్పుడే {dur} గంటలు వర్షం సాధ్యమే — గరిష్ఠ అవకాశం {peak}%। గొడుగు తీసుకోండి।",
+    },
+}
+
+
+def _parse_iso_hour(value):
+    """Parse an Open-Meteo hourly ISO timestamp (no timezone suffix)."""
+    try:
+        return datetime.strptime(value, "%Y-%m-%dT%H:%M")
+    except (TypeError, ValueError):
+        return None
+
+
+def build_rain_timeline(weather_data, max_hours=RAIN_ALERT_HORIZON_H, now_local=None):
+    """Next-rain-window summary from the real hourly forecast.
+
+    Scans the next `max_hours` hourly precipitation-probability values and
+    returns {has_event, starts_in_h, duration_h, start_label, end_label,
+    peak_probability, total_mm, start_iso, end_iso} or a "no rain" shape.
+    Times are echoed in the location's own timezone (Open-Meteo returns
+    local times for timezone=auto); offsets are derived from the location
+    header so the clock of the viewing device does not skew "starts in".
+    `now_local` is injectable for deterministic tests.
+    """
+    hourly = weather_data.get("hourly", {}) or {}
+    times = hourly.get("time") or []
+    probs = hourly.get("precipitation_probability") or []
+    precip_mm = hourly.get("precipitation") or []
+
+    # Location-local wall clock: Open-Meteo hourly times are already local
+    # when timezone=auto, so "now" must be computed with the same offset.
+    offset_seconds = weather_data.get("utc_offset_seconds", 0)
+    try:
+        offset_seconds = int(offset_seconds)
+    except (TypeError, ValueError):
+        offset_seconds = 0
+    if now_local is None:
+        now_local = datetime.utcnow() + timedelta(seconds=offset_seconds)
+
+    # First hour not fully in the past (like the frontend hourly scroller).
+    start_idx = 0
+    for i, t in enumerate(times):
+        parsed = _parse_iso_hour(t)
+        if parsed and parsed + timedelta(hours=1) > now_local:
+            start_idx = i
+            break
+
+    end_idx = min(len(times), start_idx + max(1, max_hours))
+
+    # Longest consecutive run at/above threshold inside the horizon.
+    best_start, best_len = None, 0
+    run_start, run_len = None, 0
+    for i in range(start_idx, end_idx):
+        p = probs[i] if i < len(probs) else None
+        if isinstance(p, (int, float)) and p >= RAIN_ALERT_PROB_THRESHOLD:
+            if run_start is None:
+                run_start = i
+            run_len += 1
+        else:
+            if run_len > best_len:
+                best_start, best_len = run_start, run_len
+            run_start, run_len = None, 0
+    if run_len > best_len:
+        best_start, best_len = run_start, run_len
+
+    base = {
+        "has_event": False,
+        "starts_in_h": None,
+        "duration_h": 0,
+        "start_label": None,
+        "end_label": None,
+        "peak_probability": None,
+        "total_mm": None,
+        "start_iso": None,
+        "end_iso": None,
+        "horizon_h": max(1, max_hours),
+    }
+
+    if best_start is None or best_len < RAIN_ALERT_MIN_DURATION_H:
+        return base
+
+    end_idx_excl = best_start + best_len
+    window_probs = [p for p in probs[best_start:end_idx_excl] if isinstance(p, (int, float))]
+    window_mm = [m for m in precip_mm[best_start:end_idx_excl] if isinstance(m, (int, float))]
+    start_parsed = _parse_iso_hour(times[best_start])
+    end_parsed = _parse_iso_hour(times[end_idx_excl - 1])
+
+    base.update({
+        "has_event": True,
+        "starts_in_h": max(0, best_start - start_idx),
+        "duration_h": best_len,
+        "start_label": start_parsed.strftime("%H:%M") if start_parsed else None,
+        "end_label": end_parsed.strftime("%H:%M") if end_parsed else None,
+        "peak_probability": round(max(window_probs)) if window_probs else None,
+        "total_mm": round(sum(window_mm), 1) if window_mm else 0.0,
+        "start_iso": times[best_start],
+        "end_iso": times[end_idx_excl - 1],
+    })
+    return base
+
+
+def build_smart_rain_alerts(timeline, language="en"):
+    """Localized, evidence-backed "Smart Rain Alert" from a rain timeline.
+
+    Only fires when the timeline found a real upcoming rain window; the
+    snapshot values echo the hourly payload so the alert is fully auditable.
+    """
+    if not timeline or not timeline.get("has_event"):
+        return []
+
+    lang = language if language in _RAIN_TEXT["event_in"] else "en"
+    starts_in = timeline.get("starts_in_h") or 0
+    dur = timeline.get("duration_h") or 0
+    peak = timeline.get("peak_probability")
+    snapshot = {
+        "threshold_probability": RAIN_ALERT_PROB_THRESHOLD,
+        "min_duration_h": RAIN_ALERT_MIN_DURATION_H,
+        "horizon_h": timeline.get("horizon_h"),
+        "starts_in_h": starts_in,
+        "duration_h": dur,
+        "start_iso": timeline.get("start_iso"),
+        "end_iso": timeline.get("end_iso"),
+        "peak_probability": peak,
+        "total_mm": timeline.get("total_mm"),
+    }
+
+    if starts_in <= 1:
+        template = _RAIN_TEXT["event_now"][lang]
+        text = template.format(dur=dur, peak=peak)
+    else:
+        template = _RAIN_TEXT["event_in"][lang]
+        text = template.format(start=timeline.get("start_label") or "", dur=dur, peak=peak)
+
+    return [{
+        "severity": "Advisory",
+        "type": "Smart Rain Alert",
+        "text": text,
+        "protocol": [
+            "Carry an umbrella or waterproof layer before heading out",
+            "Allow extra travel time during the rain window",
+        ],
+        "snapshot": snapshot,
+    }]
 
 
 def guess_suffix(uploaded_file):
@@ -846,11 +1014,14 @@ def api_weather():
     try:
         weather_data = fetch_weather(latitude, longitude, forecast_days)
         alerts = build_alerts(weather_data)
+        rain_timeline = build_rain_timeline(weather_data)
+        alerts = build_smart_rain_alerts(rain_timeline) + alerts
         air_quality = weather_data.get("air_quality", {})
         return jsonify({
             "weather": weather_data,
             "alerts": alerts,
             "air_quality": air_quality,
+            "rain_timeline": rain_timeline,
         })
     except requests.HTTPError as error:
         if error.response is not None and error.response.status_code == 429:

@@ -11,6 +11,7 @@ import json
 import sys
 import unittest
 import unittest.mock
+from datetime import datetime
 
 import requests
 
@@ -437,6 +438,10 @@ class _FakeResponse:
     def json(self):
         return self._payload
 
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError(f"{self.status_code}", response=self)
+
 
 class TestReverseGeocode(unittest.TestCase):
     """GPS coordinates -> real locality name, including provider fallback.
@@ -518,6 +523,94 @@ class TestReverseGeocode(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
         r = self.client.get("/api/reverse-geocode")
         self.assertEqual(r.status_code, 400)
+
+
+class TestRainTimelineAndSmartRainAlerts(unittest.TestCase):
+    """Rain Timeline + Smart Rain Alert: deterministic logic over the real
+    hourly payload. Runs fully offline (no upstream HTTP involved)."""
+
+    @classmethod
+    def setUpClass(cls):
+        wgpt.app.config["TESTING"] = True
+        cls.client = wgpt.app.test_client()
+
+    @staticmethod
+    def _payload(probs):
+        # Hourly series starts at 12:00 local; "now" is frozen just before it
+        # so every provided hour counts as upcoming — keeps tests wall-clock-proof.
+        times = [f"2026-09-15T{h:02d}:00" for h in range(12, 12 + len(probs))]
+        data = {"hourly": {"time": times, "precipitation_probability": probs}, "utc_offset_seconds": 0}
+        return wgpt.build_rain_timeline(data, now_local=datetime(2026, 9, 15, 11, 30))
+
+    def test_no_rain_below_threshold(self):
+        tl = self._payload([10, 20, 30, 40, 50, 55, 59, 59, 59, 59, 59, 59])
+        self.assertFalse(tl["has_event"])
+        self.assertIsNone(tl["start_label"])
+
+    def test_event_below_min_duration_ignored(self):
+        # 60% for a single hour does not meet the 2-hour minimum.
+        tl = self._payload([10, 65, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10])
+        self.assertFalse(tl["has_event"])
+
+    def test_event_detected_with_labels(self):
+        tl = self._payload([5, 5, 70, 80, 65, 10, 10, 10, 10, 10, 10, 10])
+        self.assertTrue(tl["has_event"])
+        self.assertEqual(tl["starts_in_h"], 2)
+        self.assertEqual(tl["duration_h"], 3)
+        self.assertEqual(tl["start_label"], "14:00")
+        self.assertEqual(tl["end_label"], "16:00")
+        self.assertEqual(tl["peak_probability"], 80)
+
+    def test_longest_run_wins_over_two_shorter(self):
+        # 3-hour run (19:00-21:00) must beat two 2-hour runs earlier on.
+        tl = self._payload([0, 60, 60, 0, 60, 60, 0, 80, 80, 80, 0, 0])
+        self.assertEqual(tl["start_label"], "19:00")
+        self.assertEqual(tl["duration_h"], 3)
+
+    def test_alert_fires_with_snapshot_and_localization(self):
+        tl = self._payload([5, 5, 70, 80, 65, 10, 10, 10, 10, 10, 10, 10])
+        en = wgpt.build_smart_rain_alerts(tl, "en")[0]
+        self.assertEqual(en["severity"], "Advisory")
+        self.assertIn("14:00", en["text"])
+        self.assertIn("80%", en["text"])
+        self.assertEqual(en["snapshot"]["peak_probability"], 80)
+        self.assertEqual(en["snapshot"]["starts_in_h"], 2)
+
+        hi = wgpt.build_smart_rain_alerts(tl, "hi")[0]["text"]
+        self.assertIn("छाता", hi)
+        te = wgpt.build_smart_rain_alerts(tl, "te")[0]["text"]
+        self.assertIn("గొడుగు", te)
+        # Unknown language codes fall back to English, never crash.
+        self.assertEqual(wgpt.build_smart_rain_alerts(tl, "xx")[0], en)
+
+    def test_no_alert_when_no_event(self):
+        self.assertEqual(wgpt.build_smart_rain_alerts({"has_event": False}), [])
+
+    def test_weather_payload_includes_rain_timeline(self):
+        wgpt._WEATHER_CACHE.clear()
+        with unittest.mock.patch.object(
+            wgpt.requests, "get", return_value=_FakeResponse(payload={
+                "hourly": {
+                    "time": [f"2026-09-15T{h:02d}:00" for h in range(12, 24)],
+                    "precipitation_probability": [5, 5, 70, 80, 65, 10, 10, 10, 10, 10, 10, 10],
+                },
+                "utc_offset_seconds": 0,
+            }),
+        ):
+            # Unusual coords keep this mocked entry out of the shared
+            # cache slot used by the live-API tests (2-decimal key).
+            r = self.client.get("/api/weather?latitude=12.34&longitude=56.78")
+        self.assertEqual(r.status_code, 200)
+        body = r.get_json()
+        self.assertIn("rain_timeline", body)
+        # The mocked series starts at 12:00, so the real "now" falls inside
+        # it — the timeline must still find the 14:00-16:00 event regardless
+        # of the wall clock this test runs on.
+        self.assertTrue(body["rain_timeline"]["has_event"])
+        self.assertEqual(body["rain_timeline"]["peak_probability"], 80)
+        smart = [a for a in body["alerts"] if a["type"] == "Smart Rain Alert"]
+        self.assertEqual(len(smart), 1)
+        self.assertEqual(smart[0]["snapshot"]["peak_probability"], 80)
 
 
 if __name__ == "__main__":

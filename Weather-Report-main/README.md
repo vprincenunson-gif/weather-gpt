@@ -69,6 +69,7 @@ The application's purpose is to act as a **conversational, multilingual "atmosph
 | 9 | Installable Progressive Web App with offline app-shell caching | Global |
 | 10 | **Smart Farm Weather Advisor** — crop & stage-aware action advice (irrigation, rain, harvest windows, wind/heat safety, field operations) in EN/HI/TE | Farmer tab |
 | 11 | Illustrative "regional microclimate" chips derived from the current temperature | Forecast tab |
+| 12 | **Smart Rain Alert** — evidence-backed, localized rain advisory + **Rain Timeline** window bar from the real hourly payload | Forecast tab |
 
 ## 5. Feature Details
 
@@ -87,7 +88,7 @@ The backend's `build_alerts()` function evaluates the fetched weather data again
 - **High Precipitation Probability** — any forecast day with ≥ 80% rain probability.
 - **Extreme UV Index** — any forecast day with a UV index ≥ 8.
 
-These alerts populate both the Forecast screen and a dedicated "Early Warning Alert Ledger" on the Insights screen.
+These alerts populate both the Forecast screen and a dedicated "Early Warning Alert Ledger" on the Insights screen. When the hourly data shows an upcoming rain window, a **Smart Rain Alert** is prepended to this list (see [5.13](#513-smart-rain-alert--rain-timeline)).
 
 ### 5.4 Regional Microclimate Chips
 The "Regional Microclimates" scroller on the Forecast tab displays four named chips (Downtown Core, Coastal / Lake, Hilltop / Ridge, Valley Sub-basin). These are **not independently fetched locations** — each chip's temperature is the current fetched temperature plus a fixed, hardcoded offset (0°, −3°, −1°, +2° respectively) defined directly in the frontend code. This is a stylistic/illustrative touch, not a multi-location data feed.
@@ -150,6 +151,15 @@ The engine is translated at the data level — each rule carries English, Hindi 
 
 The forecast hero card displays a lightweight inline-SVG cloud/sun glyph whose colors reflect the current condition category. It is decorative and independent of live data.
 
+### 5.13 Smart Rain Alert & Rain Timeline
+
+The Forecast tab gains two data-backed rain surfaces, both derived from the **same real hourly Open-Meteo payload** already powering the app (deterministic logic in `backend/app.py` — no invented numbers):
+
+- **Rain Timeline** — `build_rain_timeline()` scans the next 18 hours of hourly `precipitation_probability` (anchored to the location's own timezone via `utc_offset_seconds`) and finds the longest consecutive run at ≥ 60% lasting at least 2 hours. The frontend renders the window as a bar on a fixed 18 h track (`now → +18h`) with the start/end clock labels and the peak probability; with no qualifying window it truthfully says "No rain expected in the next 18 hours."
+- **Smart Rain Alert** — when a window exists, `build_smart_rain_alerts()` emits an advisory ("Rain expected in 3h (14:00) for about 3h — peak chance 80%…", EN/HI/TE) with a `snapshot` echoing every number used (thresholds, start/end ISO times, peak %). It is prepended to `alerts` in `/api/weather`, shown as a blue banner card on the Forecast tab, and localized in the "Today" Insights ledger.
+
+Like the Farm Advisor, this feature is transparent and auditable: thresholds (`RAIN_ALERT_PROB_THRESHOLD=60`, `RAIN_ALERT_MIN_DURATION_H=2`, `RAIN_ALERT_HORIZON_H=18`) are module constants and the raw evidence ships with the alert. Unit tests live in `backend/test_app.py` (`TestRainTimelineAndSmartRainAlerts`).
+
 ---
 
 ## 6. Key Backend Modules & Functions
@@ -171,6 +181,8 @@ All backend logic lives in `backend/app.py` (a single Flask application file).
 - `_condition_text_to_wmo(text)` — maps WeatherAPI's plain-text condition descriptions (e.g. "thunder," "drizzle," "overcast") to the numeric WMO weather codes used elsewhere in the app.
 - `fetch_weather(latitude, longitude, forecast_days)` — the main orchestrator: checks the cache, tries Open-Meteo first, and transparently falls back to WeatherAPI.com on a 429 if a fallback key is configured.
 - `build_alerts(weather_data)` — evaluates temperature, wind, rain-probability, and UV thresholds and returns a list of structured hazard alerts (see [Section 5.3](#53-automatic-hazard-alerts)).
+- `build_rain_timeline(weather_data)` — scans the next 18 h of hourly precipitation probability (location-local clock) and returns the next rain-window summary (`has_event`, `starts_in_h`, `duration_h`, `start_label`/`end_label`, `peak_probability`, …) or a truthful "no rain" shape (see [5.13](#513-smart-rain-alert--rain-timeline)).
+- `build_smart_rain_alerts(timeline, language)` — turns a rain timeline into a localized advisory with a fully auditable `snapshot`.
 
 ### Voice / AI Helpers
 - `guess_suffix(uploaded_file)` — infers an audio file extension (`.ogg`, `.wav`, `.m4a`, or default `.webm`) from the uploaded file's MIME type/name, used when writing a temp file for transcription.
@@ -208,12 +220,12 @@ All client logic lives in `frontend/script.js` (vanilla JavaScript, no bundler).
 1. **App load** — The browser loads `index.html`, registers the service worker, and JavaScript initializes with a default location (San Francisco) while it attempts to detect the user's real location.
 2. **Location resolution** — The app either uses the default/last-searched location, a location chosen via the search modal or popular-city chips, or the device's GPS (reverse-geocoded via `/api/reverse-geocode`).
 3. **Weather fetch** — `refreshWeatherData()` calls `/api/weather`, which (server-side) fetches from Open-Meteo (or WeatherAPI.com on rate-limit fallback), computes hazard alerts, and returns weather + alerts + air quality.
-4. **Screen render** — The Forecast, Radar Map, and Insights screens are populated from this single weather payload.
+4. **Screen render** — The Forecast, Radar Map, and Insights screens are populated from this single weather payload (including the Rain Timeline bar and Smart Rain Alert banner on the Forecast tab).
 5. **AI synopsis** — In parallel, `generateAiReport()` sends the same weather payload to `/api/report`, and the AI-written summary appears in the hero card.
 6. **User interaction — typed question** — The user types a question in the WeatherGPT tab (or a quick-ask box on the Forecast tab) and submits it; `submitAssistantQuery()` sends it to `/api/assistant` and renders the structured AI answer as a chat card.
 7. **User interaction — voice question** — The user taps the mic icon, speaks for up to 20 seconds, and the recording is transcribed via `/api/transcribe` (Groq Whisper); the transcript is automatically routed into the same assistant flow as step 6.
 8. **Language switching** — Selecting EN / HI / TE in the header changes `state.voiceLang`, which is sent as the target language on all subsequent `/api/report` and `/api/assistant` calls and as the transcription language hint.
-9. **Alerts surfacing** — If any hazard alert was generated in step 3, it is shown on both the Forecast screen and the Insights "Early Warning Alert Ledger."
+9. **Alerts surfacing** — If any hazard alert was generated in step 3, it is shown on both the Forecast screen and the Insights "Early Warning Alert Ledger"; an upcoming rain window additionally raises the localized Smart Rain Alert.
 10. **Offline shell** — On repeat visits (or with no network), the service worker serves the cached app shell instantly; only the live API calls (weather, report, assistant, transcribe) require connectivity.
 
 ## 9. How to Use the Application
@@ -382,7 +394,7 @@ All endpoints are served by the same Flask app; all except `/` are prefixed with
 | POST | `/api/analyze` | Extracts structured intent (location, language, forecast days, focus) from free text via Ollama | JSON: `{query}` | Parsed JSON object per `ANALYZE_PROMPT` |
 | GET | `/api/geocode` | Resolves a place name to coordinates (Open-Meteo Geocoding) | query: `location` | `{name, admin1, country, country_code, latitude, longitude, timezone}` |
 | GET | `/api/reverse-geocode` | Resolves coordinates to a place name (BigDataCloud) | query: `latitude`, `longitude` | `{name, admin1, country, latitude, longitude}` |
-| GET | `/api/weather` | Fetches current/hourly/daily weather, alerts, and air quality | query: `latitude`, `longitude`, `forecast_days` (optional, default 7) | `{weather, alerts, air_quality}` |
+| GET | `/api/weather` | Fetches current/hourly/daily weather, alerts (incl. Smart Rain Alert), rain timeline, and air quality | query: `latitude`, `longitude`, `forecast_days` (optional, default 7) | `{weather, alerts, air_quality, rain_timeline}` |
 | GET | `/api/farm-advice` | Deterministic crop & stage farm advisory from real forecast data | query: `crop`, `stage`, `latitude`, `longitude`, `language` (en/hi/te), `forecast_days` (optional) | `{crop, stage, headline, advice[], crop_note, disclaimer, weather_snapshot}` |
 | GET | `/api/crops` | Crop & stage catalogue for the advisor selectors | — | `{crops[], stages[]}` with EN/HI/TE names |
 | POST | `/api/report` | Generates the AI narrative weather synopsis | JSON: `{location, weather_data, alerts, language}` | `{report}` (Markdown-style text) |
@@ -421,7 +433,7 @@ gunicorn>=23.0
 - Replace the illustrative microclimate values with genuine per-neighborhood model or sensor data.
 - Wire the remaining "Soon" radar layers (Micro-Temp, Wind Vectors, AQI Plume) to real tile providers (e.g. OpenWeatherMap tile layers), now that Precipitation and Satellite are live.
 - Replace the hardcoded microclimate chip offsets and the Insights "Delta Variance" bars with genuine per-neighborhood sensor or model data, and wire up the currently non-functional "Today / 48 Hours / 7 Days" scope chips.
-- ~~Add automated tests for the alert-threshold logic~~ — done: run `cd backend && python test_app.py` (49 tests covering alert thresholds, input validation, cache eviction, the API contract, and the farm advisor engine + endpoint).
+- ~~Add automated tests for the alert-threshold logic~~ — done: run `cd backend && python test_app.py` (62 tests covering alert thresholds, the rain timeline / Smart Rain Alert logic, input validation, cache eviction, the API contract, and the farm advisor engine + endpoint).
 - Add a `render.yaml` for infrastructure-as-code alongside the existing dashboard-configured Render deployment, plus a CI pipeline.
 - Expand supported languages beyond English, Hindi, and Telugu.
 - Add server-side rate limiting and input validation hardening on all `/api/*` endpoints.

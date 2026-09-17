@@ -178,6 +178,88 @@ function farmLang() {
   return state.voiceLang === "hi" ? "hi" : state.voiceLang === "te" ? "te" : "en";
 }
 
+// ============================================================
+// I18N STRINGS FOR THE SMART RAIN ALERT + RAIN TIMELINE UI
+// (the backend computes the evidence; the client renders it in the
+//  selected language so switching is instant, no refetch needed)
+// ============================================================
+
+// Must mirror RAIN_ALERT_HORIZON_H in backend/app.py (track width).
+const R18_HOURS = 18;
+
+const RAIN_I18N = {
+  en: {
+    alertTitle: "Smart Rain Alert",
+    badge: "Live",
+    rainIn: (h, peak) => `Rain expected ${h} — peak chance ${peak}%. Carry an umbrella.`, // h = "in 3h (14:00)"
+    rainNow: (dur, peak) => `Rain likely now for about ${dur}h — peak chance ${peak}%. Carry an umbrella.`,
+    inHours: (h) => `in ${h}h`,
+    peak: (p) => `Peak ${p}%`,
+    window: (s, e, d) => `Rain window ${s}–${e} (${d}h)`,
+    noRain: "No rain expected in the next 18 hours.",
+    alertDaily: (p) => `Heavy rain probability today: ${p}% likelihood of rain.`,
+    trackLabel: "Rain probability over the next 18 hours",
+    nowLabel: "now",
+    endLabel: "+18h",
+  },
+  hi: {
+    alertTitle: "स्मार्ट बारिश अलर्ट",
+    badge: "लाइव",
+    rainIn: (h, peak) => `${h} बारिश संभावित — अधिकतम संभावना ${peak}%। छाता साथ रखें।`, // h = "3 घंटे बाद (14:00)"
+    rainNow: (dur, peak) => `अभी लगभग ${dur} घंटे बारिश संभावित — अधिकतम संभावना ${peak}%। छाता साथ रखें।`,
+    inHours: (h) => `${h} घंटे बाद`,
+    peak: (p) => `अधिकतम ${p}%`,
+    window: (s, e, d) => `बारिश की विंडो ${s}–${e} (${d} घंटे)`,
+    noRain: "अगले 18 घंटों में बारिश की संभावना नहीं है।",
+    alertDaily: (p) => `आज भारी बारिश की संभावना: ${p}%।`,
+    trackLabel: "अगले 18 घंटों की वर्षा संभावना",
+    nowLabel: "अभी",
+    endLabel: "+18 घंटे",
+  },
+  te: {
+    alertTitle: "స్మార్ట్ వర్ష హెచ్చరిక",
+    badge: "లైవ్",
+    rainIn: (h, peak) => `${h} వర్షం సాధ్యమే — గరిష్ఠ అవకాశం ${peak}%। గొడుగు తీసుకోండి।`, // h = "3 గంటల్లో (14:00)"
+    rainNow: (dur, peak) => `ఇప్పుడే ${dur} గంటలు వర్షం సాధ్యమే — గరిష్ఠ అవకాశం ${peak}%। గొడుగు తీసుకోండి।`,
+    inHours: (h) => `${h} గంటల్లో`,
+    peak: (p) => `గరిష్ఠ ${p}%`,
+    window: (s, e, d) => `వర్ష కాలం ${s}–${e} (${d} గంటలు)`,
+    noRain: "తదుపరి 18 గంటల్లో వర్షం అవకాశం లేదు.",
+    alertDaily: (p) => `ఈరోజు భారీ వర్ష అవకాశం: ${p}%.`,
+    trackLabel: "తదుపరి 18 గంటల వర్ష అవకాశం",
+    nowLabel: "ఇప్పుడు",
+    endLabel: "+18 గం.",
+  },
+};
+
+function rainLang() {
+  return farmLang(); // same EN/HI/TE mapping as the farm advisor
+}
+
+// Smart Rain Alert in the current UI language, rebuilt from the real
+// rain timeline evidence (same numbers the backend audited).
+function smartRainAlertLocalized() {
+  const tl = state.rainTimeline;
+  if (!tl || !tl.has_event) return null;
+  const t = RAIN_I18N[rainLang()];
+  const startsIn = tl.starts_in_h || 0;
+  const dur = tl.duration_h || 0;
+  const peak = tl.peak_probability;
+  let text;
+  if (startsIn <= 1) {
+    text = t.rainNow(dur, peak);
+  } else {
+    // starts_in_h >= 2 here; the relative phrase embeds the clock time too.
+    text = t.rainIn(`${t.inHours(startsIn)} (${tl.start_label})`, peak);
+  }
+  return {
+    severity: "Advisory",
+    type: "Smart Rain Alert",
+    text,
+    snapshot: { starts_in_h: startsIn, duration_h: dur, peak_probability: peak, start_iso: tl.start_iso },
+  };
+}
+
 // Condition category mapping for WMO codes
 function getConditionCategory(code, isDay = 1) {
   const day = isDay !== 0;
@@ -605,6 +687,19 @@ const els = {
   farmAlertCount: document.getElementById("farm-alert-count"),
   farmCropEmoji: document.getElementById("farm-crop-emoji"),
 
+  // Smart Rain Alert + Rain Timeline
+  smartRainAlert: document.getElementById("smart-rain-alert"),
+  smartRainTitle: document.getElementById("smart-rain-title"),
+  smartRainBadge: document.getElementById("smart-rain-badge"),
+  smartRainText: document.getElementById("smart-rain-text"),
+  rainTimelineHeading: document.getElementById("rain-timeline-heading"),
+  rainTimelinePeak: document.getElementById("rain-timeline-peak"),
+  rainTimelineTrack: document.getElementById("rain-timeline-track"),
+  rainTimelineBar: document.getElementById("rain-timeline-bar"),
+  rainTimelineStartLabel: document.getElementById("rain-timeline-start-label"),
+  rainTimelineEndLabel: document.getElementById("rain-timeline-end-label"),
+  rainTimelineNote: document.getElementById("rain-timeline-note"),
+
   // Insights Screen
   insightsTimeScope: document.getElementById("insights-time-scope"),
   insightsScopeSubtitle: document.getElementById("insights-scope-subtitle"),
@@ -705,6 +800,13 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
       refreshFarmAdvice();
     } else if (state.weather) {
       state.farmStale = true;
+    }
+
+    // Re-render rain surfaces in the selected language (no refetch —
+    // the evidence is already in state, only wording changes).
+    if (state.rainTimeline) {
+      renderSmartRainAlert();
+      renderRainTimeline();
     }
 
     // Refresh weather synopsis in new language if data already loaded
@@ -1014,6 +1116,7 @@ async function refreshWeatherData(requestId = state.locationRequestId) {
 
     state.weather = data.weather;
     state.alerts = data.alerts || [];
+    state.rainTimeline = data.rain_timeline || null;
     state.airQuality = data.air_quality || data.weather?.air_quality || {};
     state.reportCache = null; // new location → invalidate cached synopsis
 
@@ -1061,6 +1164,9 @@ function renderForecastScreen() {
   applyDynamicSky(cat, tempBandFor(temp));
   // Precipitation overlay + storm lightning, from the same real payload.
   applyPrecipFx(cat, current.precipitation, current.wind_direction_10m);
+  // Smart Rain Alert + Rain Timeline — same real hourly payload.
+  renderSmartRainAlert();
+  renderRainTimeline();
 
   if (els.heroTemperature) els.heroTemperature.textContent = temp;
   if (els.heroTempFeels) els.heroTempFeels.textContent = `${feels}°`;
@@ -1210,6 +1316,62 @@ function renderForecastScreen() {
       })
       .join("");
   }
+}
+
+// ============================================================
+// SMART RAIN ALERT + RAIN TIMELINE RENDERING
+// Both read the backend-computed rain timeline (same real hourly
+// payload as every other surface). No numbers are invented here.
+// ============================================================
+
+function renderSmartRainAlert() {
+  const t = RAIN_I18N[rainLang()];
+  if (!els.smartRainAlert || !els.smartRainText) return;
+
+  // Title/badge stay localized even while the banner is hidden, so a
+  // language switch never leaves stale text in the DOM.
+  if (els.smartRainTitle) els.smartRainTitle.textContent = t.alertTitle;
+  if (els.smartRainBadge) els.smartRainBadge.textContent = t.badge;
+
+  const alert = smartRainAlertLocalized();
+  if (!alert) {
+    els.smartRainAlert.classList.add("hidden");
+    return;
+  }
+  els.smartRainText.textContent = alert.text;
+  els.smartRainAlert.classList.remove("hidden");
+}
+
+function renderRainTimeline() {
+  const t = RAIN_I18N[rainLang()];
+  if (!els.rainTimelineTrack || !els.rainTimelineBar || !els.rainTimelineNote) return;
+
+  if (els.rainTimelineTrack) {
+    els.rainTimelineTrack.setAttribute("aria-label", t.trackLabel);
+  }
+  if (els.rainTimelineStartLabel) els.rainTimelineStartLabel.textContent = t.nowLabel;
+  if (els.rainTimelineEndLabel) els.rainTimelineEndLabel.textContent = t.endLabel;
+
+  const tl = state.rainTimeline;
+  const peak = tl && tl.peak_probability;
+  if (els.rainTimelinePeak) {
+    els.rainTimelinePeak.textContent = peak != null ? t.peak(peak) : "";
+  }
+
+  if (!tl || !tl.has_event) {
+    els.rainTimelineBar.style.left = "0%";
+    els.rainTimelineBar.style.width = "0%";
+    els.rainTimelineNote.textContent = t.noRain;
+    return;
+  }
+
+  // Bar spans start→end within the fixed 18h track.
+  const horizon = tl.horizon_h || R18_HOURS;
+  const left = 100 * (tl.starts_in_h || 0) / horizon;
+  const width = 100 * (tl.duration_h || 0) / horizon;
+  els.rainTimelineBar.style.left = `${left}%`;
+  els.rainTimelineBar.style.width = `${Math.max(width, 3)}%`;
+  els.rainTimelineNote.textContent = t.window(tl.start_label, tl.end_label, tl.duration_h);
 }
 
 function renderMapScreen() {
@@ -1368,7 +1530,14 @@ function renderInsightsScreen() {
     let alertItems = [];
 
     if (scope === "today") {
-      alertItems = state.alerts || [];
+      // Localize the generic daily-rain alert the backend emits in English
+      // (peak % is re-read from the real daily payload, never invented).
+      const rainPeak = Math.max(...(daily.precipitation_probability_max || [0]));
+      alertItems = (state.alerts || []).map((a) =>
+        a.type === "High Precipitation Probability"
+          ? { ...a, text: RAIN_I18N[rainLang()].alertDaily(rainPeak) }
+          : a
+      );
     } else if (scope === "48h") {
       if (maxRain48 >= 50) {
         alertItems.push({
