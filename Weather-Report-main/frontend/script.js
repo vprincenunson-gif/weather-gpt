@@ -206,6 +206,15 @@ const FARM_I18N = {
     alertCount: (n) => `${n} Farm Alert${n === 1 ? "" : "s"}`,
     cropNoteLabel: "Crop note",
     disclaimer: "Advice is generated from local forecast data and standard agronomy thresholds. Verify locally before major field decisions.",
+    cropHelp: "Select the crop growing in your field",
+    stageHelp: "Select the current growth stage of your crop",
+    emptyState: "Select your crop and stage to get today's farm advisory.",
+    guideTitle: "Know your field",
+    guideSubtitle: "Crops and key practices at a glance",
+    guideCropsHeading: "Crops",
+    guidePracticesHeading: "Key practices",
+    guideAltPrefix: "Photo of",
+    guidePhotoCredit: "Photos: Wikimedia Commons contributors (CC BY / CC BY-SA / public domain).",
   },
   hi: {
     title: "आज मुझे क्या करना चाहिए?",
@@ -219,6 +228,15 @@ const FARM_I18N = {
     alertCount: (n) => `${n} कृषि चेतावनी`,
     cropNoteLabel: "फसल टिप्पणी",
     disclaimer: "सलाह स्थानीय पूर्वानुमान और मानक कृषि-विज्ञान सीमाओं पर आधारित है। बड़े निर्णयों से पहले स्थानीय सत्यापन करें।",
+    cropHelp: "अपने खेत में उगाई जाने वाली फसल चुनें",
+    stageHelp: "फसल की वर्तमान अवस्था चुनें",
+    emptyState: "आज की कृषि सलाह पाने के लिए अपनी फसल और अवस्था चुनें।",
+    guideTitle: "अपने खेत को जानें",
+    guideSubtitle: "फसलें और प्रमुख कृषि कार्य एक नज़र में",
+    guideCropsHeading: "फसलें",
+    guidePracticesHeading: "प्रमुख कृषि कार्य",
+    guideAltPrefix: "फोटो:",
+    guidePhotoCredit: "फोटो: Wikimedia Commons योगदानकर्ता (CC BY / CC BY-SA / सार्वजनिक डोमेन)।",
   },
   te: {
     title: "ఈరోజు నేను ఏమి చేయాలి?",
@@ -232,11 +250,218 @@ const FARM_I18N = {
     alertCount: (n) => `${n} వ్యవసాయ హెచ్చరికలు`,
     cropNoteLabel: "పంట గమనిక",
     disclaimer: "సలహా స్థానిక అంచనా డేటా మరియు ప్రామాణిక వ్యవసాయ ప్రమాణాల ఆధారంగా. పెద్ద నిర్ణయాలకు ముందు స్థానికంగా సరిచూసుకోండి.",
+    cropHelp: "మీ పొలంలో పండిస్తున్న పంటను ఎంచుకోండి",
+    stageHelp: "మీ పంట ప్రస్తుత దశను ఎంచుకోండి",
+    emptyState: "ఈరోజు వ్యవసాయ సలహా పొందడానికి మీ పంట మరియు దశను ఎంచుకోండి.",
+    guideTitle: "మీ పొలాన్ని తెలుసుకోండి",
+    guideSubtitle: "పంటలు మరియు ముఖ్య వ్యవసాయ పద్ధతులు ఒక చూపులో",
+    guideCropsHeading: "పంటలు",
+    guidePracticesHeading: "ముఖ్య వ్యవసాయ పద్ధతులు",
+    guideAltPrefix: "ఫోటో:",
+    guidePhotoCredit: "ఫోటోలు: Wikimedia Commons సహకారులు (CC BY / CC BY-SA / పబ్లిక్ డొమైన్).",
   },
 };
 
+// ---------------------------------------------------------------
+// FARM VISUAL GUIDE CONTENT
+// Crop entries MIRROR the backend /api/crops catalogue: `id` is the
+// stable internal identifier used by /api/farm-advice, `names` carry
+// the localized display labels (must stay in sync with backend
+// farm_advisor.CROPS). Practices are presentation-only on the client:
+// each describes WHAT the practice is — no dosage, no yield or
+// outcome claims. Photos are real photographs from Wikimedia Commons
+// (free licences), served through Special:FilePath at 640px width.
+// ---------------------------------------------------------------
+const FARM_GUIDE_CROPS = [
+  { id: "rice", names: { en: "Rice (Paddy)", hi: "धान (चावल)", te: "వరి" }, emoji: "🌾",
+    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Paddy%20field%20in%20Tamil%20Nadu%20India.jpg?width=640" },
+  { id: "cotton", names: { en: "Cotton", hi: "कपास", te: "పత్తి" }, emoji: "🪴",
+    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Cotton%20field.jpg?width=640" },
+  { id: "maize", names: { en: "Maize", hi: "मक्का", te: "మొక్కజొన్న" }, emoji: "🌽",
+    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Maize.jpg?width=640" },
+  { id: "groundnut", names: { en: "Groundnut", hi: "मूंगफली", te: "వేరుశనగ" }, emoji: "🥜",
+    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Groundnut%20crop%20in%20Chittoor%20district%2C%20Andhra%20Pradesh.jpg?width=640" },
+  { id: "wheat", names: { en: "Wheat", hi: "गेहूँ", te: "గోధుమ" }, emoji: "🌾",
+    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Wheat%20close-up.JPG?width=640" },
+  { id: "sugarcane", names: { en: "Sugarcane", hi: "गन्ना", te: "చెరకు" }, emoji: "🎍",
+    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Sugarcane%20Field%20Srirangapatna%20Karnataka%20Jul22%20R16%2006192.jpg?width=640" },
+];
+
+const FARM_GUIDE_PRACTICES = [
+  { key: "sowing", photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Women%20Farmers%20Sowing%20in%20Karnataka%2C%20India.jpg?width=640",
+    names: { en: "Sowing", hi: "बुवाई", te: "విత్తులు వేయడం" }, emoji: "🌱",
+    desc: {
+      en: "Placing seed in prepared soil at the right soil-moisture window.",
+      hi: "तैयार मिट्टी में सही नमी के समय बीज बोना।",
+      te: "సిద్ధమైన నేలలో సరైన తేమ సమయంలో విత్తనాలు వేయడం.",
+    } },
+  { key: "irrigation", photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Drip%20irrigation%20in%20Chinawal%201.jpg?width=640",
+    names: { en: "Irrigation", hi: "सिंचाई", te: "నీటి పారుదల" }, emoji: "💧",
+    desc: {
+      en: "Supplying water to the crop; drip lines wet the root zone directly.",
+      hi: "फसल को पानी देना; ड्रिप लाइनें जड़ क्षेत्र तक सीधे पानी पहुँचाती हैं।",
+      te: "పంటకు నీరు అందించడం; డ్రిప్ లైన్లు వేర్ల వద్దకు నేరుగా నీరు చేరుస్తాయి.",
+    } },
+  { key: "rain", photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Sugarcane%20field%20during%20raining%20season%2C%20in%20Nayagarh%20Odisha.jpg?width=640",
+    names: { en: "Rain protection", hi: "वर्षा सुरक्षा", te: "వర్ష రక్షణ" }, emoji: "🌧️",
+    desc: {
+      en: "Covering and draining before wet spells so produce and soil stay protected.",
+      hi: "गीले मौसम से पहले ढकना और जल निकासी ताकि फसल व मिट्टी सुरक्षित रहें।",
+      te: "తడి కాలానికి ముందు కప్పడం మరియు నీరు పారుదల — పంట, నేల సురక్షితంగా ఉంటాయి.",
+    } },
+  { key: "heat", photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Cracked%20dry%20soil%20in%20Bangladesh.jpg?width=640",
+    names: { en: "Heat care", hi: "गर्मी से बचाव", te: "వేడి నుండి రక్షణ" }, emoji: "☀️",
+    desc: {
+      en: "Managing crops and field work through hot, dry spells.",
+      hi: "गर्म और शुष्क दौर में फसल व खेत के काम का प्रबंधन।",
+      te: "వేడి, పొడి కాలాల్లో పంట మరియు పొల పనుల నిర్వహణ.",
+    } },
+  { key: "wind", photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Tractor%20and%20Sprayer%20-%20geograph.org.uk%20-%201913814.jpg?width=640",
+    names: { en: "Wind safety", hi: "हवा से बचाव", te: "గాలి భద్రత" }, emoji: "💨",
+    desc: {
+      en: "Field operations and spraying need calm conditions; wind check comes first.",
+      hi: "खेत के काम और छिड़काव शांत मौसम में ही; पहले हवा जाँचें।",
+      te: "పొల పనులు, స్ప్రే చేయడం ప్రశాంత వాతావరణంలోనే; ముందుగా గాలిని తనిఖీ చేయండి.",
+    } },
+  { key: "harvest", photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Combine%20harvester%20cutting%20wheat%20field%20-%20geograph.org.uk%20-%20520759.jpg?width=640",
+    names: { en: "Harvesting", hi: "कटाई", te: "కోత" }, emoji: "🚜",
+    desc: {
+      en: "Cutting and collecting mature crop, ideally in a dry weather window.",
+      hi: "पकी फसल को काटना और इकट्ठा करना, सूखे मौसम में सबसे उचित।",
+      te: "పండిన పంటను కోత చేసి సేకరించడం; పొడి వాతావరణం ఉత్తమం.",
+    } },
+];
+
 function farmLang() {
   return state.voiceLang === "hi" ? "hi" : state.voiceLang === "te" ? "te" : "en";
+}
+
+// Fallback stage catalogue mirroring backend farm_advisor.STAGES — used
+// only if /api/crops is unreachable (IDs and localized names identical).
+const FARM_STAGE_FALLBACK = [
+  { id: "sowing", names: { en: "Sowing", hi: "बुवाई", te: "విత్తులు వేయడం" }, emoji: "🌱" },
+  { id: "growing", names: { en: "Growing", hi: "बढ़ती अवस्था", te: "పెరుగుదల దశ" }, emoji: "🌿" },
+  { id: "flowering", names: { en: "Flowering", hi: "फूल आना", te: "పూల దశ" }, emoji: "🌼" },
+  { id: "harvesting", names: { en: "Harvesting", hi: "कटाई", te: "కోత" }, emoji: "🚜" },
+];
+
+// Live crop/stage catalogue from /api/crops (stable IDs + localized
+// names). Cached for the session; falls back to FARM_GUIDE_CROPS and
+// FARM_STAGE_FALLBACK, which mirror the backend definitions.
+let farmCatalogue = null;
+
+async function loadFarmCatalogue() {
+  if (farmCatalogue) return farmCatalogue;
+  try {
+    const data = await getJSON("/api/crops");
+    if (data && Array.isArray(data.crops) && Array.isArray(data.stages) && data.crops.length > 0) {
+      farmCatalogue = data;
+    }
+  } catch (err) {
+    console.warn("Crop catalogue unavailable, using bundled fallback:", err);
+  }
+  return farmCatalogue;
+}
+
+function localizedFarmName(kind, id, lang) {
+  const list = farmCatalogue
+    ? (kind === "crop" ? farmCatalogue.crops : farmCatalogue.stages)
+    : (kind === "crop" ? FARM_GUIDE_CROPS : FARM_STAGE_FALLBACK);
+  const entry = list.find((e) => e.id === id);
+  if (!entry) return id;
+  return entry.names[lang] || entry.names.en;
+}
+
+// Rebuild both <select> option lists with localized display labels.
+// Option VALUES stay the stable internal IDs the API contract expects,
+// and the user's current selection is preserved across re-renders.
+function populateFarmSelectors(lang) {
+  const cropSel = els.farmCropSelect;
+  const stageSel = els.farmStageSelect;
+  if (!cropSel || !stageSel) return;
+  const t = FARM_I18N[lang] || FARM_I18N.en;
+  const keepCrop = cropSel.value;
+  const keepStage = stageSel.value;
+  const crops = (farmCatalogue && farmCatalogue.crops) || FARM_GUIDE_CROPS;
+  const stages = (farmCatalogue && farmCatalogue.stages) || FARM_STAGE_FALLBACK;
+
+  cropSel.innerHTML = crops
+    .map((c) => `<option value="${c.id}">${c.emoji || ""} ${escapeHTML(c.names[lang] || c.names.en)}</option>`)
+    .join("");
+  stageSel.innerHTML = stages
+    .map((s) => `<option value="${s.id}">${s.emoji || ""} ${escapeHTML(s.names[lang] || s.names.en)}</option>`)
+    .join("");
+
+  if ([...cropSel.options].some((o) => o.value === keepCrop)) cropSel.value = keepCrop;
+  if ([...stageSel.options].some((o) => o.value === keepStage)) stageSel.value = keepStage;
+
+  const cropLabel = document.getElementById("farm-crop-label");
+  const stageLabel = document.getElementById("farm-stage-label");
+  if (cropLabel) cropLabel.textContent = t.cropLabel;
+  if (stageLabel) stageLabel.textContent = t.stageLabel;
+  const cropHelp = document.getElementById("farm-crop-help");
+  const stageHelp = document.getElementById("farm-stage-help");
+  if (cropHelp) cropHelp.textContent = t.cropHelp;
+  if (stageHelp) stageHelp.textContent = t.stageHelp;
+}
+
+// Static farm-tab chrome: headline (before any advisory lands),
+// subtitle, empty state, list aria-label, and the visual guide shell.
+function applyFarmStaticText(lang) {
+  const t = FARM_I18N[lang] || FARM_I18N.en;
+  if (els.farmTitle && !state.farmAdvice) els.farmTitle.textContent = t.title;
+  if (els.farmSubtitle) els.farmSubtitle.textContent = t.subtitle;
+  if (els.farmEmptyState) els.farmEmptyState.textContent = t.emptyState;
+  if (els.farmAdviceCards) els.farmAdviceCards.setAttribute("aria-label", t.advisory);
+  if (els.farmGuideTitle) els.farmGuideTitle.textContent = t.guideTitle;
+  if (els.farmGuideSubtitle) els.farmGuideSubtitle.textContent = t.guideSubtitle;
+  if (els.farmGuideCropsHeading) els.farmGuideCropsHeading.textContent = t.guideCropsHeading;
+  if (els.farmGuidePracticesHeading) els.farmGuidePracticesHeading.textContent = t.guidePracticesHeading;
+  if (els.farmGuidePhotoCredit) els.farmGuidePhotoCredit.textContent = t.guidePhotoCredit;
+}
+
+// Replace a failed remote photo with a themed icon placeholder so the
+// card keeps its layout — no broken-image glyph, no layout shift.
+function farmGuidePhotoFailed(img) {
+  const fig = img.closest("figure");
+  if (!fig) return;
+  const fallback = document.createElement("div");
+  fallback.className = "farm-guide-photo-fallback";
+  fallback.setAttribute("aria-hidden", "true");
+  fallback.innerHTML = '<span class="material-symbols-outlined">image</span>';
+  img.replaceWith(fallback);
+}
+
+function farmGuideCard(entry, title, sub, altText) {
+  return `
+    <figure class="farm-guide-card" data-guide-key="${escapeHTML(entry.id || entry.key || "")}">
+      <img class="farm-guide-photo is-loading" src="${entry.photo}" alt="${escapeHTML(altText)}"
+        loading="lazy" decoding="async" width="640" height="480"
+        onload="this.classList.remove('is-loading')"
+        onerror="farmGuidePhotoFailed(this)">
+      <figcaption class="farm-guide-caption">
+        <span class="farm-guide-title">${entry.emoji || ""} ${escapeHTML(title)}</span>
+        ${sub ? `<span class="farm-guide-sub">${escapeHTML(sub)}</span>` : ""}
+      </figcaption>
+    </figure>`;
+}
+
+// Render the visual guide grids in the selected language. Crop cards
+// show the localized crop name; practice cards add a one-line, claim-
+// free description of what the practice is.
+function renderFarmGuide(lang) {
+  const cropGrid = els.farmGuideCropGrid;
+  const practiceGrid = els.farmGuidePracticeGrid;
+  if (!cropGrid || !practiceGrid) return;
+  const t = FARM_I18N[lang] || FARM_I18N.en;
+  cropGrid.innerHTML = FARM_GUIDE_CROPS.map((c) => {
+    const name = c.names[lang] || c.names.en;
+    return farmGuideCard(c, name, "", `${t.guideAltPrefix} ${name}`);
+  }).join("");
+  practiceGrid.innerHTML = FARM_GUIDE_PRACTICES.map((p) => {
+    const name = p.names[lang] || p.names.en;
+    return farmGuideCard(p, name, p.desc[lang] || p.desc.en, `${t.guideAltPrefix} ${name}`);
+  }).join("");
 }
 
 // ============================================================
@@ -787,6 +1012,15 @@ const els = {
   farmDisclaimer: document.getElementById("farm-disclaimer"),
   farmAlertCount: document.getElementById("farm-alert-count"),
   farmCropEmoji: document.getElementById("farm-crop-emoji"),
+  farmSubtitle: document.getElementById("farm-advisor-subtitle"),
+  farmEmptyState: document.getElementById("farm-empty-state"),
+  farmGuideTitle: document.getElementById("farm-guide-title"),
+  farmGuideSubtitle: document.getElementById("farm-guide-subtitle"),
+  farmGuideCropsHeading: document.getElementById("farm-guide-crops-heading"),
+  farmGuidePracticesHeading: document.getElementById("farm-guide-practices-heading"),
+  farmGuideCropGrid: document.getElementById("farm-guide-crop-grid"),
+  farmGuidePracticeGrid: document.getElementById("farm-guide-practice-grid"),
+  farmGuidePhotoCredit: document.getElementById("farm-guide-photo-credit"),
 
   // Smart Rain Alert + Rain Timeline
   smartRainAlert: document.getElementById("smart-rain-alert"),
@@ -896,6 +1130,12 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
     // Re-render farm advisory in the selected language (server-side
     // translation is keyed by language) — refetch when its view is open,
     // otherwise mark stale so it picks the new language on next open.
+    // Selectors, static farm chrome, and the visual guide re-render
+    // immediately in every tab state.
+    const farmLangCode = farmLang();
+    populateFarmSelectors(farmLangCode);
+    applyFarmStaticText(farmLangCode);
+    renderFarmGuide(farmLangCode);
     state.farmCacheKey = null;
     if (state.weather && state.activeView === "view-farmer") {
       refreshFarmAdvice();
@@ -1948,8 +2188,14 @@ function renderFarmAdvice() {
   }
 }
 
-function initFarmAdvisor() {
+async function initFarmAdvisor() {
   if (!els.farmCropSelect || !els.farmStageSelect) return;
+  // Localize the selectors from the live catalogue (bundled fallback
+  // until/unless it responds), then render the visual guide.
+  await loadFarmCatalogue();
+  populateFarmSelectors(farmLang());
+  applyFarmStaticText(farmLang());
+  renderFarmGuide(farmLang());
   els.farmCropSelect.addEventListener("change", () => {
     state.farmCacheKey = null;
     refreshFarmAdvice();

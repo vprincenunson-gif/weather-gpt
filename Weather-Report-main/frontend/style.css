@@ -1047,3 +1047,96 @@ main {
   74%  { opacity: 0.48; }
   100% { opacity: 0; }
 }
+
+/* ============================================================
+   FARM VISUAL GUIDE — real photos (Wikimedia Commons), local-
+   ized captions. Images are lazy-loaded, aspect-ratio-locked so
+   the grid never jumps while photos stream in, and themed via
+   the app's existing CSS variables (works in Light and Dark).
+   ============================================================ */
+
+.farm-guide-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgb(var(--glass-highest) / 0.6);
+  border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha));
+  box-shadow: 0 4px 14px rgba(var(--shadow-tint), 0.14);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.farm-guide-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(var(--shadow-tint), 0.22);
+}
+
+.farm-guide-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+  background: rgb(var(--glass-border) / 0.12);
+}
+
+/* Skeleton shimmer shown until the lazy image loads (or an
+   error placeholder swaps in). */
+.farm-guide-photo.is-loading {
+  animation: farm-guide-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes farm-guide-shimmer {
+  0%   { opacity: 0.35; }
+  50%  { opacity: 0.75; }
+  100% { opacity: 0.35; }
+}
+
+/* Inline fallback if a remote photo ever fails to load: the card
+   keeps its layout and shows a themed icon — no broken-image glyph. */
+.farm-guide-photo-fallback {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--glass-border) / 0.12);
+  color: rgb(var(--ink-tertiary));
+}
+
+.farm-guide-photo-fallback .material-symbols-outlined {
+  font-size: 26px;
+}
+
+.farm-guide-caption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px 9px;
+}
+
+.farm-guide-title {
+  font-family: 'Inter', 'Noto Sans Devanagari', 'Noto Sans Telugu', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: rgb(var(--ink-primary));
+}
+
+.farm-guide-sub {
+  font-family: 'Inter', 'Noto Sans Devanagari', 'Noto Sans Telugu', sans-serif;
+  font-size: 9.5px;
+  line-height: 1.4;
+  color: rgb(var(--ink-secondary) / var(--ink-secondary-alpha));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .farm-guide-card,
+  .farm-guide-card:hover {
+    transform: none;
+    transition: none;
+  }
+  .farm-guide-photo.is-loading {
+    animation: none;
+    opacity: 0.5;
+  }
+}

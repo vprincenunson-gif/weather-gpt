@@ -63,11 +63,76 @@ with sync_playwright() as p:
     card_hi = page.locator("#farm-advice-cards .farm-advice-card p").first.text_content()
     check("HI advice text", card_hi and any("\u0900" <= c <= "\u097f" for c in card_hi), f"got: {(card_hi or '')[:40]!r}")
 
+    # 6b. Full multilingual UI after HI switch: labels, sr-only help,
+    # option labels, subtitle, empty state, and guide chrome in Hindi.
+    # Option VALUES must stay stable internal IDs (API contract).
+    farm_hi = page.evaluate("""(() => {
+      const cropLabel = document.getElementById('farm-crop-label')?.textContent;
+      const stageLabel = document.getElementById('farm-stage-label')?.textContent;
+      const cropHelp = document.getElementById('farm-crop-help')?.textContent;
+      const cropOptions = [...document.querySelectorAll('#farm-crop-select option')].map(o => ({ v: o.value, t: o.textContent }));
+      const stageOptions = [...document.querySelectorAll('#farm-stage-select option')].map(o => ({ v: o.value, t: o.textContent }));
+      const selectedCropValue = document.getElementById('farm-crop-select').value;
+      return { cropLabel, stageLabel, cropHelp, cropOptions, stageOptions, selectedCropValue };
+    })()""")
+    check("HI crop label", farm_hi["cropLabel"] == "फसल", f"got: {farm_hi['cropLabel']!r}")
+    check("HI stage label", farm_hi["stageLabel"] == "फसल अवस्था", f"got: {farm_hi['stageLabel']!r}")
+    check("HI sr-only help", "खेत" in (farm_hi["cropHelp"] or ""), f"got: {farm_hi['cropHelp']!r}")
+    hi_crop_vals = {o["v"] for o in farm_hi["cropOptions"]}
+    hi_stage_vals = {o["v"] for o in farm_hi["stageOptions"]}
+    check("HI option values keep stable internal IDs",
+          hi_crop_vals == {"rice", "cotton", "maize", "groundnut", "wheat", "sugarcane"}
+          and hi_stage_vals == {"sowing", "growing", "flowering", "harvesting"},
+          f"crops={sorted(hi_crop_vals)}, stages={sorted(hi_stage_vals)}")
+    hi_option_texts = " ".join(o["t"] for o in farm_hi["cropOptions"] + farm_hi["stageOptions"])
+    check("HI option labels localized",
+          "धान" in hi_option_texts and "कपास" in hi_option_texts and "बुवाई" in hi_option_texts,
+          f"got: {hi_option_texts[:80]!r}")
+    check("HI selection preserved across re-population", farm_hi["selectedCropValue"] == "cotton",
+          f"got: {farm_hi['selectedCropValue']!r}")
+    subtitle_hi = page.text_content("#farm-advisor-subtitle")
+    check("HI subtitle", "फार्म" in (subtitle_hi or ""), f"got: {subtitle_hi!r}")
+    guide_title_hi = page.text_content("#farm-guide-title")
+    check("HI guide title", "खेत" in (guide_title_hi or ""), f"got: {guide_title_hi!r}")
+    guide_hi_texts = page.evaluate(
+        "[...document.querySelectorAll('#farm-visual-guide .farm-guide-title')].map(e => e.textContent)")
+    check("HI guide card titles localized",
+          any("धान" in x for x in guide_hi_texts) and any("सिंचाई" in x for x in guide_hi_texts),
+          f"got: {guide_hi_texts[:4]!r}")
+    hi_alts = page.evaluate(
+        "[...document.querySelectorAll('#farm-visual-guide img.farm-guide-photo')].map(i => i.alt)")
+    check("HI image alt text localized", len(hi_alts) >= 12 and any("फोटो" in a for a in hi_alts),
+          f"{len(hi_alts)} alts, sample: {(hi_alts or [''])[0]!r}")
+
     # 7. Language switch TE
     page.click('.lang-btn[data-lang="te"]')
     page.wait_for_timeout(2000)
     title_te = page.text_content("#farm-advisor-title")
     check("TE headline", title_te and "ఈరోజు" in title_te, f"got: {title_te!r}")
+    farm_te = page.evaluate("""(() => {
+      const cropLabel = document.getElementById('farm-crop-label')?.textContent;
+      const options = [...document.querySelectorAll('#farm-crop-select option')].map(o => o.textContent);
+      const guideTitles = [...document.querySelectorAll('#farm-visual-guide .farm-guide-title')].map(e => e.textContent);
+      const alts = [...document.querySelectorAll('#farm-visual-guide img.farm-guide-photo')].map(i => i.alt);
+      const credit = document.getElementById('farm-guide-photo-credit')?.textContent;
+      return { cropLabel, options, guideTitles, alts, credit };
+    })()""")
+    check("TE crop label", farm_te["cropLabel"] == "పంట", f"got: {farm_te['cropLabel']!r}")
+    te_option_texts = " ".join(farm_te["options"])
+    check("TE option labels localized",
+          "వరి" in te_option_texts and "పత్తి" in te_option_texts and "చెరకు" in te_option_texts,
+          f"got: {te_option_texts[:60]!r}")
+    check("TE guide card titles localized",
+          any("వరి" in x for x in farm_te["guideTitles"]) and any("నీటి పారుదల" in x for x in farm_te["guideTitles"]),
+          f"got: {farm_te['guideTitles'][:4]!r}")
+    check("TE image alt text localized", any("ఫోటో" in a for a in farm_te["alts"]),
+          f"sample: {(farm_te['alts'] or [''])[0]!r}")
+    check("TE photo credit localized", "Wikimedia Commons" in (farm_te["credit"] or ""),
+          f"got: {farm_te['credit']!r}")
+
+    # 7b. Telugu selects stay usable (no truncation/overflow at 390px)
+    te_select_w = page.evaluate("document.getElementById('farm-crop-select').getBoundingClientRect().width")
+    check("TE select usable", te_select_w > 120, f"{te_select_w}px")
 
     # back to EN for remaining checks
     page.click('.lang-btn[data-lang="auto"]')
@@ -122,9 +187,93 @@ with sync_playwright() as p:
     pg2.wait_for_timeout(1500)
     select_w = pg2.evaluate("document.getElementById('farm-crop-select').getBoundingClientRect().width")
     check("selects usable at 360px", select_w > 120, f"{select_w}px")
+
+    # 11b. Visual guide renders on mobile: 12 cards, 2-col grid, images within viewport
+    pg2_guide = pg2.evaluate("""(() => {
+      const cards = document.querySelectorAll('#farm-visual-guide .farm-guide-card');
+      const grid = document.getElementById('farm-guide-crop-grid');
+      const firstCard = document.querySelector('#farm-guide-crop-grid .farm-guide-card');
+      const firstImg = document.querySelector('#farm-guide-crop-grid img.farm-guide-photo');
+      return {
+        cardCount: cards.length,
+        gridCols: grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').length : 0,
+        cardW: firstCard ? firstCard.getBoundingClientRect().width : 0,
+        imgLoaded: firstImg ? firstImg.complete && firstImg.naturalWidth > 0 : false,
+        vw: window.innerWidth,
+      };
+    })()""")
+    check("mobile guide: 12 cards", pg2_guide["cardCount"] == 12, f"got: {pg2_guide['cardCount']}")
+    check("mobile guide: 2-column grid", pg2_guide["gridCols"] == 2, f"cols: {pg2_guide['gridCols']}")
+    check("mobile guide: cards fit viewport", 0 < pg2_guide["cardW"] <= pg2_guide["vw"],
+          f"cardW={pg2_guide['cardW']:.0f}, vw={pg2_guide['vw']}")
+    check("mobile guide: first image decoded", pg2_guide["imgLoaded"])
     pg2.close()
 
-    # 12. No page errors
+    # 11c. Desktop layout: 3-column guide grid, first crop photo decoded
+    pg3 = browser.new_page(viewport={"width": 1280, "height": 900})
+    pg3.goto(BASE, wait_until="networkidle", timeout=60000)
+    pg3.click('.nav-tab[data-view="view-farmer"]')
+    pg3.wait_for_timeout(1500)
+    pg3_guide = pg3.evaluate("""(() => {
+      const grid = document.getElementById('farm-guide-crop-grid');
+      const img = document.querySelector('#farm-guide-crop-grid img.farm-guide-photo');
+      return {
+        gridCols: grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').length : 0,
+        imgLoaded: img ? img.complete && img.naturalWidth > 0 : false,
+      };
+    })()""")
+    check("desktop guide: 3-column grid", pg3_guide["gridCols"] == 3, f"cols: {pg3_guide['gridCols']}")
+    check("desktop guide: first image decoded", pg3_guide["imgLoaded"])
+    pg3.close()
+
+    # 12. Visual guide theme support: photo + caption use themed tokens,
+    # all alt texts present in EN, no broken images after error fallbacks.
+    guide_theme = page.evaluate("""(() => {
+      const img = document.querySelector('#farm-visual-guide img.farm-guide-photo, #farm-visual-guide .farm-guide-photo-fallback');
+      const caption = document.querySelector('#farm-visual-guide .farm-guide-title');
+      return {
+        photoEl: !!img,
+        captionColor: caption ? getComputedStyle(caption).color : "",
+        brokenImgs: [...document.querySelectorAll('#farm-visual-guide img.farm-guide-photo')]
+          .filter(i => i.complete && i.naturalWidth === 0).length,
+        altCount: document.querySelectorAll('#farm-visual-guide img.farm-guide-photo[alt]').length,
+        imgCount: document.querySelectorAll('#farm-visual-guide img.farm-guide-photo').length,
+      };
+    })()""")
+    check("guide photo element present", guide_theme["photoEl"])
+    check("guide caption themed color", guide_theme["captionColor"] not in ("", "rgba(0, 0, 0, 0)"),
+          guide_theme["captionColor"])
+    check("guide has no broken images", guide_theme["brokenImgs"] == 0, f"broken: {guide_theme['brokenImgs']}")
+    check("guide every image has alt text", guide_theme["altCount"] == guide_theme["imgCount"] and guide_theme["imgCount"] > 0,
+          f"{guide_theme['altCount']}/{guide_theme['imgCount']}")
+
+    # 12b. Dark theme: guide chrome re-themes (photo is a real photograph;
+    # captions/borders follow the dark tokens).
+    page.evaluate("localStorage.setItem('weathergpt-theme','dark')")
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_timeout(1200)
+    page.click('.nav-tab[data-view="view-farmer"]')
+    page.wait_for_timeout(1500)
+    dark_guide = page.evaluate("""(() => {
+      const card = document.querySelector('#farm-visual-guide .farm-guide-card');
+      const caption = document.querySelector('#farm-visual-guide .farm-guide-title');
+      const isDark = document.documentElement.dataset.theme === "dark";
+      return {
+        isDark,
+        cardBg: card ? getComputedStyle(card).backgroundColor : "",
+        captionColor: caption ? getComputedStyle(caption).color : "",
+        cards: document.querySelectorAll('#farm-visual-guide .farm-guide-card').length,
+      };
+    })()""")
+    check("dark theme active for guide check", dark_guide["isDark"])
+    check("dark theme: guide cards render", dark_guide["cards"] == 12, f"got: {dark_guide['cards']}")
+    check("dark theme: caption color readable", dark_guide["captionColor"] not in ("", "rgba(0, 0, 0, 0)"),
+          dark_guide["captionColor"])
+    check("dark theme: card background themed", dark_guide["cardBg"] not in ("", "rgba(0, 0, 0, 0)"),
+          dark_guide["cardBg"])
+    page.evaluate("localStorage.setItem('weathergpt-theme','light')")
+
+    # 13. No page errors
     farm_errors = [e for e in console_errors if "favicon" not in e.lower()]
     check("no console/page errors", not farm_errors, "; ".join(farm_errors[:3]))
 

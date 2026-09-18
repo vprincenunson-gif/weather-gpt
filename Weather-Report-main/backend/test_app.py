@@ -358,6 +358,35 @@ class TestFarmAdvisorEndpoint(unittest.TestCase):
         self.assertTrue({"rice", "cotton", "maize", "groundnut"} <= ids)
         self.assertEqual({s["id"] for s in body["stages"]}, {"sowing", "growing", "flowering", "harvesting"})
 
+    def test_crops_catalogue_localized_names(self):
+        """Every crop/stage carries en/hi/te display names; IDs are the
+        stable API contract the frontend selectors send back."""
+        r = self.client.get("/api/crops")
+        self.assertEqual(r.status_code, 200)
+        body = r.get_json()
+        for entry in body["crops"] + body["stages"]:
+            self.assertIn("id", entry)
+            self.assertIn("names", entry)
+            for lang in ("en", "hi", "te"):
+                self.assertIn(lang, entry["names"], f"{entry['id']} missing {lang} name")
+                self.assertTrue(str(entry["names"][lang]).strip(), f"{entry['id']} empty {lang} name")
+
+    def test_crops_catalogue_ids_roundtrip_through_advice_validation(self):
+        """Every catalogue id is accepted by /api/farm-advice validation
+        (stable internal IDs, localized display names only in `names`)."""
+        catalogue = self.client.get("/api/crops").get_json()
+        crop_ids = [c["id"] for c in catalogue["crops"]]
+        stage_ids = [s["id"] for s in catalogue["stages"]]
+        # validate_params rejects unknown ids with an error tuple; known
+        # ids pass through. Exercise every combination cheaply.
+        from farm_advisor import validate_params
+        for cid in crop_ids:
+            _, _, _, err = validate_params(cid, stage_ids[0], "en")
+            self.assertIsNone(err, f"crop id {cid!r} rejected by farm-advice validation")
+        for sid in stage_ids:
+            _, _, _, err = validate_params(crop_ids[0], sid, "en")
+            self.assertIsNone(err, f"stage id {sid!r} rejected by farm-advice validation")
+
 
 @unittest.skipUnless(SystemExit is not None, "always runs")
 class TestLiveApiContract(unittest.TestCase):

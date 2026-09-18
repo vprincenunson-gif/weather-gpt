@@ -775,10 +775,13 @@
           <span id="farm-alert-count" class="hidden shrink-0 px-2 py-1 rounded-full bg-alert-coral-bg border border-alert-coral/40 text-alert-coral font-label-caps text-[10px] font-bold" role="status" aria-live="polite">0 Alerts</span>
         </div>
 
-        <!-- Crop & Stage selectors -->
+        <!-- Crop & Stage selectors.
+             Option VALUES are stable internal IDs consumed by the
+             /api/farm-advice endpoint; option LABELS are localized at
+             runtime from the same catalogue (see populateFarmSelectors). -->
         <div class="relative z-10 grid grid-cols-2 gap-2 mt-3">
           <div class="flex flex-col gap-1 min-w-0">
-            <label for="farm-crop-select" class="font-label-caps text-[9px] text-ink-tertiary uppercase tracking-wider">Crop</label>
+            <label for="farm-crop-select" id="farm-crop-label" class="font-label-caps text-[9px] text-ink-tertiary uppercase tracking-wider">Crop</label>
             <select id="farm-crop-select" class="farm-select" aria-describedby="farm-crop-help">
               <option value="rice">🌾 Rice (Paddy)</option>
               <option value="cotton">🪴 Cotton</option>
@@ -790,7 +793,7 @@
             <span id="farm-crop-help" class="sr-only">Select the crop growing in your field</span>
           </div>
           <div class="flex flex-col gap-1 min-w-0">
-            <label for="farm-stage-select" class="font-label-caps text-[9px] text-ink-tertiary uppercase tracking-wider">Crop Stage</label>
+            <label for="farm-stage-select" id="farm-stage-label" class="font-label-caps text-[9px] text-ink-tertiary uppercase tracking-wider">Crop Stage</label>
             <select id="farm-stage-select" class="farm-select" aria-describedby="farm-stage-help">
               <option value="sowing">🌱 Sowing</option>
               <option value="growing">🌿 Growing</option>
@@ -804,13 +807,35 @@
         <!-- Advisory cards -->
         <div id="farm-advice-cards" class="relative z-10 flex flex-col gap-2 mt-3" role="list" aria-label="Farm advisory list">
           <div class="farm-advice-card rounded-2xl bg-surface-container-high/80 border border-glass-border/20 p-3" role="listitem">
-            <p class="font-body-base text-xs text-ink-secondary">Select your crop and stage to get today's farm advisory.</p>
+            <p id="farm-empty-state" class="font-body-base text-xs text-ink-secondary">Select your crop and stage to get today's farm advisory.</p>
           </div>
         </div>
 
         <!-- Crop note + disclaimer -->
         <p id="farm-crop-note" class="relative z-10 mt-3 font-body-dim text-[10px] text-ink-tertiary"></p>
         <p id="farm-disclaimer" class="relative z-10 mt-1 font-body-dim text-[9px] text-ink-tertiary/80"></p>
+      </div>
+
+      <!-- Field & Crop Visual Guide.
+           Illustrated reference for each supported crop and the major
+           advisory practices. Photos are real photographs served from
+           Wikimedia Commons (free licences), loaded lazily at 640px.
+           Captions/alt text are localized; labels describe what the
+           practice IS, not any outcome claim. -->
+      <div id="farm-visual-guide" aria-labelledby="farm-guide-title"
+        class="relative overflow-hidden rounded-3xl bg-surface-container/60 border border-glass-border/30 shadow-lg p-4 sm:p-5">
+        <div class="relative z-10 flex flex-col gap-1">
+          <h3 id="farm-guide-title" class="font-headline-card text-[15px] sm:text-base text-primary font-semibold">Know your field</h3>
+          <p id="farm-guide-subtitle" class="font-label-caps text-[9px] sm:text-[10px] text-ink-tertiary uppercase tracking-wider">Crops and key practices at a glance</p>
+        </div>
+
+        <h4 id="farm-guide-crops-heading" class="relative z-10 font-label-caps text-[10px] text-ink-secondary uppercase tracking-wider mt-4 mb-2">Crops</h4>
+        <div id="farm-guide-crop-grid" class="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-2.5"></div>
+
+        <h4 id="farm-guide-practices-heading" class="relative z-10 font-label-caps text-[10px] text-ink-secondary uppercase tracking-wider mt-4 mb-2">Key practices</h4>
+        <div id="farm-guide-practice-grid" class="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-2.5"></div>
+
+        <p id="farm-guide-photo-credit" class="relative z-10 mt-3 font-body-dim text-[9px] text-ink-tertiary/80"></p>
       </div>
     </section>
 
