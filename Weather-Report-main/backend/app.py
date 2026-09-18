@@ -429,6 +429,182 @@ def fetch_weather(latitude, longitude, forecast_days=7):
         return data
 
 
+# ============================================================
+# MAP FIELD DATA (Micro-Temp / Wind Vectors / AQI Plume layers)
+# ============================================================
+# The radar map's data layers sample real gridded model data around the
+# viewed location: temperature and wind come from Open-Meteo's forecast
+# API (one request per grid point, same endpoints the app already uses)
+# and AQI from Open-Meteo's Air-Quality API. Grid geometry is tuned per
+# layer: a 1°, 9x9 lattice resolves temperature/wind gradients, while a
+# coarser 2°, 7x7 lattice is enough for the smoother AQI plume.
+
+_FIELD_METRICS = {
+    "temp": {"grid_step": 1.0, "grid_size": 9},
+    "wind": {"grid_step": 1.0, "grid_size": 9},
+    "aqi": {"grid_step": 2.0, "grid_size": 7},
+}
+
+_FIELD_CACHE = OrderedDict()  # (metric, min_lat, min_lon) -> (ts, data); LRU
+_FIELD_CACHE_TTL_SECONDS = 600  # model fields refresh on a ~10-15 min cadence
+_FIELD_CACHE_MAX_ENTRIES = 200
+_FIELD_CACHE_LOCK = threading.Lock()
+
+
+def _field_cache_get(cache_key):
+    with _FIELD_CACHE_LOCK:
+        cached = _FIELD_CACHE.get(cache_key)
+        if cached and (time.time() - cached[0]) < _FIELD_CACHE_TTL_SECONDS:
+            _FIELD_CACHE.move_to_end(cache_key)
+            return cached[1]
+        if cache_key in _FIELD_CACHE:
+            del _FIELD_CACHE[cache_key]  # expired
+    return None
+
+
+def _field_cache_set(cache_key, data):
+    with _FIELD_CACHE_LOCK:
+        _FIELD_CACHE[cache_key] = (time.time(), data)
+        _FIELD_CACHE.move_to_end(cache_key)
+        while len(_FIELD_CACHE) > _FIELD_CACHE_MAX_ENTRIES:
+            _FIELD_CACHE.popitem(last=False)
+
+
+def _field_metric_params(metric):
+    """Upstream endpoint + `current` fields for each field metric."""
+    if metric == "temp":
+        return "https://api.open-meteo.com/v1/forecast", "temperature_2m"
+    if metric == "wind":
+        return "https://api.open-meteo.com/v1/forecast", "wind_speed_10m,wind_direction_10m"
+    return "https://air-quality-api.open-meteo.com/v1/air-quality", "us_aqi"
+
+
+def _field_point_value(metric, current):
+    """Parse one upstream `current` object into a grid value (or None).
+
+    A wind vector needs BOTH components — half a reading is no reading.
+    Values the model reports as unavailable stay None (never fabricated).
+    """
+    if metric == "wind":
+        speed = current.get("wind_speed_10m")
+        direction = current.get("wind_direction_10m")
+        if speed is None or direction is None:
+            return None
+        return {"speed": round(float(speed), 1), "direction": round(float(direction), 1)}
+    field = "temperature_2m" if metric == "temp" else "us_aqi"
+    value = current.get(field)
+    return None if value is None else round(float(value), 1)
+
+
+def _fetch_field_batch(metric, points):
+    """Sample all lattice points in ONE upstream request.
+
+    Open-Meteo accepts comma-separated coordinate lists and answers with
+    one JSON object per point, in request order — 81 or 49 model lookups
+    for the price of a single HTTP call.
+    """
+    url, current_fields = _field_metric_params(metric)
+    response = requests.get(
+        url,
+        params={
+            "latitude": ",".join(str(p[0]) for p in points),
+            "longitude": ",".join(str(p[1]) for p in points),
+            "current": current_fields,
+        },
+        timeout=_REQUEST_TIMEOUT,
+    )
+    response.raise_for_status()
+    data = response.json()
+    results = data if isinstance(data, list) else [data]
+    if len(results) != len(points):
+        raise ValueError(f"upstream returned {len(results)} points for {len(points)} requested")
+    return [_field_point_value(metric, r.get("current", {})) for r in results]
+
+
+def _fetch_field_points(metric, points):
+    """Batched sampling with a per-point fallback, so one bad coordinate
+    (or a batch-level failure) degrades to missing points instead of an
+    empty layer."""
+    try:
+        return _fetch_field_batch(metric, points)
+    except Exception as batch_error:
+        print(f"[field:{metric}] batch failed ({batch_error}); falling back to per-point sampling")
+
+    url, current_fields = _field_metric_params(metric)
+    values = []
+    for point_lat, point_lon in points:
+        try:
+            response = requests.get(
+                url,
+                params={"latitude": point_lat, "longitude": point_lon, "current": current_fields},
+                timeout=_REQUEST_TIMEOUT,
+            )
+            response.raise_for_status()
+            values.append(_field_point_value(metric, response.json().get("current", {})))
+        except Exception as point_error:
+            # One failed point must not sink the layer: mark it missing.
+            print(f"[field:{metric}] point ({point_lat},{point_lon}) failed: {point_error}")
+            values.append(None)
+    return values
+
+
+def build_field_grid(metric, latitude, longitude):
+    """Sample a real lat/lon lattice of `metric` around a center point.
+
+    Returns {"metric", "unit", "grid_size", "grid_step_deg", "min_lat",
+    "min_lon", "values"} where values is a row-major size x size matrix
+    (row 0 = min_lat) of rounded floats, or None for points where the
+    upstream model reports no data (never fabricated).
+    """
+    spec = _FIELD_METRICS.get(metric)
+    if not spec:
+        raise ValueError(f"unknown field metric: {metric}")
+    latitude = float(latitude)
+    longitude = float(longitude)
+    if not _valid_latlon(latitude, longitude):
+        raise ValueError("latitude must be in [-90, 90] and longitude in [-180, 180]")
+
+    size = spec["grid_size"]
+    step = spec["grid_step"]
+    half = (size - 1) / 2.0
+    min_lat = max(-90.0, latitude - half * step)
+    min_lon = max(-180.0, longitude - half * step)
+
+    cache_key = (metric, round(min_lat, 3), round(min_lon, 3))
+    cached = _field_cache_get(cache_key)
+    if cached:
+        return cached
+
+    points = [
+        (round(min_lat + row * step, 4), round(min_lon + col * step, 4))
+        for row in range(size)
+        for col in range(size)
+    ]
+    flat_values = _fetch_field_points(metric, points)
+
+    values = [
+        flat_values[row * size : (row + 1) * size]
+        for row in range(size)
+    ]
+
+    # Layer is only usable if at least one real reading came back.
+    if not any(v is not None for v in flat_values):
+        return None
+
+    unit = "°C" if metric == "temp" else ("km/h" if metric == "wind" else "AQI")
+    data = {
+        "metric": metric,
+        "unit": unit,
+        "grid_size": size,
+        "grid_step_deg": step,
+        "min_lat": round(min_lat, 4),
+        "min_lon": round(min_lon, 4),
+        "values": values,
+    }
+    _field_cache_set(cache_key, data)
+    return data
+
+
 def build_alerts(weather_data):
     alerts = []
     current = weather_data.get("current", {})
@@ -1034,6 +1210,38 @@ def api_weather():
     except Exception as error:
         app.logger.exception("[weather] Error: %s", error)
         return jsonify({"error": "Weather service temporarily unavailable"}), 502
+
+
+@app.route("/api/field")
+def api_field():
+    """Gridded model field for the radar map's Micro-Temp / Wind / AQI layers.
+
+    All values are real model readings (Open-Meteo forecast / air-quality
+    grids); points the model reports as unavailable are returned as null
+    rather than interpolated or fabricated. Cached 10 minutes per grid.
+    """
+    try:
+        latitude = float(request.args["latitude"])
+        longitude = float(request.args["longitude"])
+    except (KeyError, ValueError):
+        return jsonify({"error": "valid latitude and longitude are required"}), 400
+
+    if not _valid_latlon(latitude, longitude):
+        return jsonify({"error": "latitude must be in [-90, 90] and longitude in [-180, 180]"}), 400
+
+    metric = request.args.get("metric", "").strip().lower()
+    if metric not in _FIELD_METRICS:
+        return jsonify({"error": "metric must be one of: temp, wind, aqi"}), 400
+
+    try:
+        grid = build_field_grid(metric, latitude, longitude)
+    except Exception as error:
+        app.logger.warning("[field] %s grid failed: %s", metric, error)
+        return jsonify({"error": "Field data temporarily unavailable"}), 502
+
+    if grid is None:
+        return jsonify({"error": "No field data available for this region"}), 404
+    return jsonify(grid)
 
 
 def _extract_location_name(location):

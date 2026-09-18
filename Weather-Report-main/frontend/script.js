@@ -2389,24 +2389,44 @@ els.voiceCancelBtn?.addEventListener("click", cancelVoiceRecording);
 // MAP SCREEN INTERACTIONS
 // ============================================================
 
-// Layer Toggle — precip and satellite ("clouds") are wired to real
-// RainViewer tile data; temp/wind/aqi are marked data-soon in the HTML
-// and show a status message instead of pretending to do something.
+// Layer Toggle — ALL pills are wired to real data: precip + satellite
+// ("clouds") stream RainViewer tiles, while Micro-Temp / Wind Vectors /
+// AQI Plume sample real gridded model data through the backend
+// /api/field endpoint (status surfaced via the radar-field-status event).
+const FIELD_LAYER_LABELS = { temp: "Micro-Temp", wind: "Wind Vectors", aqi: "AQI Plume" };
+
+function setMapLayerPillActive(layer) {
+  document.querySelectorAll(".map-layer-pill").forEach((p) => {
+    const isActive = p.dataset.layer === layer;
+    p.classList.toggle("active", isActive);
+    p.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+}
+
+function showMapFieldStatus(message) {
+  showStatus(message, "Field data");
+  clearTimeout(showMapFieldStatus._timer);
+  showMapFieldStatus._timer = setTimeout(hideStatus, 3200);
+}
+
+window.addEventListener("radar-field-status", (event) => {
+  const { status, metric } = event.detail || {};
+  const label = FIELD_LAYER_LABELS[metric] || "Field";
+  if (status === "loading") {
+    showMapFieldStatus(`Loading ${label} field data…`);
+  } else if (status === "empty") {
+    showMapFieldStatus(`${label}: no model data available for this region.`);
+  } else if (status === "error") {
+    showMapFieldStatus(`${label}: field data temporarily unavailable.`);
+  } else if (status === "ready") {
+    hideStatus();
+  }
+});
+
 document.querySelectorAll(".map-layer-pill").forEach((pill) => {
   pill.addEventListener("click", () => {
-    if (pill.dataset.soon === "true") {
-      // Use the visible label span only — the icon span's ligature text
-      // (e.g. "device_thermostat") would otherwise leak into the message.
-      const labelText = pill.querySelector("span:nth-of-type(2)")?.textContent?.trim() || "This";
-      showStatus(`${labelText} live layer is coming soon.`);
-      setTimeout(hideStatus, 2500);
-      return;
-    }
-
-    document.querySelectorAll(".map-layer-pill").forEach((p) => p.classList.remove("active"));
-    pill.classList.add("active");
+    setMapLayerPillActive(pill.dataset.layer);
     state.activeMapLayer = pill.dataset.layer;
-
     window.RadarMap?.setLayer(state.activeMapLayer);
   });
 });

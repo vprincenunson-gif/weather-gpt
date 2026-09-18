@@ -613,5 +613,197 @@ class TestRainTimelineAndSmartRainAlerts(unittest.TestCase):
         self.assertEqual(smart[0]["snapshot"]["peak_probability"], 80)
 
 
+class TestFieldLayers(unittest.TestCase):
+    """Radar-map field layers (Micro-Temp / Wind / AQI): gridded sampling,
+    response parsing, null normalization, endpoint contract + caching.
+    All upstream HTTP is mocked — fully offline and deterministic."""
+
+    @classmethod
+    def setUpClass(cls):
+        wgpt.app.config["TESTING"] = True
+        cls.client = wgpt.app.test_client()
+
+    def setUp(self):
+        wgpt._FIELD_CACHE.clear()
+
+    def _fake_grid_get(self, metric, value_fn):
+        """Batched-Open-Meteo stub: value_fn(lat, lon) -> value | None.
+        Returns a requests.get stub that answers the multi-coordinate
+        batch request with a JSON list, one entry per requested point
+        (matching the real upstream contract)."""
+        def fake_get(url, params=None, timeout=None):
+            lats = str(params["latitude"]).split(",")
+            lons = str(params["longitude"]).split(",")
+            payload = []
+            for la, lo in zip(lats, lons):
+                value = value_fn(float(la), float(lo))
+                if metric == "wind":
+                    current = (
+                        {"wind_speed_10m": value[0], "wind_direction_10m": value[1]}
+                        if value else {"wind_speed_10m": None, "wind_direction_10m": None}
+                    )
+                elif metric == "temp":
+                    current = {"temperature_2m": value}
+                else:
+                    current = {"us_aqi": value}
+                payload.append({"current": current})
+            return _FakeResponse(payload=payload)
+        return fake_get
+
+    # ---------- grid builder ----------
+
+    def test_temp_grid_shape_and_values(self):
+        with unittest.mock.patch.object(
+            wgpt.requests, "get",
+            side_effect=self._fake_grid_get("temp", lambda la, lo: la + lo / 10.0),
+        ):
+            grid = wgpt.build_field_grid("temp", 17.38, 78.48)
+        self.assertEqual(grid["metric"], "temp")
+        self.assertEqual(grid["unit"], "°C")
+        self.assertEqual(grid["grid_size"], 9)
+        self.assertEqual(grid["grid_step_deg"], 1.0)
+        self.assertEqual(len(grid["values"]), 9)
+        self.assertTrue(all(len(row) == 9 for row in grid["values"]))
+        # Center point (row 4, col 4) samples the requested location exactly
+        # (to the grid's 1-decimal rounding).
+        self.assertAlmostEqual(grid["values"][4][4], 17.38 + 78.48 / 10.0, places=1)
+        # Row 0 is the min-lat row: lower temperature.
+        self.assertLess(grid["values"][0][4], grid["values"][4][4])
+
+    def test_missing_points_become_null_not_fabricated(self):
+        counter = {"n": 0}
+
+        def value_fn(la, lo):
+            counter["n"] += 1
+            return 20.0 if counter["n"] % 3 else None  # every 3rd point unavailable
+
+        with unittest.mock.patch.object(
+            wgpt.requests, "get", side_effect=self._fake_grid_get("temp", value_fn),
+        ):
+            grid = wgpt.build_field_grid("temp", 17.38, 78.48)
+        flat = [v for row in grid["values"] for v in row]
+        self.assertEqual(flat.count(None), 81 // 3)
+        self.assertGreater(flat.count(20.0), 0)
+
+    def test_point_failures_marked_missing_grid_survives(self):
+        def fake_get(url, params=None, timeout=None):
+            lons = str(params["longitude"]).split(",")
+            if any(float(lo) > 79 for lo in lons):
+                # Batch rejected -> grid builder falls back to per-point,
+                # where the whole eastern half keeps failing.
+                raise requests.ConnectionError("batch rejected")
+            payload = [{"current": {"temperature_2m": 21.5}} for _ in lons]
+            # Real upstream contract: object for one point, list for batches.
+            return _FakeResponse(payload=payload if len(lons) > 1 else payload[0])
+        with unittest.mock.patch.object(wgpt.requests, "get", side_effect=fake_get):
+            grid = wgpt.build_field_grid("temp", 17.38, 78.48)
+        self.assertIsNotNone(grid)
+        for row in grid["values"]:
+            self.assertIsNone(row[-1])   # eastern edge missing
+            self.assertEqual(row[0], 21.5)  # western edge real
+
+    def test_wind_vector_requires_both_components(self):
+        # Half of the points report a full vector, half only speed —
+        # a one-component reading is unusable and must be null.
+        def value_fn(la, lo):
+            return (9.4, 265.0) if lo < 78.48 else (12.3, None)
+
+        with unittest.mock.patch.object(
+            wgpt.requests, "get", side_effect=self._fake_grid_get("wind", value_fn),
+        ):
+            grid = wgpt.build_field_grid("wind", 17.38, 78.48)
+        for row in grid["values"]:
+            for v in row:
+                if v is None:
+                    continue
+                self.assertIsInstance(v, dict)  # never a lone speed
+                self.assertIn("direction", v)
+
+    def test_wind_grid_happy_path(self):
+        with unittest.mock.patch.object(
+            wgpt.requests, "get", side_effect=self._fake_grid_get("wind", lambda la, lo: (9.4, 265.0)),
+        ):
+            grid = wgpt.build_field_grid("wind", 17.38, 78.48)
+        self.assertEqual(grid["unit"], "km/h")
+        self.assertEqual(grid["values"][4][4], {"speed": 9.4, "direction": 265.0})
+
+    def test_all_components_missing_returns_none(self):
+        # Speed present but direction missing everywhere: no usable vector.
+        with unittest.mock.patch.object(
+            wgpt.requests, "get", side_effect=self._fake_grid_get("wind", lambda la, lo: (12.3, None)),
+        ):
+            self.assertIsNone(wgpt.build_field_grid("wind", 17.38, 78.48))
+
+    def test_all_points_failed_returns_none(self):
+        def fake_get(url, params=None, timeout=None):
+            raise requests.ConnectionError("network down")  # batch AND every point
+        with unittest.mock.patch.object(wgpt.requests, "get", side_effect=fake_get):
+            self.assertIsNone(wgpt.build_field_grid("aqi", 17.38, 78.48))
+
+    def test_unknown_metric_raises(self):
+        with self.assertRaises(ValueError):
+            wgpt.build_field_grid("humidity", 17.38, 78.48)
+
+    def test_invalid_center_coords_raise(self):
+        with self.assertRaises(ValueError):
+            wgpt.build_field_grid("temp", 123.0, 45.0)
+
+    # ---------- endpoint contract ----------
+
+    def test_endpoint_requires_latlon(self):
+        r = self.client.get("/api/field?metric=temp")
+        self.assertEqual(r.status_code, 400)
+        r = self.client.get("/api/field?metric=temp&latitude=abc&longitude=0")
+        self.assertEqual(r.status_code, 400)
+        r = self.client.get("/api/field?metric=temp&latitude=999&longitude=0")
+        self.assertEqual(r.status_code, 400)
+
+    def test_endpoint_rejects_unknown_metric(self):
+        r = self.client.get("/api/field?metric=humidity&latitude=17.38&longitude=78.48")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("temp, wind, aqi", r.get_json()["error"])
+
+    def test_endpoint_returns_grid_and_caches(self):
+        with unittest.mock.patch.object(
+            wgpt.requests, "get",
+            side_effect=self._fake_grid_get("aqi", lambda la, lo: 42),
+        ) as mock_get:
+            r = self.client.get("/api/field?metric=aqi&latitude=17.38&longitude=78.48")
+        self.assertEqual(r.status_code, 200)
+        body = r.get_json()
+        self.assertEqual(body["metric"], "aqi")
+        self.assertEqual(body["unit"], "AQI")
+        self.assertEqual(body["grid_size"], 7)
+        self.assertEqual(body["values"][3][3], 42.0)
+        # The whole 7x7 lattice is sampled in ONE upstream request.
+        self.assertEqual(mock_get.call_count, 1)
+
+        # Second identical request is served from the field cache.
+        with unittest.mock.patch.object(
+            wgpt.requests, "get",
+            side_effect=self._fake_grid_get("aqi", lambda la, lo: 99),
+        ):
+            r2 = self.client.get("/api/field?metric=aqi&latitude=17.38&longitude=78.48")
+        self.assertEqual(r2.status_code, 200)
+        self.assertEqual(r2.get_json()["values"][3][3], 42.0)  # cached, not re-sampled
+
+    def test_endpoint_404_when_region_has_no_data(self):
+        with unittest.mock.patch.object(
+            wgpt.requests, "get", side_effect=self._fake_grid_get("temp", lambda la, lo: None),
+        ):
+            r = self.client.get("/api/field?metric=temp&latitude=17.38&longitude=78.48")
+        self.assertEqual(r.status_code, 404)
+        self.assertIn("No field data", r.get_json()["error"])
+
+    def test_endpoint_502_when_grid_builder_raises(self):
+        # A grid-builder crash (not per-point failures, which degrade to
+        # nulls) surfaces as a 502 to the client.
+        with unittest.mock.patch.object(
+            wgpt, "build_field_grid", side_effect=RuntimeError("boom"),
+        ):
+            r = self.client.get("/api/field?metric=wind&latitude=17.38&longitude=78.48")
+        self.assertEqual(r.status_code, 502)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

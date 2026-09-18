@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v8"; // v8: premium dual-theme Living Sky + Light/Dark toggle
+const CACHE_NAME = "weathergpt-shell-v9"; // v9: live Micro-Temp / Wind / AQI map field layers
 
 const SHELL_FILES = [
   "/",

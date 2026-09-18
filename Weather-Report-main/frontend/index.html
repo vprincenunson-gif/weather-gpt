@@ -546,25 +546,62 @@
               <span>Precipitation</span>
               <span class="w-1.5 h-1.5 rounded-full bg-on-primary-dark animate-ping"></span>
             </button>
-            <button class="map-layer-pill shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high/90 border border-glass-border-subtle text-ink-secondary font-pill-text text-[11px] flex items-center gap-1.5 transition-all" data-layer="temp" data-soon="true">
+            <button class="map-layer-pill shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high/90 border border-glass-border-subtle text-ink-secondary font-pill-text text-[11px] flex items-center gap-1.5 transition-all" data-layer="temp" aria-pressed="false">
               <span class="material-symbols-outlined text-primary text-[14px]">device_thermostat</span>
               <span>Micro-Temp</span>
-              <span class="soon-badge">Soon</span>
             </button>
-            <button class="map-layer-pill shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high/90 border border-glass-border-subtle text-ink-secondary font-pill-text text-[11px] flex items-center gap-1.5 transition-all" data-layer="wind" data-soon="true">
+            <button class="map-layer-pill shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high/90 border border-glass-border-subtle text-ink-secondary font-pill-text text-[11px] flex items-center gap-1.5 transition-all" data-layer="wind" aria-pressed="false">
               <span class="material-symbols-outlined text-secondary text-[14px]">air</span>
               <span>Wind Vectors</span>
-              <span class="soon-badge">Soon</span>
             </button>
-            <button class="map-layer-pill shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high/90 border border-glass-border-subtle text-ink-secondary font-pill-text text-[11px] flex items-center gap-1.5 transition-all" data-layer="aqi" data-soon="true">
+            <button class="map-layer-pill shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high/90 border border-glass-border-subtle text-ink-secondary font-pill-text text-[11px] flex items-center gap-1.5 transition-all" data-layer="aqi" aria-pressed="false">
               <span class="material-symbols-outlined text-tertiary text-[14px]">eco</span>
               <span>AQI Plume</span>
-              <span class="soon-badge">Soon</span>
             </button>
             <button class="map-layer-pill shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high/90 border border-glass-border-subtle text-ink-secondary font-pill-text text-[11px] flex items-center gap-1.5 transition-all" data-layer="clouds">
               <span class="material-symbols-outlined text-ink-tertiary text-[14px]">cloud</span>
               <span>Satellite</span>
             </button>
+          </div>
+        </div>
+
+        <!-- Field layer legends (Micro-Temp / Wind Vectors / AQI Plume).
+             Shown only while that layer is active; values are the real
+             min/max of the sampled grid, units are the model's units.
+             Placed just under the layer pills so it never collides with
+             the playback bar / chat input on small screens. -->
+        <div class="absolute top-[100px] inset-x-3 z-20 flex justify-center pointer-events-none">
+          <div id="field-legend-temp" class="field-legend hidden pointer-events-auto" role="note" aria-label="Micro-Temperature legend">
+            <span class="material-symbols-outlined text-[13px] text-primary">device_thermostat</span>
+            <span class="field-legend-title">Micro-Temp (°C)</span>
+            <span class="field-legend-scale">
+              <span class="legend-range" data-legend-min>—</span>
+              <span class="legend-gradient" aria-hidden="true" style="background:linear-gradient(90deg,#1e3a8a,#1d4ed8,#0ea5e9,#34d399,#fbbf24,#f97316,#dc2626,#7f1d1d)"></span>
+              <span class="legend-range" data-legend-max>—</span>
+            </span>
+          </div>
+          <div id="field-legend-wind" class="field-legend hidden pointer-events-auto" role="note" aria-label="Wind legend">
+            <span class="material-symbols-outlined text-[13px] text-secondary">air</span>
+            <span class="field-legend-title">Wind (km/h)</span>
+            <span class="field-legend-scale">
+              <span class="legend-range" data-legend-min>—</span>
+              <span class="legend-wind-arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12 L20 12"/><path d="M14 6 L20 12 L14 18"/></svg>
+              </span>
+              <span class="legend-range" data-legend-max>—</span>
+            </span>
+            <span class="field-legend-hint">arrows point where wind blows</span>
+          </div>
+          <div id="field-legend-aqi" class="field-legend hidden pointer-events-auto" role="note" aria-label="Air quality legend">
+            <span class="material-symbols-outlined text-[13px] text-tertiary">eco</span>
+            <span class="field-legend-title">AQI (US)</span>
+            <span class="field-legend-scale">
+              <span class="legend-range" data-legend-min>—</span>
+              <span class="legend-chip" style="background:#22c55e"></span><span class="legend-range">Good</span>
+              <span class="legend-chip" style="background:#facc15"></span><span class="legend-range">Moderate</span>
+              <span class="legend-chip" style="background:#f97316"></span><span class="legend-range">Unhealthy</span>
+              <span class="legend-range" data-legend-max>—</span>
+            </span>
           </div>
         </div>
 

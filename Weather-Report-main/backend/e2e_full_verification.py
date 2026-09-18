@@ -196,8 +196,24 @@ with sync_playwright() as p:
     check("radar map: satellite layer switches to RainViewer tiles", sat)
     page.click('.map-layer-pill[data-layer="temp"]')
     page.wait_for_timeout(400)
-    soon_msg = page.evaluate("document.getElementById('status-message')?.textContent || ''")
-    check("radar map: 'Soon' layers show honest status", "coming soon" in soon_msg.lower(), soon_msg)
+    field_msg = page.evaluate("document.getElementById('status-message')?.textContent || ''")
+    # The Micro-Temp pill is now a REAL layer: it reports field-data status
+    # (loading / ready / unavailable) and renders a legend when data exists.
+    try:
+        page.wait_for_function(
+            "() => !document.getElementById('field-legend-temp')?.classList.contains('hidden')",
+            timeout=12000,
+        )
+        field_rendered = True
+    except Exception:
+        field_rendered = False
+    check(
+        "radar map: temp field layer activates (real data or honest status)",
+        field_rendered or "field data" in field_msg.lower(),
+        f"rendered={field_rendered}, status='{field_msg}'",
+    )
+    page.click('.map-layer-pill[data-layer="precip"]')
+    page.wait_for_timeout(400)
     # playback slider
     page.click(".map-layer-pill[data-layer='precip']")
     page.evaluate("document.getElementById('radar-time-slider').value = -30")

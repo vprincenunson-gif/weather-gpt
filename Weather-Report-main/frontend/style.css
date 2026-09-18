@@ -593,6 +593,120 @@ html[data-theme="dark"] .sky-layer.sky-cold {
   border-color: transparent !important;
 }
 
+/* ============================================================
+   MAP FIELD LAYERS — Micro-Temp / Wind Vectors / AQI Plume
+   Real gridded model data via /api/field; legend + arrow styling.
+   ============================================================ */
+
+.field-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgb(var(--glass-highest) / 0.92);
+  border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 6px 18px rgba(var(--shadow-tint), 0.22);
+}
+.field-legend.hidden {
+  display: none;
+}
+.field-legend-title {
+  font-family: 'Inter', 'Noto Sans Devanagari', 'Noto Sans Telugu', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgb(var(--ink-primary));
+  white-space: nowrap;
+}
+.field-legend-scale {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.legend-range {
+  font-family: 'Inter', sans-serif;
+  font-size: 9.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink-secondary) / var(--ink-secondary-alpha));
+  white-space: nowrap;
+}
+.legend-gradient {
+  display: inline-block;
+  width: 72px;
+  height: 7px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(var(--shadow-tint), 0.15);
+}
+.legend-chip {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-left: 4px;
+}
+.legend-chip:first-of-type {
+  margin-left: 0;
+}
+.legend-wind-arrow {
+  display: inline-flex;
+  width: 16px;
+  height: 12px;
+  color: rgb(var(--ink-secondary) / var(--ink-secondary-alpha));
+}
+.legend-wind-arrow svg {
+  width: 100%;
+  height: 100%;
+}
+.field-legend-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  color: rgb(var(--ink-tertiary));
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .field-legend-hint {
+    display: none; /* keep the 360px legend bar to one compact line */
+  }
+  .legend-gradient {
+    width: 54px;
+  }
+}
+
+/* Wind vector arrows anchored at real grid points (L.divIcon). Color
+   follows the theme ink so arrows stay visible on light and dark tiles. */
+.wind-arrow-icon {
+  background: transparent !important;
+  border: 0 !important;
+}
+.wind-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgb(var(--ink-primary));
+  filter: drop-shadow(0 1px 2px rgba(var(--shadow-tint), 0.55));
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.wind-arrow svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* The scalar field canvas sits between basemap and radar tiles. */
+.field-overlay {
+  pointer-events: none;
+  mix-blend-mode: normal;
+}
+
+/* Reduced motion: drop the arrow rotation transition. */
+@media (prefers-reduced-motion: reduce) {
+  .wind-arrow {
+    transition: none;
+  }
+}
+
 /* Light Markdown rendering */
 .report-content h4 {
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -705,11 +819,6 @@ main {
 
 .radar-marker-label::before {
   border-top-color: rgb(var(--glass-highest) / 0.97) !important;
-}
-
-/* "Soon" badge on layer pills not yet backed by live tile data */
-.map-layer-pill[data-soon="true"] {
-  opacity: 0.6;
 }
 
 /* ============================================================
@@ -861,18 +970,6 @@ main {
   #theme-toggle-btn:active {
     transform: none;
   }
-}
-
-.soon-badge {
-  font-size: 8px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  background: rgb(var(--glass-border) / 0.08);
-  color: rgb(var(--ink-secondary) / var(--ink-secondary-alpha));
-  padding: 1px 5px;
-  border-radius: 999px;
-  margin-left: 2px;
 }
 
 /* ============================================================

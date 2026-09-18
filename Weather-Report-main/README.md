@@ -88,7 +88,7 @@ The backend's `build_alerts()` function evaluates the fetched weather data again
 - **High Precipitation Probability** — any forecast day with ≥ 80% rain probability.
 - **Extreme UV Index** — any forecast day with a UV index ≥ 8.
 
-These alerts populate both the Forecast screen and a dedicated "Early Warning Alert Ledger" on the Insights screen. When the hourly data shows an upcoming rain window, a **Smart Rain Alert** is prepended to this list (see [5.13](#513-smart-rain-alert--rain-timeline)).
+These alerts populate both the Forecast screen and a dedicated "Early Warning Alert Ledger" on the Insights screen. When the hourly data shows an upcoming rain window, a **Smart Rain Alert** is prepended to this list (see [5.14](#514-smart-rain-alert--rain-timeline)).
 
 ### 5.4 Regional Microclimate Chips
 The "Regional Microclimates" scroller on the Forecast tab displays four named chips (Downtown Core, Coastal / Lake, Hilltop / Ridge, Valley Sub-basin). These are **not independently fetched locations** — each chip's temperature is the current fetched temperature plus a fixed, hardcoded offset (0°, −3°, −1°, +2° respectively) defined directly in the frontend code. This is a stylistic/illustrative touch, not a multi-location data feed.
@@ -111,13 +111,13 @@ The frontend renders this structured JSON as rich chat cards. If the model's JSO
 ### 5.8 Radar Map View
 The Radar Map tab renders a real interactive **Leaflet** map (`frontend/radar-map.js`), on a **CARTO Dark Matter** basemap (requires a free client-side API key — see [Section 13](#13-environment-variables--configuration)), centered on the actual searched/GPS-resolved location with a single real marker labeled with the real current temperature.
 
-Two of the five layer-toggle pills are backed by genuinely live data from **RainViewer's** public API (no key required):
+All five layer-toggle pills are backed by genuinely live data. Two stream **RainViewer's** public API (no key required):
 - **Precipitation** — real global radar tiles.
 - **Satellite** — real infrared satellite tiles.
 
-The bottom playback slider and play/pause button step through RainViewer's actual past-frame history (roughly the last 2 hours, in 10-minute steps) and, where available, its short-range nowcast frames — not a decorative animation. Radar/satellite tiles are only published up to zoom level 7 (`maxNativeZoom: 7`); the map upscales gracefully beyond that rather than requesting non-existent tiles.
+The other three — **Micro-Temp**, **Wind Vectors**, and **AQI Plume** — sample real gridded model data through the backend `/api/field` endpoint (see [5.13](#513-radar-map-field-layers--micro-temp-wind-vectors-aqi-plume)).
 
-The remaining three pills — **Micro-Temp**, **Wind Vectors**, and **AQI Plume** — are honestly marked with a "Soon" badge (`data-soon="true"`) and show a status message rather than silently doing nothing; they are not yet wired to a live tile source. Wiring them up would need separate per-layer providers (e.g. OpenWeatherMap's tile layers for temperature/wind).
+The bottom playback slider and play/pause button step through RainViewer's actual past-frame history (roughly the last 2 hours, in 10-minute steps) and, where available, its short-range nowcast frames — not a decorative animation. Radar/satellite tiles are only published up to zoom level 7 (`maxNativeZoom: 7`); the map upscales gracefully beyond that rather than requesting non-existent tiles.
 
 The map screen's address search bar searches via the same `/api/geocode` flow as the header search.
 
@@ -160,7 +160,16 @@ The background is a layered, weather-aware atmosphere built entirely from the re
 - **Full-surface theming** — the entire Tailwind palette is mapped to rgb-triplet CSS variables re-declared under `html[data-theme="dark"]`, so every tab (Forecast, Radar Map, WeatherGPT, Farmer, Insights), the header, modals, the bottom dock, charts, cards and ink re-theme consistently. AQI status colors and the radar marker label read theme tokens; the radar basemap switches between CARTO light tiles and Dark Matter to match.
 - **Readability & motion care** — dark-theme accents are lightened for AA contrast, content sits on a dark paper wash below the hero, and `prefers-reduced-motion` freezes all atmosphere motion (clouds park, rays stop swaying, sparkle stills) alongside the existing rain/lightning rules. Rain drop tint follows the theme (paler drops on dark skies); the rain and thunderstorm effects remain fully functional in both themes.
 
-### 5.13 Smart Rain Alert & Rain Timeline
+### 5.13 Radar Map Field Layers — Micro-Temp, Wind Vectors, AQI Plume
+
+All three previously-"coming soon" radar pills are wired to **real gridded model data** (no fabricated values anywhere):
+
+- **Data source** — `GET /api/field?metric=temp|wind|aqi&latitude=…&longitude=…` samples a real lattice around the map center: temperature and wind from Open-Meteo's forecast API (`current=temperature_2m` / `current=wind_speed_10m,wind_direction_10m`), AQI from Open-Meteo's Air-Quality API (`current=us_aqi`). Micro-Temp and Wind use a 1°-spaced 9×9 lattice; the smoother AQI plume uses a 2°-spaced 7×7. Each grid is cached in memory for 10 minutes (LRU, 200 entries).
+- **Rendering** — temp and AQI draw as a bilinear-interpolated color canvas (fixed value→color ramps: blue→red for °C, the standard green→purple AQI scale) slotted between basemap and radar tiles; wind renders geo-anchored SVG arrows sized by real speed and oriented `direction + 180°` (arrow points where the wind blows), each hoverable for its exact km/h.
+- **No fabricated data** — points the model reports as unavailable render as transparent gaps (bilinear sampling renormalizes over real neighbors only); a lattice with zero real readings returns HTTP 404 and the UI truthfully reports "no model data available for this region". Unit tests (`TestFieldLayers`) and E2E mocks cover the missing-data paths.
+- **UX** — each layer shows a legend with real units (°C, km/h, US AQI) and the actual min/max of the sampled data; a status message tracks loading/empty/error/ready. The layers follow theme (light/dark ink arrows, glass legends), pan/zoom re-centers the lattice, and `prefers-reduced-motion` drops the arrow rotation animation. Precipitation, Satellite, playback, and all other map features are unchanged.
+
+### 5.14 Smart Rain Alert & Rain Timeline
 
 The Forecast tab gains two data-backed rain surfaces, both derived from the **same real hourly Open-Meteo payload** already powering the app (deterministic logic in `backend/app.py` — no invented numbers):
 
@@ -190,8 +199,10 @@ All backend logic lives in `backend/app.py` (a single Flask application file).
 - `_condition_text_to_wmo(text)` — maps WeatherAPI's plain-text condition descriptions (e.g. "thunder," "drizzle," "overcast") to the numeric WMO weather codes used elsewhere in the app.
 - `fetch_weather(latitude, longitude, forecast_days)` — the main orchestrator: checks the cache, tries Open-Meteo first, and transparently falls back to WeatherAPI.com on a 429 if a fallback key is configured.
 - `build_alerts(weather_data)` — evaluates temperature, wind, rain-probability, and UV thresholds and returns a list of structured hazard alerts (see [Section 5.3](#53-automatic-hazard-alerts)).
-- `build_rain_timeline(weather_data)` — scans the next 18 h of hourly precipitation probability (location-local clock) and returns the next rain-window summary (`has_event`, `starts_in_h`, `duration_h`, `start_label`/`end_label`, `peak_probability`, …) or a truthful "no rain" shape (see [5.13](#513-smart-rain-alert--rain-timeline)).
+- `build_rain_timeline(weather_data)` — scans the next 18 h of hourly precipitation probability (location-local clock) and returns the next rain-window summary (`has_event`, `starts_in_h`, `duration_h`, `start_label`/`end_label`, `peak_probability`, …) or a truthful "no rain" shape (see [5.14](#514-smart-rain-alert--rain-timeline)).
 - `build_smart_rain_alerts(timeline, language)` — turns a rain timeline into a localized advisory with a fully auditable `snapshot`.
+- `build_field_grid(metric, latitude, longitude)` — samples the real gridded lattice behind the radar map's Micro-Temp / Wind Vectors / AQI Plume layers (Open-Meteo forecast + Air-Quality APIs), returning `{metric, unit, grid_size, grid_step_deg, min_lat, min_lon, values}` with `null` for unavailable points (see [5.13](#513-radar-map-field-layers--micro-temp-wind-vectors-aqi-plume)).
+- `_field_cache_get` / `_field_cache_set` — LRU cache for field grids (10-minute TTL, 200 entries), keyed by metric + grid origin.
 
 ### Voice / AI Helpers
 - `guess_suffix(uploaded_file)` — infers an audio file extension (`.ogg`, `.wav`, `.m4a`, or default `.webm`) from the uploaded file's MIME type/name, used when writing a temp file for transcription.
@@ -405,6 +416,7 @@ All endpoints are served by the same Flask app; all except `/` are prefixed with
 | POST | `/api/analyze` | Extracts structured intent (location, language, forecast days, focus) from free text via Ollama | JSON: `{query}` | Parsed JSON object per `ANALYZE_PROMPT` |
 | GET | `/api/geocode` | Resolves a place name to coordinates (Open-Meteo Geocoding) | query: `location` | `{name, admin1, country, country_code, latitude, longitude, timezone}` |
 | GET | `/api/reverse-geocode` | Resolves coordinates to a place name (BigDataCloud) | query: `latitude`, `longitude` | `{name, admin1, country, latitude, longitude}` |
+| GET | `/api/field` | Gridded model field for the radar map layers (Micro-Temp / Wind Vectors / AQI Plume) | query: `metric` (`temp\|wind\|aqi`), `latitude`, `longitude` | `{metric, unit, grid_size, grid_step_deg, min_lat, min_lon, values[][]}` (`null` = unavailable) |
 | GET | `/api/weather` | Fetches current/hourly/daily weather, alerts (incl. Smart Rain Alert), rain timeline, and air quality | query: `latitude`, `longitude`, `forecast_days` (optional, default 7) | `{weather, alerts, air_quality, rain_timeline}` |
 | GET | `/api/farm-advice` | Deterministic crop & stage farm advisory from real forecast data | query: `crop`, `stage`, `latitude`, `longitude`, `language` (en/hi/te), `forecast_days` (optional) | `{crop, stage, headline, advice[], crop_note, disclaimer, weather_snapshot}` |
 | GET | `/api/crops` | Crop & stage catalogue for the advisor selectors | — | `{crops[], stages[]}` with EN/HI/TE names |
@@ -442,9 +454,8 @@ gunicorn>=23.0
 
 - Persist user preferences (location, language) across sessions instead of resetting on reload.
 - Replace the illustrative microclimate values with genuine per-neighborhood model or sensor data.
-- Wire the remaining "Soon" radar layers (Micro-Temp, Wind Vectors, AQI Plume) to real tile providers (e.g. OpenWeatherMap tile layers), now that Precipitation and Satellite are live.
 - Replace the hardcoded microclimate chip offsets and the Insights "Delta Variance" bars with genuine per-neighborhood sensor or model data, and wire up the currently non-functional "Today / 48 Hours / 7 Days" scope chips.
-- ~~Add automated tests for the alert-threshold logic~~ — done: run `cd backend && python test_app.py` (62 tests covering alert thresholds, the rain timeline / Smart Rain Alert logic, input validation, cache eviction, the API contract, and the farm advisor engine + endpoint).
+- ~~Add automated tests for the alert-threshold logic~~ — done: run `cd backend && python test_app.py` (76 tests covering alert thresholds, the rain timeline / Smart Rain Alert logic, the map field layers, input validation, cache eviction, the API contract, and the farm advisor engine + endpoint).
 - Add a `render.yaml` for infrastructure-as-code alongside the existing dashboard-configured Render deployment, plus a CI pipeline.
 - Expand supported languages beyond English, Hindi, and Telugu.
 - Add server-side rate limiting and input validation hardening on all `/api/*` endpoints.
