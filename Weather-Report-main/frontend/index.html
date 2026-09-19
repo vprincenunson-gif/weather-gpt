@@ -1037,6 +1037,34 @@
     </div>
   </div>
 
+  <!-- CROP INFO PANEL: opens from the Farmer visual-guide crop cards.
+     Polished, responsive, accessible (role=dialog + focus trap + Esc +
+     backdrop click + visible close button), themed via the app's
+     tokens so Light/Dark follow automatically. -->
+  <div id="crop-info-overlay" class="fixed inset-0 z-50 hidden" role="presentation">
+    <div id="crop-info-backdrop" class="absolute inset-0 bg-surface-dim/80 backdrop-blur-md transition-opacity"></div>
+    <div id="crop-info-panel" role="dialog" aria-modal="true" aria-labelledby="crop-info-title"
+      class="absolute inset-x-0 bottom-0 max-h-[88dvh] sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[86vh] sm:max-w-[680px] w-full sm:rounded-3xl rounded-t-3xl bg-surface-container-high border border-glass-border shadow-2xl flex flex-col translate-y-full transition-transform duration-300 ease-out">
+      <div class="shrink-0 flex items-start justify-between gap-2 p-4 pb-2 border-b border-glass-border-subtle">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span id="crop-info-emoji" class="w-9 h-9 rounded-xl bg-amber-glow-surface flex items-center justify-center text-[20px] shrink-0" aria-hidden="true">🌾</span>
+          <div class="min-w-0">
+            <h3 id="crop-info-title" class="font-headline-card text-base text-primary font-semibold truncate">Crop</h3>
+            <p id="crop-info-subtitle" class="font-label-caps text-[9px] text-ink-tertiary uppercase tracking-wider">Crop profile</p>
+          </div>
+        </div>
+        <button id="crop-info-close-btn" type="button"
+          class="w-9 h-9 rounded-full bg-surface-bright text-ink-secondary hover:text-ink-primary hover:bg-surface-container-highest active:scale-95 transition-all flex items-center justify-center shrink-0"
+          aria-label="Close" title="Close">
+          <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
+        </button>
+      </div>
+      <div id="crop-info-body" class="overflow-y-auto overscroll-contain p-4 pt-3 flex flex-col gap-2.5" tabindex="-1">
+        <!-- Crop profile sections inserted here -->
+      </div>
+    </div>
+  </div>
+
   <!-- CORE SCRIPTS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="script.js"></script>

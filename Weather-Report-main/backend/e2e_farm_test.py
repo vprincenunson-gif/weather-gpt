@@ -206,7 +206,15 @@ with sync_playwright() as p:
     check("mobile guide: 2-column grid", pg2_guide["gridCols"] == 2, f"cols: {pg2_guide['gridCols']}")
     check("mobile guide: cards fit viewport", 0 < pg2_guide["cardW"] <= pg2_guide["vw"],
           f"cardW={pg2_guide['cardW']:.0f}, vw={pg2_guide['vw']}")
-    check("mobile guide: first image decoded", pg2_guide["imgLoaded"])
+    # Commons thumbnails are generated server-side on first request and can take
+    # several seconds; wait for decode instead of checking at a fixed instant.
+    try:
+        pg2.wait_for_function(
+            "(() => { const i = document.querySelector('#farm-guide-crop-grid img.farm-guide-photo');"
+            " return i && i.complete && i.naturalWidth > 0; })()", timeout=30000)
+        check("mobile guide: first image decoded", True)
+    except Exception:
+        check("mobile guide: first image decoded", pg2_guide["imgLoaded"])
     pg2.close()
 
     # 11c. Desktop layout: 3-column guide grid, first crop photo decoded
@@ -223,7 +231,13 @@ with sync_playwright() as p:
       };
     })()""")
     check("desktop guide: 3-column grid", pg3_guide["gridCols"] == 3, f"cols: {pg3_guide['gridCols']}")
-    check("desktop guide: first image decoded", pg3_guide["imgLoaded"])
+    try:
+        pg3.wait_for_function(
+            "(() => { const i = document.querySelector('#farm-guide-crop-grid img.farm-guide-photo');"
+            " return i && i.complete && i.naturalWidth > 0; })()", timeout=30000)
+        check("desktop guide: first image decoded", True)
+    except Exception:
+        check("desktop guide: first image decoded", pg3_guide["imgLoaded"])
     pg3.close()
 
     # 12. Visual guide theme support: photo + caption use themed tokens,

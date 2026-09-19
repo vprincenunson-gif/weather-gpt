@@ -1473,3 +1473,143 @@ html[data-theme="dark"] .scene-cloud {
     opacity: 0.5;
   }
 }
+
+/* ============================================================
+   CROP GUIDE CARDS — interactive (buttons) + hint chip.
+   Crop cards are real <button>s: keyboard focus ring, hover lift
+   and press feedback, themed via app tokens (Light/Dark).
+   ============================================================ */
+
+button.farm-guide-card.is-action {
+  appearance: none;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  padding: 0;
+  border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha));
+  background: rgb(var(--glass-highest) / 0.6);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s;
+}
+
+button.farm-guide-card.is-action:hover {
+  transform: translateY(-2px);
+  border-color: rgb(var(--primary) / 0.45);
+  box-shadow: 0 8px 22px rgba(var(--shadow-tint), 0.22);
+}
+
+button.farm-guide-card.is-action:active {
+  transform: scale(0.97);
+}
+
+button.farm-guide-card.is-action:focus-visible {
+  outline: 2px solid rgb(var(--primary));
+  outline-offset: 2px;
+}
+
+.farm-guide-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgb(var(--amber-glow-surface));
+  color: rgb(var(--on-amber));
+  font-family: 'Inter', 'Noto Sans Devanagari', 'Noto Sans Telugu', sans-serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+/* ============================================================
+   CROP INFO PANEL — modal opened from the crop cards.
+   Backdrop fades; panel slides up (bottom sheet on phones) or in
+   (centered dialog ≥sm via Tailwind classes in the markup). All
+   colors come from theme tokens, so Light/Dark follow automatically.
+   ============================================================ */
+
+#crop-info-overlay {
+  z-index: 60; /* above header (z-50) and dock */
+}
+
+#crop-info-backdrop {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#crop-info-overlay.is-open #crop-info-backdrop {
+  opacity: 1;
+}
+
+#crop-info-panel {
+  will-change: transform;
+}
+
+.crop-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 12px;
+  border-radius: 14px;
+  background: rgb(var(--surface-container-low));
+  border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha));
+}
+
+.crop-info-label {
+  font-family: 'Plus Jakarta Sans', 'Inter', 'Noto Sans Devanagari', 'Noto Sans Telugu', sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgb(var(--secondary));
+}
+
+.crop-info-value {
+  margin: 0;
+  font-family: 'Inter', 'Noto Sans Devanagari', 'Noto Sans Telugu', sans-serif;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: rgb(var(--ink-primary));
+}
+
+/* Weather-wise tips block gets a quiet amber accent (no new colors). */
+.crop-info-row-tip {
+  background: rgb(var(--amber-glow-surface));
+  border-color: rgb(var(--primary) / 0.25);
+}
+
+.crop-info-row-tip .crop-info-label {
+  color: rgb(var(--on-amber));
+}
+
+.crop-info-row-tip .crop-info-value {
+  color: rgb(var(--ink-primary));
+}
+
+/* Slim themed scrollbar for the scrollable body. */
+#crop-info-body::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .crop-info-value {
+    font-size: 13.5px;
+  }
+  .crop-info-row {
+    padding: 11px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #crop-info-backdrop,
+  #crop-info-panel {
+    transition: none;
+  }
+  button.farm-guide-card.is-action,
+  button.farm-guide-card.is-action:hover {
+    transform: none;
+    transition: none;
+  }
+}

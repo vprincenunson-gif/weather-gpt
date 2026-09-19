@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v10"; // v10: Weather Scene Animations layer in the Living Sky
+const CACHE_NAME = "weathergpt-shell-v11"; // v11: crop info panel + verified farm guide photos
 
 const SHELL_FILES = [
   "/",

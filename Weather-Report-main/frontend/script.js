@@ -216,7 +216,28 @@ const FARM_I18N = {
     guideCropsHeading: "Crops",
     guidePracticesHeading: "Key practices",
     guideAltPrefix: "Photo of",
-    guidePhotoCredit: "Photos: Wikimedia Commons contributors (CC BY / CC BY-SA / public domain). Maize photo: 'Before Rain at a Corn Field' by Soumyabrata Roy, CC BY-SA 4.0, via Wikimedia Commons.",
+    guidePhotoCredit: "Photos: Wikimedia Commons contributors (CC BY / CC BY-SA / public domain). Maize: 'Before Rain at a Corn Field' by Soumyabrata Roy, CC BY-SA 4.0. Cotton: 'Mature cotton boll in Raichur, Karnataka' by Nanditha Gogate, WELL Labs, CC BY-SA 4.0. Rain: 'Flooded paddy field Raichur' by Vraj Acharya, WELL Labs, CC BY-SA 4.0. Windbreak: 'Wind break' by Hugh Venables, CC BY-SA 2.0 via geograph.org.uk.",
+    guideCardHint: "Tap for details",
+    infoSubtitle: "Crop profile",
+    infoClose: "Close",
+    infoDisclaimer: "General agricultural information for awareness only. Conditions vary by region — verify locally before field decisions. Fertilizer/pesticide dosages are intentionally not included.",
+    infoLabels: {
+      climate: "Suitable climate",
+      soil: "Soil",
+      season: "Sowing season",
+      bestTime: "Best sowing time",
+      duration: "Growing duration",
+      stages: "Growth stages",
+      water: "Water & irrigation",
+      rainfall: "Rainfall guidance",
+      temperature: "Temperature range",
+      sunlight: "Sunlight",
+      harvestTime: "Harvesting time & signs",
+      risks: "Common weather risks",
+      pests: "Pest & disease awareness",
+      storage: "Storage guidance",
+      tips: "Weather-wise tips",
+    },
   },
   hi: {
     title: "आज मुझे क्या करना चाहिए?",
@@ -238,7 +259,28 @@ const FARM_I18N = {
     guideCropsHeading: "फसलें",
     guidePracticesHeading: "प्रमुख कृषि कार्य",
     guideAltPrefix: "फोटो:",
-    guidePhotoCredit: "फोटो: Wikimedia Commons योगदानकर्ता (CC BY / CC BY-SA / सार्वजनिक डोमेन)। मक्का फोटो: 'Before Rain at a Corn Field', लेखक: Soumyabrata Roy, CC BY-SA 4.0, Wikimedia Commons के माध्यम से।",
+    guidePhotoCredit: "फोटो: Wikimedia Commons योगदानकर्ता (CC BY / CC BY-SA / सार्वजनिक डोमेन)। मक्का: 'Before Rain at a Corn Field', Soumyabrata Roy, CC BY-SA 4.0। कपास: 'Mature cotton boll in Raichur, Karnataka', Nanditha Gogate, WELL Labs, CC BY-SA 4.0। वर्षा: 'Flooded paddy field Raichur', Vraj Acharya, WELL Labs, CC BY-SA 4.0। वायु-अवरोध: 'Wind break', Hugh Venables, CC BY-SA 2.0, geograph.org.uk के माध्यम से।",
+    guideCardHint: "विवरण के लिए टैप करें",
+    infoSubtitle: "फसल परिचय",
+    infoClose: "बंद करें",
+    infoDisclaimer: "यह सामान्य कृषि जानकारी केवल जागरूकता के लिए है। स्थितियाँ क्षेत्र के अनुसार बदलती हैं — खेत के निर्णयों से पहले स्थानीय सत्यापन करें। उर्वरक/कीटनाशक की मात्रा जानबूझकर शामिल नहीं की गई है।",
+    infoLabels: {
+      climate: "उपयुक्त जलवायु",
+      soil: "मिट्टी",
+      season: "बुवाई का मौसम",
+      bestTime: "सर्वोत्तम बुवाई समय",
+      duration: "अवधि",
+      stages: "वृद्धि अवस्थाएँ",
+      water: "पानी व सिंचाई",
+      rainfall: "वर्षा संबंधी मार्गदर्शन",
+      temperature: "तापमान सीमा",
+      sunlight: "धूप",
+      harvestTime: "कटाई समय व संकेत",
+      risks: "सामान्य मौसम जोखिम",
+      pests: "कीट व रोग जागरूकता",
+      storage: "भंडारण मार्गदर्शन",
+      tips: "मौसम-अनुकूल सुझाव",
+    },
   },
   te: {
     title: "ఈరోజు నేను ఏమి చేయాలి?",
@@ -260,7 +302,28 @@ const FARM_I18N = {
     guideCropsHeading: "పంటలు",
     guidePracticesHeading: "ముఖ్య వ్యవసాయ పద్ధతులు",
     guideAltPrefix: "ఫోటో:",
-    guidePhotoCredit: "ఫోటోలు: Wikimedia Commons సహకారులు (CC BY / CC BY-SA / పబ్లిక్ డొమైన్). మొక్కజొన్న ఫోటో: 'Before Rain at a Corn Field', చిత్రకారుడు: Soumyabrata Roy, CC BY-SA 4.0, Wikimedia Commons ద్వారా.",
+    guidePhotoCredit: "ఫోటోలు: Wikimedia Commons సహకారులు (CC BY / CC BY-SA / పబ్లిక్ డొమైన్). మొక్కజొన్న: 'Before Rain at a Corn Field', Soumyabrata Roy, CC BY-SA 4.0. పత్తి: 'Mature cotton boll in Raichur, Karnataka', Nanditha Gogate, WELL Labs, CC BY-SA 4.0. వర్షం: 'Flooded paddy field Raichur', Vraj Acharya, WELL Labs, CC BY-SA 4.0. గాలిఅడ్డు: 'Wind break', Hugh Venables, CC BY-SA 2.0, geograph.org.uk ద్వారా.",
+    guideCardHint: "వివరాల కోసం నొక్కండి",
+    infoSubtitle: "పంట ప్రొఫైల్",
+    infoClose: "మూసివేయి",
+    infoDisclaimer: "ఇది సాధారణ వ్యవసాయ సమాచారం — అవగాహన కోసం మాత్రమే. పరిస్థితులు ప్రాంతాన్ని బట్టి మారతాయి — పొల నిర్ణయాలకు ముందు స్థానికంగా సరిచూసుకోండి. ఎరువులు/పురుగుమందుల మోతాదులు ఉద్దేశపూర్వకంగా చేర్చలేదు.",
+    infoLabels: {
+      climate: "అనుకూల శీతోష్ణస్థితి",
+      soil: "నేల",
+      season: "విత్తుల కాలం",
+      bestTime: "ఉత్తమ విత్తుల సమయం",
+      duration: "పెరుగుదల వ్యవధి",
+      stages: "పెరుగుదల దశలు",
+      water: "నీరు & సాగునీరు",
+      rainfall: "వర్షపాత మార్గదర్శకాలు",
+      temperature: "ఉష్ణోగ్రత పరిధి",
+      sunlight: "ఎండ",
+      harvestTime: "కోత సమయం & సూచనలు",
+      risks: "సాధారణ వాతావరణ ప్రమాదాలు",
+      pests: "పురుగులు & తెగుళ్ల అవగాహన",
+      storage: "నిల్వ మార్గదర్శకాలు",
+      tips: "వాతావరణ-అనుకూల చిట్కాలు",
+    },
   },
 };
 
@@ -278,7 +341,7 @@ const FARM_GUIDE_CROPS = [
   { id: "rice", names: { en: "Rice (Paddy)", hi: "धान (चावल)", te: "వరి" }, emoji: "🌾",
     photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Paddy%20field%20in%20Tamil%20Nadu%20India.jpg?width=640" },
   { id: "cotton", names: { en: "Cotton", hi: "कपास", te: "పత్తి" }, emoji: "🪴",
-    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Cotton%20field.jpg?width=640" },
+    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Mature%20cotton%20boll%20in%20Raichur%2C%20Karnataka.jpg?width=640" },
   { id: "maize", names: { en: "Maize", hi: "मक्का", te: "మొక్కజొన్న" }, emoji: "🌽",
     photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Before%20Rain%20at%20a%20Corn%20Field.jpg?width=640" },
   { id: "groundnut", names: { en: "Groundnut", hi: "मूंगफली", te: "వేరుశనగ" }, emoji: "🥜",
@@ -304,7 +367,7 @@ const FARM_GUIDE_PRACTICES = [
       hi: "फसल को पानी देना; ड्रिप लाइनें जड़ क्षेत्र तक सीधे पानी पहुँचाती हैं।",
       te: "పంటకు నీరు అందించడం; డ్రిప్ లైన్లు వేర్ల వద్దకు నేరుగా నీరు చేరుస్తాయి.",
     } },
-  { key: "rain", photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Sugarcane%20field%20during%20raining%20season%2C%20in%20Nayagarh%20Odisha.jpg?width=640",
+  { key: "rain", photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Flooded%20paddy%20field%20Raichur%20Karnataka%20India%20monsoon%20irrigation%20July%202025.jpg?width=640",
     names: { en: "Rain protection", hi: "वर्षा सुरक्षा", te: "వర్ష రక్షణ" }, emoji: "🌧️",
     desc: {
       en: "Covering and draining before wet spells so produce and soil stay protected.",
@@ -318,7 +381,7 @@ const FARM_GUIDE_PRACTICES = [
       hi: "गर्म और शुष्क दौर में फसल व खेत के काम का प्रबंधन।",
       te: "వేడి, పొడి కాలాల్లో పంట మరియు పొల పనుల నిర్వహణ.",
     } },
-  { key: "wind", photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Tractor%20and%20Sprayer%20-%20geograph.org.uk%20-%201913814.jpg?width=640",
+  { key: "wind", photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Wind%20break%20-%20geograph.org.uk%20-%201047141.jpg?width=640",
     names: { en: "Wind safety", hi: "हवा से बचाव", te: "గాలి భద్రత" }, emoji: "💨",
     desc: {
       en: "Field operations and spraying need calm conditions; wind check comes first.",
@@ -333,6 +396,130 @@ const FARM_GUIDE_PRACTICES = [
       te: "పండిన పంటను కోత చేసి సేకరించడం; పొడి వాతావరణం ఉత్తమం.",
     } },
 ];
+
+// ---------------------------------------------------------------
+// CROP INFORMATION PROFILES — content for the crop-info panel that
+// opens when a "Know your field" crop card is tapped/activated.
+// Trustworthy, general, NON-PRESCRIPTIVE agronomy (no fertilizer or
+// pesticide dosages, no yield promises); wording favors "varies by
+// region — verify locally". Field order drives the panel layout.
+// IDs mirror FARM_GUIDE_CROPS / backend farm_advisor.CROPS exactly.
+// ---------------------------------------------------------------
+const FARM_INFO_FIELDS = [
+  "climate", "soil", "season", "bestTime", "duration", "stages",
+  "water", "rainfall", "temperature", "sunlight", "harvestTime",
+  "risks", "pests", "storage", "tips",
+];
+
+const FARM_CROP_INFO = {};
+
+FARM_CROP_INFO.rice = {
+  climate: { en: "Hot and humid; roughly 20-35°C through the season with abundant water.", hi: "गर्म और आर्द्र जलवायु; मौसम भर लगभग 20–35°C और प्रचुर पानी।", te: "వేడి, తేమ గల శీతోష్ణస్థితి; సీజన్‌లో సుమారు 20–35°C, సమృద్ధిగా నీరు." },
+  soil: { en: "Water-retaining clay or clay-loam soils suit flooded paddy best.", hi: "पानी रोकने वाली चिकनी या दोमट मिट्टी धान के लिए सबसे उपयुक्त।", te: "నీరు నిలిచి ఉండే బంకమట్టి లేదా నేల వరికి అనుకూలం." },
+  season: { en: "Main season is the monsoon (kharif); a second (rabi) crop needs irrigation.", hi: "मुख्य मौसम मानसून (खरीफ); दूसरी (रबी) फसल सिंचाई पर निर्भर।", te: "ప్రధాన సీజన్ వర్షాధార (ఖరీఫ్); రెండో పంటకు సాగునీరు అవసరం." },
+  bestTime: { en: "With monsoon onset (around June-July) for rainfed fields.", hi: "वर्षा-आधारित खेतों में मानसून आगमन (लगभग जून–जुलाई) पर।", te: "వర్షాధార పొలాల్లో వర్షిత కాలం ప్రారంభంలో (జూన్–జూలై చుట్టూ)." },
+  duration: { en: "About 120-150 days, depending on the variety.", hi: "किस्म के अनुसार लगभग 120–150 दिन।", te: "రకాన్ని బట్టి సుమారు 120–150 రోజులు." },
+  stages: { en: "Nursery/transplanting → tillering → panicle initiation → flowering → grain filling → maturity.", hi: "नर्सरी/रोपाई → चीरती (टिलरिंग) → सूँड शुरुआत → फूल → दाना भरना → पकना।", te: "నారు/నాటడం → పిలకలు వచ్చు దశ → గడ్డ ఏర్పాటు → పూత → ధాన్యం నిండుదల → పండిన దశ." },
+  water: { en: "Among the thirstiest crops — fields are usually kept flooded for much of the season.", hi: "सबसे अधिक पानी चाहने वाली फसलों में — मौसम का अधिकांश समय खेत में पानी भरा रहता है।", te: "అత్యధిక నీటి అవసరం గల పంట — సీజన్‌లో ఎక్కువ భాగం పొలంలో నీరు నిలిచి ఉంటుంది." },
+  rainfall: { en: "Steady monsoon rain suits it; dry spells during flowering stress the crop, and flooding at ripening spoils grain.", hi: "नियमित मानसून वर्षा अनुकूल; फूल अवस्था में सूखा नुकसान करता है और पकते समय जलभराव दाना खराब करता है।", te: "సమతుల్య వర్షం మేలు; పూత సమయంలో తడి ఆరిపోవడం ఒత్తిడి, పండే సమయంలో ముంపు ధాన్యాన్ని పాడుచేస్తుంది." },
+  temperature: { en: "Roughly 20-35°C; the flowering stage is the most sensitive.", hi: "लगभग 20–35°C; फूल अवस्था सबसे संवेदनशील।", te: "సుమారు 20–35°C; పూత దశ అతి సున్నితమైనది." },
+  sunlight: { en: "Full sun throughout.", hi: "पूरे मौसम पूरी धूप।", te: "పూర్తి ఎండ అవసరం." },
+  harvestTime: { en: "When grains harden and turn golden and panicles droop — usually 30-35 days after flowering.", hi: "दाने कड़े और सुनहरे होकर बालियाँ झुकने लगें — प्रायः फूल आने के 30–35 दिन बाद।", te: "ధాన్యం గట్టిపడి బంగారు రంగులోకి మారి, గడ్డలు వంగినప్పుడు — సాధారణంగా పూత తర్వాత 30–35 రోజులకు." },
+  risks: { en: "Drought in the nursery, submergence of young plants, cloudy wet spells at flowering, and strong winds flattening the ripe crop.", hi: "नर्सरी में सूखा, युवा पौधों का डूबना, फूल अवस्था में बादल/गीला मौसम, और तेज़ हवा से पकी फसल का गिरना।", te: "నారు మడుల్లో ఎండలు, యువ మొక్కలు మునిగిపోవడం, పూత సమయంలో మేఘావృత/తడి వాతావరణం, బలిష్ఠ గాలులతో పంట పడిపోవడం." },
+  pests: { en: "Common concerns: stem borer, brown planthopper and blast disease. Regular field inspection and local extension advice help catch problems early.", hi: "सामान्य चिंताएँ: तना छेदक, भूरा प्लांटहॉपर और ब्लास्ट रोग। नियमित खेत निरीक्षण और स्थानीय कृषि सलाह से समय रहते पहचानें।", te: "సాధారణ సమస్యలు: కాండం తొండు పురుగు, బ్రౌన్ ప్లాంట్ హాపర్, బ్లాస్ట్ తెగులు. క్రమం తప్పకు పొల పరిశీలన మరియు స్థానిక సలహా ఉపయోగకరం." },
+  storage: { en: "Dry the produce well before storing; keep it cool, dry and protected from moisture and rodents.", hi: "भंडारण से पहले अच्छी तरह सुखाएँ; ठंडी, सूखी जगह पर नमी और चूहों से सुरक्षित रखें।", te: "నిల్వకు ముందు బాగా ఆరబెట్టండి; చల్లని, పొడి చోట తేమ మరియు ఎలుకల నుండి కాపాడండి." },
+  tips: { en: "Time transplanting with a reliable rain window, drain fields before harvest, and avoid field work during thunderstorms.", hi: "भरोसेमंद बारिश की खिड़की में रोपाई करें, कटाई से पहले खेत का पानी निकालें, और आंधी-तूफान के समय खेत के काम टालें।", te: "నమ్మదగిన వర్షపు విండోలో నాటడం, కోతకు ముందు నీరు పారుదల చేయడం, ఉరుముల సమయంలో పొల పనులు వాయిదా వేయడం ఉత్తమం." },
+};
+
+FARM_CROP_INFO.cotton = {
+  climate: { en: "Warm, sunny and frost-free; roughly 21-30°C with moderate humidity.", hi: "गर्म, धूपदार और पाला-रहित; लगभग 21–30°C और संतुलित नमी।", te: "వెచ్చని, ఎండతో కూడిన, మంచు లేని వాతావరణం; సుమారు 21–30°C, సమతుల్య తేమ." },
+  soil: { en: "Deep, well-drained black-cotton (heavy) or alluvial soils.", hi: "गहरी, जल-निकासी युक्त काली (कॉटन) या जलोढ़ मिट्टी।", te: "లోతైన, నీరు పారే నల్ల నేల లేదా ఒండ్రు నేలలు." },
+  season: { en: "Kharif — sown with the monsoon (May-June irrigated, June-July rainfed).", hi: "खरीफ — मानसून के साथ बुवाई (सिंचित मई–जून, वर्षा-आधारित जून–जुलाई)।", te: "ఖరీఫ్ — వర్షాధారంతో విత్తులు (సాగునీటిలో మే–జూన్, వర్షాధారంలో జూన్–జూలై)." },
+  bestTime: { en: "After pre-monsoon showers warm and moisten the soil.", hi: "मानसून-पूर्व बौछारों के मिट्टी को गर्म व नम करने के बाद।", te: "వర్షం ముందస్తు జల్లులు నేలను వేడిచేసి తడిపెట్టిన తర్వాత." },
+  duration: { en: "About 160-180 days.", hi: "लगभग 160–180 दिन।", te: "సుమారు 160–180 రోజులు." },
+  stages: { en: "Emergence → seedling → squaring → flowering & boll formation → boll opening.", hi: "अंकुरण → पौध अवस्था → गाँठें बनना → फूल व डोडा बनना → डोडे खुलना।", te: "మొలకెత్తుట → మొక్క దశ → పూయటం → పూత & బోల్స్ ఏర్పాటు → బోల్స్ తెరుచుకోవడం." },
+  water: { en: "Deep-rooted; needs moisture most during flowering and boll development.", hi: "गहरी जड़ों वाली; फूल और डोडा बनने के समय सबसे अधिक नमी चाहिए।", te: "లోతైన వేర్లు గలది; పూత మరియు బోల్స్ పెరుగుదల సమయంలో తేమ ఎక్కువగా కావాలి." },
+  rainfall: { en: "Good early rain supports growth; excess rain at flowering causes boll rot, and a dry sunny spell is needed at picking.", hi: "शुरुआती अच्छी वर्षा वृद्धि में मदद; फूल अवस्था में अधिक वर्षा से डोडा सड़ता है और तुड़ाई के समय सूखा धूपदार मौसम चाहिए।", te: "మొదటి మంచి వర్షం పెరుగుదలకు మేలు; పూత సమయంలో అధిక వర్షం బోల్స్ కుళ్ళిపోవడానికి కారణం, పిక్కింగ్‌కు పొడి ఎండ వాతావరణం కావాలి." },
+  temperature: { en: "About 21-30°C; cool spells slow growth and heavy rain at boll opening is harmful.", hi: "लगभग 21–30°C; ठंडे दौर से वृद्धि धीमी और डोडे खुलते समय भारी वर्षा हानिकारक।", te: "సుమారు 21–30°C; చల్లని కాలాల్లో పెరుగుదల నెమ్మది, బోల్స్ తెరుచుకునేటప్పుడు భారీ వర్షం హానికరం." },
+  sunlight: { en: "Full sun across its long season.", hi: "लंबे मौसम में पूरी धूप।", te: "పొడవైన సీజన్ మొత్తంలో పూర్తి ఎండ." },
+  harvestTime: { en: "Bolls split open showing white fluff; picked in several rounds as they open.", hi: "डोडे खुलकर सफेद रुई दिखाते हैं; खुलने के क्रम में कई चरणों में तुड़ाई।", te: "బోల్స్ తెరుచుకుని తెల్ల పత్తి కనిపిస్తాయి; తెరుచుకునే క్రమంలో పలు విడతలుగా పిక్కింగ్." },
+  risks: { en: "Drought during boll formation, unseasonal rain at picking, hail, and strong winds.", hi: "डोडा बनने के समय सूखा, तुड़ाई में बिना मौसम की वर्षा, ओलावृष्टि और तेज़ हवाएँ।", te: "బోల్స్ ఏర్పడే సమయంలో ఎండలు, పిక్కింగ్‌లో అసమయ వర్షం, వడగళ్ళ వాన, బలిష్ఠ గాలులు." },
+  pests: { en: "Common concerns: the bollworm complex, whitefly and leaf-curl virus. Regular scouting and removing affected plants per local guidance helps.", hi: "सामान्य चिंताएँ: बॉलवर्म समूह, सफेद मक्खी और पत्ती-कुंचन विषाणु। नियमित निगरानी और स्थानीय सलाह अनुसार प्रभावित पौधे हटाना लाभकारी।", te: "సాధారణ సమస్యలు: బోల్ వార్మ్ సమూహం, తెల్ల ఈగ, ఆకు కుంకుడు వైరస్. క్రమం తప్పకు పరిశీలించి, స్థానిక సలహా మేరకు ప్రభావిత మొక్కలు తొలగించడం మేలు." },
+  storage: { en: "Keep picked cotton dry to prevent fungus; store seed separately, cool and dry.", hi: "तुड़ाई रुई को सूखा रखें ताकि फफूंद न लगे; बीज अलग, ठंडा और सूखा रखें।", te: "పిక్ చేసిన పత్తిని పొడిగా ఉంచండి — బూజు రాకుండా; విత్తనాన్ని వేరుగా, చల్లగా, పొడిగా నిల్వ చేయండి." },
+  tips: { en: "Pick in dry weather, wait for bolls to dry after rain, and cover picked cotton before wet spells.", hi: "सूखे मौसम में तुड़ाई करें, वर्षा के बाद डोडे सूखने दें, और गीले मौसम से पहले तुड़ाई रुई ढक दें।", te: "పొడి వాతావరణంలో పిక్కింగ్ చేయండి, వర్షం తర్వాత బోల్స్ ఆరేవరకు వేచి ఉండండి, తడి కాలానికి ముందు పిక్ చేసిన పత్తిని కప్పండి." },
+};
+
+FARM_CROP_INFO.maize = {
+  climate: { en: "Warm frost-free weather; roughly 21-30°C for good grain fill.", hi: "गर्म, पाला-रहित मौसम; अच्छे दाने के लिए लगभग 21–30°C।", te: "వెచ్చని, మంచు లేని వాతావరణం; మంచి ధాన్యం నింపుదలకు సుమారు 21–30°C." },
+  soil: { en: "Well-drained loams rich in organic matter.", hi: "जैविक पदार्थ से भरपूर, जल-निकासी युक्त दोमट मिट्टी।", te: "సేంద్రీయ పదార్థం ఉన్న, నీరు పారే నేలలు." },
+  season: { en: "Kharif with the monsoon; spring and rabi crops where irrigation exists.", hi: "खरीफ मानसून में; सिंचाई होने पर बसंत और रबी फसलें।", te: "వర్షాధార ఖరీఫ్; సాగునీరు ఉన్నచో వసంత, రబీ పంటలు." },
+  bestTime: { en: "Just as the monsoon arrives, into warm moist soil.", hi: "मानसून आते ही, गर्म व नम मिट्टी में।", te: "వర్షాధారం వచ్చే సమయంలోనే, వెచ్చని తడి నేలలో." },
+  duration: { en: "About 90-110 days (varies widely by variety).", hi: "लगभग 90–110 दिन (किस्म के अनुसार बहुत भिन्न)।", te: "సుమారు 90–110 రోజులు (రకాన్ని బట్టి ఎక్కువగా మారుతుంది)." },
+  stages: { en: "Emergence → knee-high → knee-high tasseling → silking → grain fill → maturity.", hi: "अंकुरण → घुटने-ऊँचाई → गुच्छा (टैसेल) → रेशम (सिल्क) → दाना भरना → पकना।", te: "మొలకెత్తుట → మోకాల ఎత్తు → పూల గుత buck తెల్ల జుట్టు → ధాన్యం నింపుదల → పండిన దశ." },
+  water: { en: "Highest demand around flowering (tasseling-silking); a dry spell then hurts most.", hi: "फूल आने (टैसेल-सिल्क) के समय सबसे अधिक आवश्यकता; उस समय सूखा सबसे नुकसानदेह।", te: "పూత (టాసెల్-సిల్క్) సమయంలో అత్యధిక అవసరం; అప్పుడు తడి లేకపోతే ఎక్కువ నష్టం." },
+  rainfall: { en: "About 50-75 cm well spread; waterlogging at any stage harms the roots.", hi: "लगभग 50–75 सेमी अच्छी तरह फैली हुई; किसी भी अवस्था में जलभराव जड़ों को नुकसान।", te: "సుమారు 50–75 సెం.మీ సమానంగా పంపిణీ; ఏ దశలోనైనా నీరు నిలిచినా వేర్లకు హాని." },
+  temperature: { en: "About 21-30°C; heat above ~35°C at silking reduces grain set.", hi: "लगभग 21–30°C; सिल्क के समय ~35°C से ऊपर गर्मी से दाना बनना घटता है।", te: "సుమారు 21–30°C; సిల్క్ సమయంలో ~35°C పైన వేడితో ధాన్యం ఏర్పాటు తగ్గుతుంది." },
+  sunlight: { en: "Full sun; shade reduces cob size.", hi: "पूरी धूप; छाया से भुट्टा छोटा होता है।", te: "పూర్తి ఎండ; నీడలో మొక్కజొన్న చిన్నదవుతుంది." },
+  harvestTime: { en: "Husks dry and brown, grains hard and shiny; moisture has dropped well below the milky stage.", hi: "पत्तियाँ (भूसा) सूखकर भूरे, दाने कड़े व चमकदार; दूध-अवस्था से बहुत आगे नमी घट जाती है।", te: "పొట్టు ఆరి గోధుమ రంగు, ధాన్యం గట్టిగా, మెరుస్తూ; పాల దశ దాటి తేమ బాగా తగ్గుతుంది." },
+  risks: { en: "Mid-season drought, waterlogging, hail, and storms that lodge tall plants.", hi: "मध्य-मौसम सूखा, जलभराव, ओलावृष्टि, और लंबी फसल गिराने वाले तूफान।", te: "మధ్య సీజన్ ఎండలు, నీరు నిలిచి మునిగిపోవుట, వడగళ్ళ వాన, పొడవాటి మొక్కలను పడగొట్టే తుఫానులు." },
+  pests: { en: "Common concerns: fall armyworm, stem borer and cob-damaging pests. Inspect leaves for feeding damage early and follow local extension advice.", hi: "सामान्य चिंताएँ: फॉल आर्मीवर्म, तना छेदक और भुट्टा-कीट। पत्तियों पर कटाव जल्दी जाँचें और स्थानीय कृषि सलाह अपनाएँ।", te: "సాధారణ సమస్యలు: ఫాల్ ఆర్మీ వార్మ్, కాండం తొండు పురుగు, మొక్కజొన్న పురుగులు. ఆకులపై తిన్న గుర్తులు ముందుగానే తనిఖీ చేసి, స్థానిక సలహా పాటించండి." },
+  storage: { en: "Shell and dry the cobs well; store dry with good airflow to prevent mold.", hi: "भुट्टे छिलकर अच्छी तरह सुखाएँ; फफूंद रोकने हेतु हवादार सूखी जगह रखें।", te: "మొక్కజొన్న చిప్పలు తీసి బాగా ఆరబెట్టండి; బూజు రాకుండా గాలిసోయే పొడి చోట నిల్వ." },
+  tips: { en: "Sow with the first reliable rains, keep fields drained before storms, and harvest before prolonged wet spells.", hi: "पहली भरोसेमंद बारिश में बुवाई करें, तूफान से पहले खेत की निकासी सुनिश्चित करें, और लंबे गीले दौर से पहले कटाई कर लें।", te: "మొదటి నమ్మకమైన వర్షాల్లో విత్తులు వేయండి, తుఫానులకు ముందు నీటి పారుదల చూసుకోండి, సుదీర్ఘ తడి కాలానికి ముందే కోత పూర్తి చేయండి." },
+};
+
+FARM_CROP_INFO.groundnut = {
+  climate: { en: "Warm (25-30°C) with 50-100 cm of well-distributed rain.", hi: "गर्म (25–30°C) और 50–100 सेमी समवितरित वर्षा।", te: "వెచ్చని (25–30°C) వాతావరణం, 50–100 సెం.మీ సమానంగా పంపిణీ వర్షం." },
+  soil: { en: "Light, well-drained sandy or sandy-loam soils — pods need loose soil to develop.", hi: "हल्की, जल-निकासी युक्त बलुई या दोमट मिट्टी — फली विकसित होने हेतु ढीली मिट्टी चाहिए।", te: "లేత, నీరు పారే ఇసుక లేదా ఇసుక-నేలలు — వేరుశనగ కాయలకు లూస్ నేల అవసరం." },
+  season: { en: "Kharif (rainfed) is main; summer crops need irrigation.", hi: "खरीफ (वर्षा-आधारित) मुख्य; ग्रीष्म फसल सिंचाई पर।", te: "ఖరీఫ్ (వర్షాధార) ప్రధానం; వేసవి పంటకు సాగునీరు." },
+  bestTime: { en: "At monsoon onset so the crop matures before the tail-end rains.", hi: "मानसून आगमन पर, ताकि फसल अंतिम वर्षाओं से पहले पक जाए।", te: "వర్షిత కాలం ప్రారంభంలో — చివరి వర్షాలకు ముందే పంట పండేలా." },
+  duration: { en: "About 100-120 days for bunch varieties.", hi: "गुच्छा किस्मों के लिए लगभग 100–120 दिन।", te: "గుత్త రకాలకు సుమారు 100–120 రోజులు." },
+  stages: { en: "Emergence → flowering → pegging (pegs push into soil) → pod development → maturity.", hi: "अंकुरण → फूल → पेगिंग (पेग मिट्टी में) → फली विकास → पकना।", te: "మొలకెత్తుట → పూత → పెగ్గింగ్ (పెగ్గులు నేలలోకి) → కాయల పెరుగుదల → పండిన దశ." },
+  water: { en: "Moderate and steady; critical at flowering and pegging when pods form underground.", hi: "संतुलित और नियमित; फूल और पेगिंग के समय सबसे महत्वपूर्ण — तभी फलियाँ भूमि के भीतर बनती हैं।", te: "సమతుల్యంగా, క్రమంగా; పూత మరియు పెగ్గింగ్ సమయంలో చాలా కీలకం — అప్పుడే కాయలు నేలలో ఏర్పడతాయి." },
+  rainfall: { en: "Even rain is ideal; waterlogging rots pods and a dry spell at pegging cuts yield.", hi: "समान वर्षा आदर्श; जलभराव से फलियाँ सड़ती हैं और पेगिंग के समय सूखा उपज घटाता है।", te: "సమాన వర్షం ఉత్తమం; నీరు నిలిచినా కాయలు కుళ్ళుతాయి, పెగ్గింగ్ సమయంలో తడి లేకుంటే దిగుబడి తగ్గుతుంది." },
+  temperature: { en: "About 25-30°C; cool nights slow pod fill.", hi: "लगभग 25–30°C; ठंडी रातें फली भरना धीमा करती हैं।", te: "సుమారు 25–30°C; చల్లని రాత్రులు కాయల నింపుదల నెమ్మదిస్తాయి." },
+  sunlight: { en: "Full sun.", hi: "पूरी धूप।", te: "పూర్తి ఎండ." },
+  harvestTime: { en: "Leaves yellow, inner shell shows dark veins, pods rattle when shaken.", hi: "पत्तियाँ पीली, भीतरी छिलके पर गहरी नसें, झटकने पर फलियों की खड़-खड़ाहट।", te: "ఆకులు పసుపు, లోపలి పొట్టుపై ముదురు తీగలు, కదిలిస్తే కాయలు చప్పగొడతాయి." },
+  risks: { en: "End-of-season drought, waterlogged pods, and rain at harvest causing aflatoxin risk in damp pods.", hi: "मौसम-अंत सूखा, जलभराव से फलियाँ, और कटाई में वर्षा से गीली फलियों में जहरीले फफूंद (एफ्लाटॉक्सिन) का जोखिम।", te: "సీజన్ చివరి ఎండలు, నీరు నిలిచిన కాయలు, కోత సమయంలో వర్షంతో తడి కాయల్లో ఆఫ్లాటాక్సిన్ ప్రమాదం." },
+  pests: { en: "Common concerns: leaf miner, white grub and tikka leaf spot. Early inspection of leaves and pods helps.", hi: "सामान्य चिंताएँ: पत्ती सुरंग-कीट, सफेद बीटल (व्हाइट ग्रब) और टिक्का धब्बा। पत्तियों व फलियों की जल्दी जाँच लाभकारी।", te: "సాధారణ సమస్యలు: ఆకు నాటు పురుగు, తెల్ల పురుగు, టిక్కా ఆకు మచ్చ. ఆకులు, కాయలను ముందుగానే పరిశీలించడం మేలు." },
+  storage: { en: "Dry pods thoroughly (safe moisture, low) before bagging; store cool, dry and rodent-proof.", hi: "थैलियों में भरने से पहले फलियाँ पूरी तरह सुखाएँ (सुरक्षित नमी); ठंडा, सूखा और चूहा-रहित भंडार।", te: "సంచుల్లో నింపే ముందు కాయలను పూర్తిగా ఆరబెట్టండి (సురక్షిత తేమ తక్కువగా); చల్లని, పొడి, ఎలుకలు రాని చోట నిల్వ." },
+  tips: { en: "Harvest on a dry day, dry produce off the wet ground, and never store damp pods — mold risk is serious.", hi: "सूखे दिन कटाई करें, गीली ज़मीन से ऊपर सुखाएँ, और नम फलियाँ कभी न रखें — फफूंद का जोखिम गंभीर है।", te: "పొడి రోజున కోత, తడి నేల పైన కాకుండా ఆరబెట్టడం, తడి కాయలను ఎప్పటికీ నిల్వ చేయకూడదు — బూజు ప్రమాదం తీవ్రం." },
+};
+
+FARM_CROP_INFO.wheat = {
+  climate: { en: "Cool, dry winter season (rabi); roughly 10-25°C.", hi: "ठंडा, शुष्क शीतकालीन (रबी) मौसम; लगभग 10–25°C।", te: "చల్లని, పొడి శీతాకాల (రబీ) సీజన్; సుమారు 10–25°C." },
+  soil: { en: "Fertile well-drained loams; tolerates a wide range.", hi: "उपजाऊ, जल-निकासी युक्त दोमट; विस्तृत श्रेणी सहन करती है।", te: "సారవంతమైన, నీరు పారే నేలలు; విస్తృత శ్రేణికి అనుకూలం." },
+  season: { en: "Rabi — sown in autumn as temperatures ease.", hi: "रबी — तापमान घटते ही शरद में बुवाई।", te: "రబీ — ఉష్ణోగ్రత తగ్గుతున్న శరదృతువులో విత్తులు." },
+  bestTime: { en: "When daytime temperatures fall to roughly 20-25°C; late sowing shrinks the cool growing window.", hi: "जब दिन का तापमान लगभग 20–25°C तक घटे; देर से बुवाई से ठंडे मौसम की अवधि घटती है।", te: "పగటి ఉష్ణోగ్రత సుమారు 20–25°Cకి తగ్గినప్పుడు; ఆలస్యంగా విత్తిన చల్లని పెరుగుదల కాలం తక్కువ." },
+  duration: { en: "About 100-130 days.", hi: "लगभग 100–130 दिन।", te: "సుమారు 100–130 రోజులు." },
+  stages: { en: "Emergence → tillering → jointing → booting → heading & flowering → grain fill → ripening.", hi: "अंकुरण → चीरती → गाँठें → बूटिंग → बाली व फूल → दाना भरना → पकना।", te: "మొలకెత్తుట → పిలకలు → గణ్టు దశ → బూటింగ్ → గడ్డ పూత → ధాన్యం నింపుదల → పండిన దశ." },
+  water: { en: "Needs irrigation in most of India; critical at crown-root, jointing and grain fill.", hi: "भारत के अधिकांश भागों में सिंचाई आवश्यक; क्राउन-जड़, गाँठें और दाना भरने के समय सबसे महत्वपूर्ण।", te: "భారతంలో చాలా ప్రాంతాల్లో సాగునీరు అవసరం; కిరీట-వేరు, గణ్టు, ధాన్యం నింపుదల సమయాల్లో కీలకం." },
+  rainfall: { en: "A dry cool season with controlled irrigation is ideal; unseasonal rain at harvest ruins the grain.", hi: "नियंत्रित सिंचाई के साथ शुष्क ठंडा मौसम आदर्श; कटाई में बिना मौसम की वर्षा अनाज खराब करती है।", te: "నియంత్రిత సాగునీటితో పొడి చల్లని సీజన్ ఉత్తమం; కోత సమయంలో అసమయ వర్షం ధాన్యాన్ని పాడుచేస్తుంది." },
+  temperature: { en: "About 10-25°C; heat during grain fill shrivels grains.", hi: "लगभग 10–25°C; दाना भरने के समय गर्मी से दाने सिकुड़ जाते हैं।", te: "సుమారు 10–25°C; ధాన్యం నింపుదల సమయంలో వేడితో గింజలు కుంచిపోతాయి." },
+  sunlight: { en: "Full sun; bright days during grain fill help quality.", hi: "पूरी धूप; दाना भरने के दौरान धूपदार दिन गुणवत्ता में मदद।", te: "పూర్తి ఎండ; ధాన్యం నింపుదలలో ఎండ రోజులు నాణ్యతకు మేలు." },
+  harvestTime: { en: "Straw golden and dry, grains hard and crumbly — before heat waves or rain arrive.", hi: "पराली सुनहरी-सूखी, दाने कड़े — लू या वर्षा आने से पहले।", te: "పొట్టు బంగారు-పొడి, గింజలు గట్టిగా — వేడి గాలులు లేదా వర్షం రాకముందే." },
+  risks: { en: "Terminal heat waves, unseasonal rain/hail at harvest, and frost in the north.", hi: "अंतिम दौर की लू, कटाई में बिना मौसम की वर्षा/ओलावृष्टि, और उत्तर में पाला।", te: "చివరి దశ వేడి గాలులు, కోత సమయంలో అసమయ వర్షం/వడగళ్ళు, ఉత్తరాన మంచు." },
+  pests: { en: "Common concerns: rust diseases, termite in light soils and aphids. Watch leaves for yellow rust stripes after cloudy spells.", hi: "सामान्य चिंताएँ: रतुआ रोग, हल्की मिट्टी में दीमक और माहू (चेपा कीट)। बादलों के बाद पत्तियों पर पीले रतुआ धब्बे देखें।", te: "సాధారణ సమస్యలు: తుప్పు తెగుళ్లు, తేలిక నేలల్లో చిమ్మటలు (టెర్మైట్), అఫిడ్లు. మేఘాల తర్వాత ఆకులపై పసుపు తుప్పు గీతలు గమనించండి." },
+  storage: { en: "Store well-dried grain in cool, dry, pest-proof conditions.", hi: "अच्छी तरह सूखा अनाज ठंडी, सूखी, कीट-रहित जगह रखें।", te: "బాగా ఆరబెట్టిన ధాన్యాన్ని చల్లని, పొడి, పురుగులు రాని చోట నిల్వ." },
+  tips: { en: "Avoid sowing too late, watch for heat waves during grain fill, and harvest promptly in dry weather windows.", hi: "बहुत देर बुवाई न करें, दाना भरने के दौरान लू पर नज़र रखें, और सूखे मौसम में तुरंत कटाई करें।", te: "చాలా ఆలస్యంగా విత్తులు వేయకండి, ధాన్యం నింపుదలలో వేడి గాలులపై నిఘా, పొడి వాతావరణంలో వెంటనే కోత." },
+};
+
+FARM_CROP_INFO.sugarcane = {
+  climate: { en: "Hot and humid with a long frost-free season; roughly 20-35°C.", hi: "गर्म और आर्द्र, लंबा पाला-रहित मौसम; लगभग 20–35°C।", te: "వేడి, తేమ గల, పొడవైన మంచు లేని సీజన్; సుమారు 20–35°C." },
+  soil: { en: "Deep, rich, well-drained loams that can hold moisture.", hi: "गहरी, उपजाऊ, जल-निकासी युक्त दोमट जो नमी रोक सके।", te: "లోతైన, సారవంతమైన, నీరు పారే మరియు తేమ నిలుపుకునే నేలలు." },
+  season: { en: "Planted Oct-Nov (autumn) or Feb-Mar (spring) in most cane belts.", hi: "अधिकांश गन्ना-पट्टियों में अक्टूबर–नवंबर (शरद) या फरवरी–मार्च (वसंत) रोपण।", te: "చాలా చెరకు ప్రాంతాల్లో అక్టోబర్–నవంబర్ (శరదృతువు) లేదా ఫిబ్రవరి–మార్చి (వసంత) నాటడం." },
+  bestTime: { en: "When soil is warm and moist — before monsoon or with irrigation.", hi: "मिट्टी गर्म व नम हो — मानसून से पहले या सिंचाई के साथ।", te: "నేల వెచ్చగా, తడిగా ఉన్నప్పుడు — వర్షానికి ముందు లేదా సాగునీటితో." },
+  duration: { en: "About 10-12 months (varies by region and variety).", hi: "लगभग 10–12 महीने (क्षेत्र व किस्म के अनुसार)।", te: "సుమారు 10–12 నెలలు (ప్రాంతం, రకాన్ని బట్టి)." },
+  stages: { en: "Germination → tillering → grand growth (the main cane-building phase) → maturity.", hi: "अंकुरण → चीरती → तीव्र वृद्धि (गन्ना बनने की मुख्य अवस्था) → पकना।", te: "మొలకెత్తుట → పిలకలు → తీవ్ర వృద్ధి (చెరకు పొడవు పెరిగే ముఖ్య దశ) → పండిన దశ." },
+  water: { en: "A heavy, long-season water demand — usually irrigated; drip keeps moisture even.", hi: "लंबे मौसम की भारी पानी की मांग — प्रायः सिंचित; ड्रिप से समान नमी मिलती है।", te: "పొడవైన సీజన్‌కు అధిక నీటి అవసరం — సాధారణంగా సాగునీరు; డ్రిప్‌తో సమాన తేమ." },
+  rainfall: { en: "Around 75-120 cm well spread; dry spells during grand growth slow cane build-up.", hi: "लगभग 75–120 सेमी अच्छी तरह फैली; तीव्र वृद्धि में सूखा से गन्ना वृद्धि धीमी।", te: "సుమారు 75–120 సెం.మీ సమానంగా; తీవ్ర వృద్ధి సమయంలో తడి ఆరితే చెరకు పెరుగుదల ఆలస్యం." },
+  temperature: { en: "About 20-35°C; growth nearly stops below ~15°C.", hi: "लगभग 20–35°C; ~15°C से नीचे वृद्धि लगभग रुक जाती है।", te: "సుమారు 20–35°C; ~15°C కంటే తక్కువైతే పెరుగుదల దాదాపు ఆగిపోతుంది." },
+  sunlight: { en: "Full sun for the whole long season.", hi: "पूरे लंबे मौसम पूरी धूप।", te: "పొడవైన సీజన్ మొత్తం పూర్తి ఎండ." },
+  harvestTime: { en: "Canes heavy and juicy, lower leaves drying, sugar peak confirmed with a local test.", hi: "गन्ने भारी और रसीले, निचली पत्तियाँ सूखने लगें, मिठास चरम पर — स्थानीय जाँच से पुष्टि।", te: "చెరకు బరువుగా, రసంతో నిండి, కింది ఆకులు ఆరిపోవుట, తీపి శిఖరం — స్థానిక పరీక్షతో నిర్ధారణ." },
+  risks: { en: "Cyclonic winds and storms flattening tall cane, drought during grand growth, waterlogging, and frost at the margins.", hi: "चक्रवाती हवाएँ और तूफान लंबे गन्ने गिराते हैं, तीव्र वृद्धि में सूखा, जलभराव, और सीमांत क्षेत्रों में पाला।", te: "తుఫాను గాలులతో పొడవాటి చెరకు పడిపోవుట, తీవ్ర వృద్ధిలో ఎండలు, నీరు నిలిచి మునిగిపోవుట, అంచు ప్రాంతాల్లో మంచు." },
+  pests: { en: "Common concerns: early shoot borer, top borer and red rot disease. Use disease-free seed setts and inspect shoots regularly.", hi: "सामान्य चिंताएँ: प्रारंभिक अंकुर छेदक, शीर्ष छेदक और लाल सड़न रोग। रोग-मुक्त बीज-कलम उपयोग करें और अंकुरों की नियमित जाँच करें।", te: "సాధారణ సమస్యలు: ప్రారంభ రెబ్బ తొండు పురుగు, పై తొండు పురుగు, ఎర్ర కుళ్ళు తెగులు. వ్యాధి లేని విత్తన పొదలు వాడి, రెబ్బలను క్రమం తప్పకు పరిశీలించండి." },
+  storage: { en: "Cane is best milled promptly; if stored, keep shaded, moist and off the ground — do not let it dry out.", hi: "गन्ना शीघ्र कुटाई सर्वोत्तम; रखना हो तो छाया में, नम और ज़मीन से ऊपर — सूखने न दें।", te: "చెరకును వీలైనంత త్వరగా నూరించడం ఉత్తమం; నిల్వ అవసరమైతే నీడలో, తడిగా, నేల నుండి ఎత్తుగా — ఆరిపోనివ్వకండి." },
+  tips: { en: "Stake or bank up cane before storm season where winds are strong, irrigate steadily through grand growth, and cut before any forecast cyclone.", hi: "तेज़ हवाओं वाले क्षेत्रों में तूफान-मौसम से पहले गन्ने को मिट्टी से बाँधें/घेरें, तीव्र वृद्धि में नियमित सिंचाई, और चक्रवात की सूचना पर पहले कटाई।", te: "బలిష్ఠ గాలులున్న ప్రాంతాల్లో తుఫాను సీజన్‌కు ముందు చెరకును మట్టితో ఏర్పాటు చేయండి, తీవ్ర వృద్ధిలో క్రమం తప్పకు నీరు, తుఫాను అంచనా వుంటే ముందుగానే కోత." },
+};
 
 function farmLang() {
   return state.voiceLang === "hi" ? "hi" : state.voiceLang === "te" ? "te" : "en";
@@ -434,7 +621,23 @@ function farmGuidePhotoFailed(img) {
   img.replaceWith(fallback);
 }
 
-function farmGuideCard(entry, title, sub, altText) {
+function farmGuideCard(entry, title, sub, altText, opts = {}) {
+  // Crop cards render as real <button>s (phrasing content only) so
+  // keyboard/touch activation, focus and a11y semantics come for free.
+  if (opts.button) {
+    return `
+    <button type="button" class="farm-guide-card is-action" data-crop-info="${escapeHTML(entry.id)}" aria-haspopup="dialog" aria-label="${escapeHTML(title)}">
+      <img class="farm-guide-photo is-loading" src="${entry.photo}" alt="${escapeHTML(altText)}"
+        loading="lazy" decoding="async" width="640" height="480"
+        onload="this.classList.remove('is-loading')"
+        onerror="farmGuidePhotoFailed(this)">
+      <span class="farm-guide-caption">
+        <span class="farm-guide-title">${entry.emoji || ""} ${escapeHTML(title)}</span>
+        ${sub ? `<span class="farm-guide-sub">${escapeHTML(sub)}</span>` : ""}
+        ${opts.hint ? `<span class="farm-guide-hint" aria-hidden="true">${escapeHTML(opts.hint)}</span>` : ""}
+      </span>
+    </button>`;
+  }
   return `
     <figure class="farm-guide-card" data-guide-key="${escapeHTML(entry.id || entry.key || "")}">
       <img class="farm-guide-photo is-loading" src="${entry.photo}" alt="${escapeHTML(altText)}"
@@ -458,12 +661,164 @@ function renderFarmGuide(lang) {
   const t = FARM_I18N[lang] || FARM_I18N.en;
   cropGrid.innerHTML = FARM_GUIDE_CROPS.map((c) => {
     const name = c.names[lang] || c.names.en;
-    return farmGuideCard(c, name, "", `${t.guideAltPrefix} ${name}`);
+    return farmGuideCard(c, name, "", `${t.guideAltPrefix} ${name}`, { button: true, hint: t.guideCardHint });
   }).join("");
   practiceGrid.innerHTML = FARM_GUIDE_PRACTICES.map((p) => {
     const name = p.names[lang] || p.names.en;
     return farmGuideCard(p, name, p.desc[lang] || p.desc.en, `${t.guideAltPrefix} ${name}`);
   }).join("");
+}
+
+// ============================================================
+// CROP INFO PANEL — opens when a "Know your field" crop card is
+// activated. Localized live (EN/HI/TE), themed via app tokens, fully
+// keyboard accessible (Tab cycle, Esc, backdrop click, visible Close),
+// and responsive: bottom sheet on phones, centered dialog ≥sm.
+// Focus is trapped while open; the opener regains focus on close.
+// ============================================================
+
+const cropInfoState = {
+  open: false,
+  cropId: null,
+  lang: "en",
+  lastFocus: null,
+};
+
+function cropInfoEls() {
+  return {
+    overlay: document.getElementById("crop-info-overlay"),
+    panel: document.getElementById("crop-info-panel"),
+    backdrop: document.getElementById("crop-info-backdrop"),
+    closeBtn: document.getElementById("crop-info-close-btn"),
+    emoji: document.getElementById("crop-info-emoji"),
+    title: document.getElementById("crop-info-title"),
+    subtitle: document.getElementById("crop-info-subtitle"),
+    body: document.getElementById("crop-info-body"),
+  };
+}
+
+function cropInfoBodyRow(label, value) {
+  return `
+    <div class="crop-info-row">
+      <span class="crop-info-label">${escapeHTML(label)}</span>
+      <p class="crop-info-value">${escapeHTML(value)}</p>
+    </div>`;
+}
+
+function cropInfoTipRow(label, value) {
+  return `
+    <div class="crop-info-row crop-info-row-tip">
+      <span class="crop-info-label">${escapeHTML(label)}</span>
+      <p class="crop-info-value">${escapeHTML(value)}</p>
+    </div>`;
+}
+
+function openCropInfo(cropId) {
+  const { overlay, panel, closeBtn, emoji, title, subtitle, body } = cropInfoEls();
+  const info = FARM_CROP_INFO[cropId];
+  const cropMeta = FARM_GUIDE_CROPS.find((c) => c.id === cropId);
+  if (!overlay || !panel || !info || !cropMeta) return;
+
+  const lang = farmLang();
+  const t = FARM_I18N[lang] || FARM_I18N.en;
+  cropInfoState.open = true;
+  cropInfoState.cropId = cropId;
+  cropInfoState.lang = lang;
+  cropInfoState.lastFocus = document.activeElement;
+
+  emoji.textContent = cropMeta.emoji || "🌾";
+  title.textContent = cropMeta.names[lang] || cropMeta.names.en;
+  subtitle.textContent = t.infoSubtitle;
+  closeBtn.setAttribute("aria-label", t.infoClose);
+  closeBtn.title = t.infoClose;
+
+  if (body) {
+    body.innerHTML = FARM_INFO_FIELDS.map((f) => {
+      const entry = info[f];
+      if (!entry) return "";
+      const value = entry[lang] || entry.en;
+      return f === "tips" ? cropInfoTipRow(t.infoLabels[f], value) : cropInfoBodyRow(t.infoLabels[f], value);
+    }).join("");
+    body.scrollTop = 0;
+  }
+
+  overlay.classList.remove("hidden");
+  // Double rAF lets the browser paint the hidden→shown state before the
+  // slide-up transition starts, so the animation always plays.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      overlay.classList.add("is-open");
+      panel.classList.remove("translate-y-full");
+    });
+  });
+  document.body.style.overflow = "hidden";
+  closeBtn.focus();
+}
+
+function closeCropInfo() {
+  const { overlay, panel } = cropInfoEls();
+  if (!overlay || !cropInfoState.open) return;
+  cropInfoState.open = false;
+  overlay.classList.remove("is-open");
+  panel.classList.add("translate-y-full");
+  document.body.style.overflow = "";
+  const done = () => {
+    overlay.classList.add("hidden");
+    if (cropInfoState.lastFocus && document.contains(cropInfoState.lastFocus)) {
+      cropInfoState.lastFocus.focus();
+    }
+    cropInfoState.lastFocus = null;
+  };
+  if (prefersReducedMotion()) done();
+  else setTimeout(done, 320); // match the panel transition duration
+}
+
+function initCropInfo() {
+  const { overlay, backdrop, closeBtn, panel } = cropInfoEls();
+  if (!overlay || overlay.dataset.bound) return;
+  overlay.dataset.bound = "1";
+  overlay.addEventListener("click", (e) => {
+    if (e.target === backdrop) closeCropInfo();
+  });
+  closeBtn.addEventListener("click", closeCropInfo);
+  document.addEventListener("keydown", (e) => {
+    if (!cropInfoState.open) return;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeCropInfo();
+      return;
+    }
+    if (e.key === "Tab") {
+      // Focus trap: keep Tab cycling inside the open panel.
+      const focusables = panel.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+      const list = [...focusables].filter((el) => el.offsetParent !== null);
+      if (list.length === 0) return;
+      const first = list[0];
+      const last = list[list.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
+  // Delegate clicks on guide crop cards (works across re-renders).
+  if (els.farmGuideCropGrid) {
+    els.farmGuideCropGrid.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-crop-info]");
+      if (btn) openCropInfo(btn.dataset.cropInfo);
+    });
+  }
+}
+
+function cropInfoOpenFor(cropId) {
+  openCropInfo(cropId);
+}
+
+function cropInfoCloseFor(cropId) {
+  closeCropInfo();
 }
 
 // ============================================================
@@ -2334,6 +2689,7 @@ async function initFarmAdvisor() {
   populateFarmSelectors(farmLang());
   applyFarmStaticText(farmLang());
   renderFarmGuide(farmLang());
+  initCropInfo(); // binds crop-card clicks → info panel (delegated)
   els.farmCropSelect.addEventListener("change", () => {
     state.farmCacheKey = null;
     refreshFarmAdvice();
