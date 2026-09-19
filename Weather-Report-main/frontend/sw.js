@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v9"; // v9: live Micro-Temp / Wind / AQI map field layers
+const CACHE_NAME = "weathergpt-shell-v10"; // v10: Weather Scene Animations layer in the Living Sky
 
 const SHELL_FILES = [
   "/",

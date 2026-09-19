@@ -51,6 +51,7 @@ function initThemeToggle() {
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", currentTheme() === "dark" ? "#0F1626" : "#3D7CC9");
     syncRainFxTheme();
+    syncSceneFxTheme();
   });
   // Keep "system-default" sessions in sync with OS changes until the
   // user explicitly picks a side (an explicit pick persists and wins).
@@ -67,6 +68,7 @@ function initThemeToggle() {
       // Also refresh the PWA status bar color to match.
       const meta = document.querySelector('meta[name="theme-color"]:not([media])');
       if (meta) meta.setAttribute("content", e.matches ? "#0F1626" : "#3D7CC9");
+      syncSceneFxTheme();
     };
     if (mq.addEventListener) mq.addEventListener("change", onChange);
     else if (mq.addListener) mq.addListener(onChange);
@@ -214,7 +216,7 @@ const FARM_I18N = {
     guideCropsHeading: "Crops",
     guidePracticesHeading: "Key practices",
     guideAltPrefix: "Photo of",
-    guidePhotoCredit: "Photos: Wikimedia Commons contributors (CC BY / CC BY-SA / public domain).",
+    guidePhotoCredit: "Photos: Wikimedia Commons contributors (CC BY / CC BY-SA / public domain). Maize photo: 'Before Rain at a Corn Field' by Soumyabrata Roy, CC BY-SA 4.0, via Wikimedia Commons.",
   },
   hi: {
     title: "आज मुझे क्या करना चाहिए?",
@@ -236,7 +238,7 @@ const FARM_I18N = {
     guideCropsHeading: "फसलें",
     guidePracticesHeading: "प्रमुख कृषि कार्य",
     guideAltPrefix: "फोटो:",
-    guidePhotoCredit: "फोटो: Wikimedia Commons योगदानकर्ता (CC BY / CC BY-SA / सार्वजनिक डोमेन)।",
+    guidePhotoCredit: "फोटो: Wikimedia Commons योगदानकर्ता (CC BY / CC BY-SA / सार्वजनिक डोमेन)। मक्का फोटो: 'Before Rain at a Corn Field', लेखक: Soumyabrata Roy, CC BY-SA 4.0, Wikimedia Commons के माध्यम से।",
   },
   te: {
     title: "ఈరోజు నేను ఏమి చేయాలి?",
@@ -258,7 +260,7 @@ const FARM_I18N = {
     guideCropsHeading: "పంటలు",
     guidePracticesHeading: "ముఖ్య వ్యవసాయ పద్ధతులు",
     guideAltPrefix: "ఫోటో:",
-    guidePhotoCredit: "ఫోటోలు: Wikimedia Commons సహకారులు (CC BY / CC BY-SA / పబ్లిక్ డొమైన్).",
+    guidePhotoCredit: "ఫోటోలు: Wikimedia Commons సహకారులు (CC BY / CC BY-SA / పబ్లిక్ డొమైన్). మొక్కజొన్న ఫోటో: 'Before Rain at a Corn Field', చిత్రకారుడు: Soumyabrata Roy, CC BY-SA 4.0, Wikimedia Commons ద్వారా.",
   },
 };
 
@@ -278,7 +280,7 @@ const FARM_GUIDE_CROPS = [
   { id: "cotton", names: { en: "Cotton", hi: "कपास", te: "పత్తి" }, emoji: "🪴",
     photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Cotton%20field.jpg?width=640" },
   { id: "maize", names: { en: "Maize", hi: "मक्का", te: "మొక్కజొన్న" }, emoji: "🌽",
-    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Maize.jpg?width=640" },
+    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Before%20Rain%20at%20a%20Corn%20Field.jpg?width=640" },
   { id: "groundnut", names: { en: "Groundnut", hi: "मूंगफली", te: "వేరుశనగ" }, emoji: "🥜",
     photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Groundnut%20crop%20in%20Chittoor%20district%2C%20Andhra%20Pradesh.jpg?width=640" },
   { id: "wheat", names: { en: "Wheat", hi: "गेहूँ", te: "గోధుమ" }, emoji: "🌾",
@@ -921,9 +923,143 @@ function getThunderBuffer(ctx) {
 // the pool (animated field ↔ static field) for the current condition.
 if (window.matchMedia) {
   const rmQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const onRmChange = () => applyPrecipFx(document.body.dataset.condition || "clear-day");
+  const onRmChange = () => {
+    applyPrecipFx(document.body.dataset.condition || "clear-day");
+    // Scene pools follow: static mode parks drops/ripples/stars.
+    applySceneFx(document.body.dataset.condition || "clear-day", sceneFx.lastIsDay);
+  };
   if (rmQuery.addEventListener) rmQuery.addEventListener("change", onRmChange);
   else if (rmQuery.addListener) rmQuery.addListener(onRmChange);
+}
+
+// ============================================================
+// WEATHER SCENE ANIMATIONS — illustrated scene layer merged into the
+// Living Sky (#weather-scene), adapted from the standalone "Weather
+// Scene Animations" mock (sun orb + rotating rays, drifting SVG
+// clouds, storm cloud + drop/ripple pools, moon + twinkling stars).
+// The scene is chosen from the REAL condition category; the mock's
+// per-scene backgrounds are intentionally NOT ported — the existing
+// Living Sky gradients + rain-fx/lightning-fx stay authoritative and
+// this layer only adds the illustrated elements on top. Pools are
+// seeded lazily ONCE (nodes persist across scene switches; hidden
+// parts simply stop compositing via display:none). Dark theme remaps
+// the sun scene to night. Reduced-motion users get instant switches
+// and static pools.
+// ============================================================
+
+const sceneFx = {
+  current: null,        // scene currently applied ("sun"|"clouds"|"rain"|"night")
+  lastIsDay: 1,         // last seen daylight flag (for reduced-motion rebuilds)
+  seededDrops: false,   // pool built at least once?
+  seededRipples: false,
+  seededStars: false,
+};
+
+const SCENE_BY_CONDITION = {
+  "clear-day": "sun",
+  "partly-cloudy-day": "clouds",
+  "cloudy": "clouds",
+  "fog": "clouds",
+  "drizzle": "rain",
+  "rain": "rain",
+  "thunder": "rain",
+  "clear-night": "night",
+  "partly-cloudy-night": "night",
+};
+
+function sceneForCondition(condition, isDay = 1) {
+  const mapped = SCENE_BY_CONDITION[condition];
+  if (mapped) return mapped;
+  // Snow and the hot/cold temp-band skies keep the existing snow
+  // sparkle / painted gradients authoritative; the illustrated layer
+  // only covers the four mock scenes.
+  return isDay !== 0 ? "sun" : "night";
+}
+
+function seedSceneDrops() {
+  const field = document.getElementById("scene-drop-field");
+  if (!field || sceneFx.seededDrops) return;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 70; i++) {
+    const drop = document.createElement("div");
+    drop.className = "scene-drop";
+    const length = 22 + Math.random() * 30;      // px
+    const duration = 0.45 + Math.random() * 0.5; // s to fall (mock values)
+    drop.style.left = (Math.random() * 104).toFixed(2) + "%";
+    drop.style.height = length.toFixed(1) + "px";
+    drop.style.opacity = (0.4 + Math.random() * 0.5).toFixed(2);
+    drop.style.animationDuration = duration.toFixed(2) + "s";
+    drop.style.animationDelay = (-Math.random() * 1.2).toFixed(2) + "s";
+    frag.appendChild(drop);
+  }
+  field.appendChild(frag);
+  sceneFx.seededDrops = true;
+}
+
+function seedSceneRipples() {
+  const pool = document.getElementById("scene-ripple-pool");
+  if (!pool || sceneFx.seededRipples) return;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 10; i++) {
+    const ripple = document.createElement("div");
+    ripple.className = "scene-ripple";
+    ripple.style.left = (Math.random() * 90).toFixed(2) + "%";
+    ripple.style.animationDuration = (1.1 + Math.random() * 0.8).toFixed(2) + "s";
+    ripple.style.animationDelay = (-Math.random() * 2).toFixed(2) + "s";
+    frag.appendChild(ripple);
+  }
+  pool.appendChild(frag);
+  sceneFx.seededRipples = true;
+}
+
+function seedSceneStars() {
+  const field = document.getElementById("scene-star-field");
+  if (!field || sceneFx.seededStars) return;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 40; i++) {
+    const star = document.createElement("div");
+    star.className = "scene-star";
+    const size = 1 + Math.random() * 2;
+    star.style.width = size.toFixed(2) + "px";
+    star.style.height = size.toFixed(2) + "px";
+    star.style.top = (Math.random() * 70).toFixed(2) + "%";
+    star.style.left = (Math.random() * 100).toFixed(2) + "%";
+    star.style.animationDelay = (-Math.random() * 3).toFixed(2) + "s";
+    frag.appendChild(star);
+  }
+  field.appendChild(frag);
+  sceneFx.seededStars = true;
+}
+
+// Public entry: pick the scene for the REAL condition and apply it.
+// Called from renderForecastScreen with the live payload and at boot.
+function applySceneFx(condition, isDay = 1) {
+  const host = document.getElementById("weather-scene");
+  if (!host) return;
+  sceneFx.lastIsDay = isDay !== 0 ? 1 : 0;
+  const wanted = sceneForCondition(condition, isDay);
+  // Dark theme: sun → night (a bright orb on navy skies reads wrong;
+  // moon + stars match the moonlit palette).
+  const scene = currentTheme() === "dark" && wanted === "sun" ? "night" : wanted;
+  if (host.dataset.scene === scene && sceneFx.current === scene) return;
+  host.dataset.scene = scene;
+  sceneFx.current = scene;
+  if (scene === "rain") {
+    // Reduced motion: the existing rain-fx static streak field already
+    // covers precipitation — skip the animated scene pools entirely.
+    if (!prefersReducedMotion()) {
+      seedSceneDrops();
+      seedSceneRipples();
+    }
+  }
+  if (scene === "night") seedSceneStars(); // stars render fine static
+}
+
+// If the theme flips mid-session, remap sun→night / night→sun so the
+// illustrated layer always matches the active theme's palette.
+function syncSceneFxTheme() {
+  if (!sceneFx.current) return;
+  applySceneFx(document.body.dataset.condition || "clear-day", sceneFx.lastIsDay);
 }
 
 // ============================================================
@@ -1508,6 +1644,8 @@ function renderForecastScreen() {
   applyDynamicSky(cat, tempBandFor(temp));
   // Clouds / sun glow / rays / sparkle depth layer, same real condition.
   applySkyFx(cat, isDay);
+  // Illustrated scene layer (sun/clouds/rain/night), same real condition.
+  applySceneFx(cat, isDay);
   // Precipitation overlay + storm lightning, from the same real payload.
   applyPrecipFx(cat, current.precipitation, current.wind_direction_10m);
   // Smart Rain Alert + Rain Timeline — same real hourly payload.
@@ -2892,6 +3030,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // Paint the initial sky before the first weather payload lands.
   applyDynamicSky("clear-day", "mild");
   applySkyFx("clear-day", 1); // clouds/sun-glow/rays layer starts on the fair-day default
+  applySceneFx("clear-day", 1); // illustrated scene starts on the fair-day default
   applyPrecipFx("clear-day"); // rain/lightning layers start hidden
   // Auto-request GPS on first load (graceful fallback to the default
   // city on denial/timeout/unsupported) instead of always loading SF.

@@ -1049,6 +1049,339 @@ main {
 }
 
 /* ============================================================
+   WEATHER SCENE ANIMATIONS — illustrated scene layer merged into
+   the Living Sky (#weather-scene). Adapted from the standalone
+   "Weather Scene Animations" mock: sun orb + rotating rays,
+   drifting SVG clouds, storm cloud + drop/ripple field, moon +
+   twinkling stars. The mock's per-scene BACKGROUNDS are replaced
+   by the existing Living Sky gradients (this layer only adds the
+   illustrated elements), and the app's real-precipitation rain-fx
+   / lightning-fx keep working alongside.
+
+   State: data-scene (sun | clouds | rain | night) on the host, set
+   by applySceneFx from the REAL weather condition. Exactly one
+   .scene-part is displayed; switches fade in over 1.2s. Pools
+   (drops / ripples / stars) are seeded once by script.js and
+   reused across scene switches. Dark theme re-paints the clouds
+   moonlit and remaps the sun scene to the night scene in JS.
+   Lightning flash + cloud flicker stay gated to REAL thunder
+   (body[data-condition="thunder"]), preserving the app's rule
+   that plain rain never flashes.
+   ============================================================ */
+
+#weather-scene {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scene-part {
+  display: none;
+}
+
+/* Active part fades in so scene switches dissolve into the 2.5s
+   sky-gradient crossfade instead of snapping. */
+#weather-scene[data-scene="sun"] .scene-sun,
+#weather-scene[data-scene="clouds"] .scene-clouds,
+#weather-scene[data-scene="rain"] .scene-storm,
+#weather-scene[data-scene="night"] .scene-night {
+  display: block;
+  animation: scene-part-in 1.2s ease both;
+}
+
+@keyframes scene-part-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---- SUN SCENE: pulsing warm orb with a slowly rotating ray fan.
+   Orb and rays share one center anchor (translate(-50%, -50%));
+   the spin lives on ::before so it never fights the positioning. */
+.scene-sun {
+  position: absolute;
+  inset: 0;
+}
+
+.scene-sun-orb,
+.scene-sun-rays {
+  position: absolute;
+  top: 17%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.scene-sun-orb {
+  width: clamp(110px, 26vmin, 170px);
+  height: clamp(110px, 26vmin, 170px);
+}
+
+.scene-sun-orb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff4cf 0%, #ffd873 45%, rgba(255, 216, 115, 0) 72%);
+  animation: scene-sun-pulse 4.5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes scene-sun-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.88; transform: scale(1.05); }
+}
+
+.scene-sun-rays {
+  width: clamp(240px, 56vmin, 400px);
+  height: clamp(240px, 56vmin, 400px);
+}
+
+.scene-sun-rays::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    rgba(255, 244, 205, 0) 0deg, rgba(255, 244, 205, 0.35) 8deg, rgba(255, 244, 205, 0) 18deg,
+    rgba(255, 244, 205, 0) 40deg, rgba(255, 244, 205, 0.3) 48deg, rgba(255, 244, 205, 0) 58deg,
+    rgba(255, 244, 205, 0) 90deg, rgba(255, 244, 205, 0.32) 98deg, rgba(255, 244, 205, 0) 108deg,
+    rgba(255, 244, 205, 0) 150deg, rgba(255, 244, 205, 0.28) 158deg, rgba(255, 244, 205, 0) 168deg,
+    rgba(255, 244, 205, 0) 210deg, rgba(255, 244, 205, 0.3) 218deg, rgba(255, 244, 205, 0) 228deg,
+    rgba(255, 244, 205, 0) 260deg, rgba(255, 244, 205, 0.3) 268deg, rgba(255, 244, 205, 0) 278deg,
+    rgba(255, 244, 205, 0) 320deg, rgba(255, 244, 205, 0.32) 328deg, rgba(255, 244, 205, 0) 338deg);
+  mix-blend-mode: screen;
+  animation: scene-sun-spin 22s linear infinite;
+  will-change: transform;
+}
+
+@keyframes scene-sun-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- CLOUDS SCENE: three illustrated SVG clouds drifting across
+   the upper sky (sizes scale with the viewport, unlike the mock's
+   fixed phone-frame widths). ---- */
+.scene-clouds {
+  position: absolute;
+  inset: 0;
+}
+
+.scene-cloud {
+  position: absolute;
+  opacity: 0.85;
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.08));
+  will-change: transform;
+}
+
+.scene-cloud svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.scene-cloud-1 { top: 12%; left: -30%; width: clamp(150px, 34vw, 260px); animation: scene-drift-1 38s linear infinite; }
+.scene-cloud-2 { top: 24%; left: -45%; width: clamp(110px, 25vw, 190px); animation: scene-drift-2 52s linear infinite; opacity: 0.65; }
+.scene-cloud-3 { top: 5%;  left: -35%; width: clamp(90px, 20vw, 150px);  animation: scene-drift-1 30s linear infinite; opacity: 0.5; }
+
+@keyframes scene-drift-1 {
+  from { transform: translateX(0); }
+  to   { transform: translateX(160vw); }
+}
+
+@keyframes scene-drift-2 {
+  from { transform: translateX(0); }
+  to   { transform: translateX(170vw); }
+}
+
+/* ---- RAIN SCENE: heavy storm cloud overhead, mist, a pooled field
+   of wind-slanted drops and ground ripples. Drop/ripple POOLS are
+   built by script.js; CSS only animates them. ---- */
+.scene-storm {
+  position: absolute;
+  inset: 0;
+}
+
+.scene-storm-cloud {
+  position: absolute;
+  top: 4%;
+  left: 50%;
+  width: clamp(170px, 46vw, 280px);
+  transform: translateX(-50%);
+  opacity: 0.95;
+  filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.35));
+}
+
+.scene-storm-cloud svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Lightning-lit flicker — REAL thunder only (see gating below). */
+body[data-condition="thunder"] #weather-scene[data-scene="rain"] .scene-storm-cloud {
+  animation: scene-cloud-flicker 8s infinite;
+}
+
+@keyframes scene-cloud-flicker {
+  0%, 91%, 100% { filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.35)) brightness(1); }
+  91.5%         { filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.35)) brightness(1.5); }
+}
+
+.scene-storm-mist {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(120, 140, 170, 0) 0%, rgba(120, 140, 170, 0.10) 55%, rgba(140, 158, 185, 0.16) 100%);
+}
+
+.scene-storm-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.scene-drop {
+  position: absolute;
+  top: -8%;
+  width: 1.5px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(210, 228, 255, 0) 0%, rgba(210, 228, 255, 0.85) 55%, rgba(230, 240, 255, 0.95) 100%);
+  animation-name: scene-drop-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes scene-drop-fall {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  6%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { transform: translate(-34px, 105vh); opacity: 0; } /* -34px = wind drift */
+}
+
+/* Ground strip: subtle wet sheen + the ripple pool. */
+.scene-ripples {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22%;
+  background: linear-gradient(180deg, rgba(90, 110, 140, 0) 0%, rgba(70, 90, 120, 0.35) 100%);
+}
+
+.scene-ripple {
+  position: absolute;
+  bottom: 6px;
+  width: 26px;
+  height: 8px;
+  border: 1.5px solid rgba(210, 228, 255, 0.55);
+  border-radius: 50%;
+  opacity: 0;
+  animation-name: scene-ripple-out;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes scene-ripple-out {
+  0%   { transform: scale(0.3); opacity: 0.6; }
+  75%  { opacity: 0.15; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Scene lightning: full-viewport screen-blend flash, synced with the
+   cloud flicker. Gated to REAL thunderstorms so plain rain stays calm
+   (the app's random-strike lightning-fx keeps handling storm timing). */
+.scene-flash {
+  position: absolute;
+  inset: 0;
+  background: #eaf2ff;
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+
+body[data-condition="thunder"] #weather-scene[data-scene="rain"] .scene-flash {
+  animation: scene-lightning 8s infinite;
+}
+
+@keyframes scene-lightning {
+  0%, 91%, 100% { opacity: 0; }
+  91.4%         { opacity: 0.65; }
+  91.7%         { opacity: 0.05; }
+  92.0%         { opacity: 0.4; }
+  92.4%         { opacity: 0; }
+}
+
+/* ---- NIGHT SCENE: glowing moon + pooled twinkling star field. ---- */
+.scene-night {
+  position: absolute;
+  inset: 0;
+}
+
+.scene-moon {
+  position: absolute;
+  top: 17%;
+  left: 50%;
+  width: clamp(70px, 17vmin, 110px);
+  height: clamp(70px, 17vmin, 110px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #fdfaf0 0%, #ece6cf 55%, #cfc9ae 100%);
+  box-shadow: 0 0 60px 12px rgba(230, 225, 200, 0.28);
+}
+
+.scene-stars {
+  position: absolute;
+  inset: 0;
+}
+
+.scene-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: scene-star-twinkle 3.4s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes scene-star-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 1; }
+}
+
+/* ---- DARK THEME: the sky gradients already re-theme via their own
+   rules; the scene elements follow. Cloud whites become moonlit
+   blue-grey; storm + rain elements keep their cool palette (they
+   already read as night). The sun scene never shows in dark theme —
+   script.js remaps it to the night scene. ---- */
+html[data-theme="dark"] .scene-cloud ellipse {
+  fill: rgba(203, 216, 236, 0.9);
+}
+
+html[data-theme="dark"] .scene-cloud {
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.35));
+}
+
+/* ---- REDUCED MOTION: every scene animation freezes. The part
+   switch becomes instant, stars park at a soft fixed brightness,
+   and script.js skips seeding the drop/ripple pools entirely (the
+   existing rain-fx static streak field covers precipitation). */
+@media (prefers-reduced-motion: reduce) {
+  .scene-part,
+  .scene-sun-rays::before,
+  .scene-sun-orb::before,
+  .scene-cloud,
+  .scene-storm-cloud,
+  .scene-drop,
+  .scene-ripple,
+  .scene-flash,
+  .scene-star {
+    animation: none !important;
+  }
+
+  .scene-star {
+    opacity: 0.7;
+  }
+}
+
+/* ============================================================
    FARM VISUAL GUIDE — real photos (Wikimedia Commons), local-
    ized captions. Images are lazy-loaded, aspect-ratio-locked so
    the grid never jumps while photos stream in, and themed via

@@ -147,6 +147,44 @@
       <div class="sky-rays"></div>
       <div class="sky-sparkle"></div>
     </div>
+    <!-- WEATHER SCENE ANIMATIONS: illustrated scene layer merged into the
+         Living Sky (adapted from the standalone Weather Scene Animations
+         mock). data-scene (sun|clouds|rain|night) is set by applySceneFx
+         from the REAL condition; pools (drops/ripples/stars) seed lazily
+         and DOM nodes persist across scene switches. Pure CSS/few DOM
+         nodes, GPU-composited, no frameworks. -->
+    <div id="weather-scene" aria-hidden="true" data-scene="sun">
+      <div class="scene-part scene-sun">
+        <div class="scene-sun-rays"></div>
+        <div class="scene-sun-orb"></div>
+      </div>
+      <div class="scene-part scene-clouds">
+        <div class="scene-cloud scene-cloud-1">
+          <svg width="220" height="90" viewBox="0 0 220 90" focusable="false"><ellipse cx="70" cy="55" rx="65" ry="32" fill="#fff"/><ellipse cx="130" cy="42" rx="50" ry="28" fill="#fff"/><ellipse cx="170" cy="58" rx="42" ry="24" fill="#fff"/></svg>
+        </div>
+        <div class="scene-cloud scene-cloud-2">
+          <svg width="160" height="70" viewBox="0 0 160 70" focusable="false"><ellipse cx="55" cy="42" rx="50" ry="24" fill="#fff"/><ellipse cx="100" cy="34" rx="38" ry="20" fill="#fff"/></svg>
+        </div>
+        <div class="scene-cloud scene-cloud-3">
+          <svg width="130" height="60" viewBox="0 0 130 60" focusable="false"><ellipse cx="45" cy="36" rx="40" ry="20" fill="#fff"/><ellipse cx="85" cy="30" rx="30" ry="16" fill="#fff"/></svg>
+        </div>
+      </div>
+      <div class="scene-part scene-storm">
+        <div class="scene-storm-cloud">
+          <svg width="240" height="110" viewBox="0 0 240 110" focusable="false"><ellipse cx="75" cy="58" rx="70" ry="34" fill="#4a5164"/><ellipse cx="140" cy="44" rx="54" ry="30" fill="#525a6e"/><ellipse cx="182" cy="60" rx="45" ry="26" fill="#3f4657"/></svg>
+        </div>
+        <div class="scene-storm-mist"></div>
+        <div class="scene-storm-field">
+          <div class="scene-drops" id="scene-drop-field"></div>
+          <div class="scene-ripples" id="scene-ripple-pool"></div>
+        </div>
+      </div>
+      <div class="scene-part scene-night">
+        <div class="scene-moon"></div>
+        <div class="scene-stars" id="scene-star-field"></div>
+      </div>
+      <div class="scene-flash"></div>
+    </div>
     <div id="sky-veil" class="sky-veil"></div>
     <!-- RAIN FX: real-precipitation overlay (drizzle/rain/storm only);
          sits above the sky gradient, below every card. -->
