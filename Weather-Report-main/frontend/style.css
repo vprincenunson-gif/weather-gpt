@@ -1072,6 +1072,11 @@ main {
 #weather-scene {
   position: absolute;
   inset: 0;
+  /* Paint ABOVE the animated Living Sky gradient layers (.sky-layer
+     uses z-index 1/2) but BELOW rain-fx (3) / lightning-fx (4) so the
+     real-precipitation overlays keep leading. Without this the sky
+     gradients repaint over the whole illustrated scene. */
+  z-index: 3;
   pointer-events: none;
 }
 
@@ -1105,7 +1110,11 @@ main {
 .scene-sun-orb,
 .scene-sun-rays {
   position: absolute;
-  top: 17%;
+  /* Anchor into the open sky band above the first card row (the app
+     viewport only shows the Living Sky at the top strip + side gaps;
+     below that, opaque cards lead). The orb's lower edge tucks behind
+     the hero card like a sun cresting the card line. */
+  top: clamp(38px, 5.5vh, 54px);
   left: 50%;
   transform: translate(-50%, -50%);
 }
@@ -1178,9 +1187,13 @@ main {
   height: auto;
 }
 
-.scene-cloud-1 { top: 12%; left: -30%; width: clamp(150px, 34vw, 260px); animation: scene-drift-1 38s linear infinite; }
-.scene-cloud-2 { top: 24%; left: -45%; width: clamp(110px, 25vw, 190px); animation: scene-drift-2 52s linear infinite; opacity: 0.65; }
-.scene-cloud-3 { top: 5%;  left: -35%; width: clamp(90px, 20vw, 150px);  animation: scene-drift-1 30s linear infinite; opacity: 0.5; }
+/* Clouds ride the top sky strip so they stay visible in front of the
+   card stack (cards start ~80px down on every viewport). Staggered
+   left starts + negative delays keep at least one cloud on screen at
+   any moment, including right after boot (no empty-sky waiting). */
+.scene-cloud-1 { top: 10px;  left: -30%; width: clamp(150px, 34vw, 260px); animation: scene-drift-1 38s linear infinite; animation-delay: -18s; }
+.scene-cloud-2 { top: 44px;  left: -45%; width: clamp(110px, 25vw, 190px); animation: scene-drift-2 52s linear infinite; opacity: 0.65; animation-delay: -33s; }
+.scene-cloud-3 { top: -12px; left: -35%; width: clamp(90px, 20vw, 150px);  animation: scene-drift-1 30s linear infinite; opacity: 0.5; animation-delay: -6s; }
 
 @keyframes scene-drift-1 {
   from { transform: translateX(0); }
@@ -1194,7 +1207,9 @@ main {
 
 /* ---- RAIN SCENE: heavy storm cloud overhead, mist, a pooled field
    of wind-slanted drops and ground ripples. Drop/ripple POOLS are
-   built by script.js; CSS only animates them. ---- */
+   built by script.js; CSS only animates them. Drops get a soft blue
+   tint so they read against both the dark storm sky and the pale
+   fog/cloud gradients instead of vanishing into them. ---- */
 .scene-storm {
   position: absolute;
   inset: 0;
@@ -1202,7 +1217,7 @@ main {
 
 .scene-storm-cloud {
   position: absolute;
-  top: 4%;
+  top: 6px;
   left: 50%;
   width: clamp(170px, 46vw, 280px);
   transform: translateX(-50%);
@@ -1241,9 +1256,9 @@ body[data-condition="thunder"] #weather-scene[data-scene="rain"] .scene-storm-cl
 .scene-drop {
   position: absolute;
   top: -8%;
-  width: 1.5px;
+  width: 2.5px;
   border-radius: 2px;
-  background: linear-gradient(180deg, rgba(210, 228, 255, 0) 0%, rgba(210, 228, 255, 0.85) 55%, rgba(230, 240, 255, 0.95) 100%);
+  background: linear-gradient(180deg, rgba(173, 205, 240, 0) 0%, rgba(160, 196, 234, 1) 55%, rgba(224, 240, 255, 1) 100%);
   animation-name: scene-drop-fall;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
@@ -1272,7 +1287,7 @@ body[data-condition="thunder"] #weather-scene[data-scene="rain"] .scene-storm-cl
   bottom: 6px;
   width: 26px;
   height: 8px;
-  border: 1.5px solid rgba(210, 228, 255, 0.55);
+  border: 2px solid rgba(206, 226, 248, 0.8);
   border-radius: 50%;
   opacity: 0;
   animation-name: scene-ripple-out;
@@ -1318,7 +1333,7 @@ body[data-condition="thunder"] #weather-scene[data-scene="rain"] .scene-flash {
 
 .scene-moon {
   position: absolute;
-  top: 17%;
+  top: clamp(38px, 5.5vh, 54px);
   left: 50%;
   width: clamp(70px, 17vmin, 110px);
   height: clamp(70px, 17vmin, 110px);

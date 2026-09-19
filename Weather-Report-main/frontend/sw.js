@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v11"; // v11: crop info panel + verified farm guide photos
+const CACHE_NAME = "weathergpt-shell-v12"; // v12: scene stacking fix + intensity-aware rain + visible anchors
 
 const SHELL_FILES = [
   "/",

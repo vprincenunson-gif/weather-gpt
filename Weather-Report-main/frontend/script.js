@@ -1306,6 +1306,7 @@ const sceneFx = {
   current: null,        // scene currently applied ("sun"|"clouds"|"rain"|"night")
   lastIsDay: 1,         // last seen daylight flag (for reduced-motion rebuilds)
   seededDrops: false,   // pool built at least once?
+  seededDropCount: 0,   // intensity of the current pool (reseed on change)
   seededRipples: false,
   seededStars: false,
 };
@@ -1331,15 +1332,19 @@ function sceneForCondition(condition, isDay = 1) {
   return isDay !== 0 ? "sun" : "night";
 }
 
-function seedSceneDrops() {
+function seedSceneDrops(count = 70, lenMin = 22, lenSpan = 30) {
   const field = document.getElementById("scene-drop-field");
-  if (!field || sceneFx.seededDrops) return;
+  if (!field) return;
+  // Intensity-aware: reseed only when the requested count changes so the
+  // DOM stays bounded (max 95 nodes) across condition transitions.
+  if (sceneFx.seededDrops && sceneFx.seededDropCount === count) return;
+  if (sceneFx.seededDrops) field.textContent = ""; // clear previous pool
   const frag = document.createDocumentFragment();
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < count; i++) {
     const drop = document.createElement("div");
     drop.className = "scene-drop";
-    const length = 22 + Math.random() * 30;      // px
-    const duration = 0.45 + Math.random() * 0.5; // s to fall (mock values)
+    const length = lenMin + Math.random() * lenSpan; // longer = heavier rain
+    const duration = 0.45 + Math.random() * 0.5;     // s to fall (mock values)
     drop.style.left = (Math.random() * 104).toFixed(2) + "%";
     drop.style.height = length.toFixed(1) + "px";
     drop.style.opacity = (0.4 + Math.random() * 0.5).toFixed(2);
@@ -1349,6 +1354,7 @@ function seedSceneDrops() {
   }
   field.appendChild(frag);
   sceneFx.seededDrops = true;
+  sceneFx.seededDropCount = count;
 }
 
 function seedSceneRipples() {
@@ -1396,17 +1402,20 @@ function applySceneFx(condition, isDay = 1) {
   // Dark theme: sun → night (a bright orb on navy skies reads wrong;
   // moon + stars match the moonlit palette).
   const scene = currentTheme() === "dark" && wanted === "sun" ? "night" : wanted;
+  // Intensity-aware drop pool lives BEFORE the scene-change early return:
+  // drizzle/rain/thunder all map to the "rain" scene, so intensity must
+  // reseed even when the scene itself doesn't change. Reduced motion:
+  // the existing rain-fx static streak field already covers precipitation
+  // — skip the animated scene pools entirely.
+  if (scene === "rain" && !prefersReducedMotion()) {
+    if (condition === "drizzle") seedSceneDrops(40, 22, 30);      // light
+    else if (condition === "thunder") seedSceneDrops(95, 44, 36); // heavy
+    else seedSceneDrops(70, 50, 36);                              // steady
+    seedSceneRipples();
+  }
   if (host.dataset.scene === scene && sceneFx.current === scene) return;
   host.dataset.scene = scene;
   sceneFx.current = scene;
-  if (scene === "rain") {
-    // Reduced motion: the existing rain-fx static streak field already
-    // covers precipitation — skip the animated scene pools entirely.
-    if (!prefersReducedMotion()) {
-      seedSceneDrops();
-      seedSceneRipples();
-    }
-  }
   if (scene === "night") seedSceneStars(); // stars render fine static
 }
 
