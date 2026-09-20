@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v12"; // v12: scene stacking fix + intensity-aware rain + visible anchors
+const CACHE_NAME = "weathergpt-shell-v13"; // v13: humanized UI wording (SIH polish)
 
 const SHELL_FILES = [
   "/",

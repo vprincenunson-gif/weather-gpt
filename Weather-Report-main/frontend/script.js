@@ -1713,7 +1713,7 @@ function bindAssistantChips() {
 // STATUS HELPERS
 // ============================================================
 
-function showStatus(msg, badge = "Live update") {
+function showStatus(msg, badge = "Live") {
   if (els.appStatusBar && els.statusMessage) {
     els.statusMessage.textContent = msg;
     if (els.statusModelBadge) els.statusModelBadge.textContent = badge;
@@ -1756,7 +1756,7 @@ els.citySearchForm?.addEventListener("submit", async (e) => {
   if (!query) return;
 
   try {
-    showStatus(`Geocoding '${query}' with Open-Meteo...`);
+    showStatus(`Searching for '${query}'...`);
     const loc = await getJSON(`/api/geocode?location=${encodeURIComponent(query)}`);
     els.searchModal?.classList.add("hidden");
     els.citySearchInput.value = "";
@@ -1803,7 +1803,7 @@ els.mapAddressSearchInput?.addEventListener("keydown", async (e) => {
   if (!query) return;
 
   try {
-    showStatus(`Geocoding '${query}'...`);
+    showStatus(`Finding '${query}'...`);
     const loc = await getJSON(`/api/geocode?location=${encodeURIComponent(query)}`);
     await setCurrentLocation(loc);
   } catch (err) {
@@ -1829,7 +1829,7 @@ async function requestDeviceGps(options = {}) {
   // refresh that is already in flight keeps its token and still commits
   // if the GPS attempt never resolves (denied, timeout, ignored prompt).
   const requestId = options.deferRequestId ? state.locationRequestId : ++state.locationRequestId;
-  showStatus("Acquiring your current location...");
+  showStatus("Getting your location...");
 
   // Watchdog: some browsers never invoke the error callback while a
   // permission prompt sits unanswered, so guarantee the fallback fires.
@@ -1946,7 +1946,7 @@ async function refreshWeatherData(requestId = state.locationRequestId) {
   // Accept 0/0 (Gulf of Guinea) as valid coordinates; only reject missing ones.
   if (latitude == null || longitude == null || Number.isNaN(Number(latitude)) || Number.isNaN(Number(longitude))) return;
 
-  showStatus(`Connecting to Open-Meteo & WeatherAPI for ${name}...`);
+  showStatus(`Fetching weather for ${name}...`);
 
   try {
     const data = await getJSON(`/api/weather?latitude=${latitude}&longitude=${longitude}&forecast_days=7`);
@@ -1982,7 +1982,7 @@ async function refreshWeatherData(requestId = state.locationRequestId) {
   } catch (err) {
     if (requestId === state.locationRequestId) {
       console.error("Weather fetch failed:", err);
-      showStatus(`Weather sync error: ${err.message}`, "Offline");
+      showStatus(`Couldn't load weather: ${err.message}`, "Offline");
     }
   } finally {
     // A superseded request must not hide the active request's status bar.
@@ -2066,23 +2066,21 @@ function renderForecastScreen() {
   // Microclimate Chips
   if (els.microclimateChipsScroll) {
     const deltas = [
-      { name: "Downtown Core", delta: 0, icon: "wb_sunny" },
-      { name: "Coastal / Lake", delta: -3, icon: "mist" },
-      { name: "Hilltop / Ridge", delta: -1, icon: "air" },
-      { name: "Valley Sub-basin", delta: +2, icon: "clear_day" },
+      { name: "Downtown", delta: 0, icon: "wb_sunny" },
+      { name: "By the water", delta: -3, icon: "mist" },
+      { name: "On the hills", delta: -1, icon: "air" },
+      { name: "In the valley", delta: +2, icon: "clear_day" },
     ];
     els.microclimateChipsScroll.innerHTML = deltas
       .map(
         (m, idx) => `
       <div class="microclimate-chip flex items-center gap-2 px-3 py-2 rounded-xl ${
-        idx === 0 ? "bg-amber-glow-surface border border-primary/40 shadow-sm" : "bg-surface-container-high border border-glass-border-subtle"
+        idx === 0 ? "bg-amber-glow-surface" : "bg-surface-container-high"
       } shrink-0 cursor-pointer">
-        <span class="w-2 h-2 rounded-full ${idx === 0 ? "bg-primary-container" : "bg-secondary"}"></span>
         <div class="flex flex-col">
           <span class="font-pill-text text-xs text-ink-primary">${m.name}</span>
           <span class="font-headline-card text-xs text-primary leading-none font-bold">${temp + m.delta}°</span>
         </div>
-        <span class="material-symbols-outlined text-primary text-[16px] ml-1">${m.icon}</span>
       </div>`
       )
       .join("");
@@ -2300,11 +2298,11 @@ function renderInsightsScreen() {
   // 1. Update Scope Subtitle
   if (els.insightsScopeSubtitle) {
     if (scope === "48h") {
-      els.insightsScopeSubtitle.textContent = "48-hour synoptic trajectory, micro-climate trends & extended alerts";
+      els.insightsScopeSubtitle.textContent = "The next 48-hour stretch — temperature swings, rain and wind";
     } else if (scope === "7d") {
-      els.insightsScopeSubtitle.textContent = "7-day macro climate projections, barometric envelope & weekly variances";
+      els.insightsScopeSubtitle.textContent = "The 7-day outlook — highs, lows and rain days";
     } else {
-      els.insightsScopeSubtitle.textContent = "Atmospheric variance, early warning protocols & telemetry gradients for today";
+      els.insightsScopeSubtitle.textContent = "Today's weather at a glance, with any alerts worth knowing about";
     }
   }
 
@@ -2343,24 +2341,24 @@ function renderInsightsScreen() {
       const todayHum = Math.round(current.relative_humidity_2m ?? 58);
 
       cards = [
-        { label: "Diurnal Range", val: `${todayMin}° / ${todayMax}°`, sub: "Today's Min / Max", icon: "device_thermostat", color: "text-primary" },
-        { label: "Precip Risk", val: `${todayRain}%`, sub: "Max Rain Prob", icon: "rainy", color: "text-secondary" },
-        { label: "Peak Velocity", val: `${todayWind} km/h`, sub: "Max Sustained Wind", icon: "air", color: "text-alert-coral" },
-        { label: "Humidity Index", val: `${todayHum}%`, sub: "Relative Density", icon: "water_drop", color: "text-tertiary" },
+        { label: "Day range", val: `${todayMin}° / ${todayMax}°`, sub: "Low and high today", icon: "device_thermostat", color: "text-primary" },
+        { label: "Rain chance", val: `${todayRain}%`, sub: "Highest chance today", icon: "rainy", color: "text-secondary" },
+        { label: "Wind", val: `${todayWind} km/h`, sub: "Strongest today", icon: "air", color: "text-alert-coral" },
+        { label: "Humidity", val: `${todayHum}%`, sub: "Average moisture", icon: "water_drop", color: "text-tertiary" },
       ];
     } else if (scope === "48h") {
       cards = [
-        { label: "48h Envelope", val: `${minTemp48}° – ${maxTemp48}°`, sub: "Min to Peak Temp", icon: "thermostat", color: "text-primary" },
-        { label: "48h Rain Peak", val: `${maxRain48}%`, sub: "Peak Rain Chance", icon: "umbrella", color: "text-secondary" },
-        { label: "48h Max Gust", val: `${maxWind48} km/h`, sub: "Peak Wind Speed", icon: "air", color: "text-alert-coral" },
-        { label: "Mean Moisture", val: `${avgHum48}%`, sub: "48h Mean Humidity", icon: "humidity_mid", color: "text-tertiary" },
+        { label: "48h range", val: `${minTemp48}° – ${maxTemp48}°`, sub: "Low to high over 48 hours", icon: "thermostat", color: "text-primary" },
+        { label: "48h rain peak", val: `${maxRain48}%`, sub: "Wettest stretch", icon: "umbrella", color: "text-secondary" },
+        { label: "48h wind peak", val: `${maxWind48} km/h`, sub: "Strongest gusts expected", icon: "air", color: "text-alert-coral" },
+        { label: "Average humidity", val: `${avgHum48}%`, sub: "Over the next 48 hours", icon: "humidity_mid", color: "text-tertiary" },
       ];
     } else {
       cards = [
-        { label: "Weekly Spread", val: `${minTemp7d}° – ${maxTemp7d}°`, sub: "7-Day Min to Max", icon: "calendar_today", color: "text-primary" },
-        { label: "Cumulative Rain", val: `${totalRain7d} mm`, sub: "7-Day Total Precip", icon: "water", color: "text-secondary" },
-        { label: "Peak Rain Risk", val: `${maxRain7d}%`, sub: "Highest Rain Day", icon: "grain", color: "text-alert-coral" },
-        { label: "Weekly Max Wind", val: `${maxWind7d} km/h`, sub: "Peak Jet Velocity", icon: "cyclone", color: "text-tertiary" },
+        { label: "Week range", val: `${minTemp7d}° – ${maxTemp7d}°`, sub: "Low to high over 7 days", icon: "calendar_today", color: "text-primary" },
+        { label: "Total rain", val: `${totalRain7d} mm`, sub: "Expected over the week", icon: "water", color: "text-secondary" },
+        { label: "Wettest day", val: `${maxRain7d}%`, sub: "Highest rain chance", icon: "grain", color: "text-alert-coral" },
+        { label: "Week wind peak", val: `${maxWind7d} km/h`, sub: "Strongest day", icon: "cyclone", color: "text-tertiary" },
       ];
     }
 
@@ -2399,24 +2397,24 @@ function renderInsightsScreen() {
         alertItems.push({
           severity: "Advisory",
           type: "48-Hour Precipitation Window",
-          text: `Precipitation probability peaks at ${maxRain48}% over the upcoming 48 hours. Showers likely during peak transit intervals.`,
-          protocol: ["Carry high-durability waterproof gear", "Check live radar plume before evening commute"],
+          text: `Rain chance peaks at ${maxRain48}% over the next 48 hours. Keep rain gear handy around the wettest hours.`,
+          protocol: ["Carry an umbrella or rain jacket", "Check the radar map before heading out in the evening"],
         });
       }
       if (maxWind48 >= 35) {
         alertItems.push({
           severity: "Notice",
           type: "Wind Shift & Elevated Gusts",
-          text: `Sustained winds topping ${maxWind48} km/h expected in the next 48 hours. Minor crosswind resistance for cyclists.`,
-          protocol: ["Secure lightweight outdoor gear", "Maintain caution during high-speed highway travel"],
+          text: `Winds up to ${maxWind48} km/h expected in the next 48 hours — a bit of a push on a bicycle.`,
+          protocol: ["Secure light outdoor items", "Take extra care on open roads"],
         });
       }
       if (maxTemp48 >= 36) {
         alertItems.push({
           severity: "Advisory",
           type: "48h Thermal Index Advisory",
-          text: `Temperatures climbing up to ${maxTemp48}°C during peak afternoon daylight in the next 48 hours.`,
-          protocol: ["Ensure hydration and electrolyte balance", "Plan outdoor exertion during morning hours"],
+          text: `Temperatures may reach ${maxTemp48}°C during the hottest afternoons of the next 48 hours.`,
+          protocol: ["Drink water often, even before you feel thirsty", "Do heavy outdoor work in the morning instead"],
         });
       }
     } else {
@@ -2425,24 +2423,24 @@ function renderInsightsScreen() {
         alertItems.push({
           severity: "Advisory",
           type: "Extended Synoptic Rain Pattern",
-          text: `Active moisture corridor expected: Rain projected across ${wetDays} of the next 7 days, with peak precipitation risk reaching ${maxRain7d}%. Cumulative expected rainfall: ${totalRain7d} mm.`,
-          protocol: ["Plan outdoor projects around dry intervals", "Inspect drainage systems ahead of rain days"],
+          text: `Rain expected on around ${wetDays} of the next 7 days, peaking at ${maxRain7d}% — about ${totalRain7d} mm in total.`,
+          protocol: ["Plan outdoor work around the drier days", "Clear drains before the rainy days"],
         });
       }
       if (maxTemp7d >= 37) {
         alertItems.push({
           severity: "Warning",
           type: "Multi-Day Thermal Stress",
-          text: `Weekly high reaches ${maxTemp7d}°C with strong insolation. Heat indices will be elevated on warmest days.`,
-          protocol: ["Shift heavy activities to early morning", "Utilize shaded corridors"],
+          text: `The week's high reaches ${maxTemp7d}°C with strong sun — hot days ahead.`,
+          protocol: ["Shift heavy work to early morning", "Plan shade breaks through the afternoon"],
         });
       }
       if (maxWind7d >= 45) {
         alertItems.push({
           severity: "Notice",
           type: "Synoptic Jet Wind Velocity",
-          text: `Strong regional pressure gradient will generate weekly peak wind gusts up to ${maxWind7d} km/h.`,
-          protocol: ["Monitor coastal and ridge-top wind advisories"],
+          text: `Strong winds gusting up to ${maxWind7d} km/h expected at times this week.`,
+          protocol: ["Take care in exposed places — ridges, coasts and open roads"],
         });
       }
     }
@@ -2466,7 +2464,7 @@ function renderInsightsScreen() {
                 alert.protocol
                   ? `
               <div class="mt-3 pt-2.5 bg-surface-container-lowest/40 -mx-4 -mb-4 px-4 py-2.5 rounded-b-2xl flex flex-col gap-1.5">
-                <span class="font-label-caps text-[9px] text-alert-coral uppercase tracking-wider font-semibold">Precautionary Safety Protocol</span>
+                <span class="font-label-caps text-[9px] text-alert-coral uppercase tracking-wider font-semibold">What you can do</span>
                 ${alert.protocol
                   .map(
                     (p) => `
@@ -2492,8 +2490,8 @@ function renderInsightsScreen() {
             <span class="material-symbols-outlined text-[20px]">verified_user</span>
           </div>
           <div>
-            <h4 class="font-headline-card text-xs text-ink-primary font-semibold">No Severe Atmospheric Alerts ${scopeLabel}</h4>
-            <p class="font-body-dim text-xs text-ink-tertiary">All telemetry sensors report meteorological indices within nominal safe thresholds.</p>
+            <h4 class="font-headline-card text-xs text-ink-primary font-semibold">No weather alerts ${scopeLabel}</h4>
+            <p class="font-body-dim text-xs text-ink-tertiary">Nothing unusual expected — conditions look steady and safe.</p>
           </div>
         </div>`;
     }
@@ -2505,7 +2503,7 @@ function renderInsightsScreen() {
 
     if (scope === "today") {
       if (els.insightsBaselineLabel) {
-        els.insightsBaselineLabel.textContent = `Variance vs ${locationName} Baseline (${temp}°C)`;
+        els.insightsBaselineLabel.textContent = `Around ${locationName} right now (vs ${temp}°C here)`;
       }
       bars = [
         { name: "Valley / Urban Basin (illustrative)", delta: "+2.4°C", width: "48%", color: "bg-primary-container" },
@@ -2516,24 +2514,24 @@ function renderInsightsScreen() {
     } else if (scope === "48h") {
       const swing48 = Math.max(3, Math.abs(maxTemp48 - minTemp48));
       if (els.insightsBaselineLabel) {
-        els.insightsBaselineLabel.textContent = `48-Hour Micro-Atmospheric Shift Dynamics (Δ ${swing48}°C Swing)`;
+        els.insightsBaselineLabel.textContent = `Next 48 hours (swing of ${swing48}°C between low and high)`;
       }
       bars = [
-        { name: "Diurnal Thermal Oscillation", delta: `Δ ${swing48}°C`, width: `${Math.min(100, swing48 * 8)}%`, color: "bg-primary-container" },
-        { name: "Warmest Hour (next 48h)", delta: `${maxTemp48}°C`, width: `${Math.min(100, Math.abs(maxTemp48) * 2.5)}%`, color: "bg-secondary" },
-        { name: "Coolest Hour (next 48h)", delta: `${minTemp48}°C`, width: `${Math.min(100, Math.abs(minTemp48) * 2.5)}%`, color: "bg-tertiary-container" },
-        { name: "Precipitation Flux Probability", delta: `${maxRain48}%`, width: `${Math.max(15, Math.min(100, maxRain48))}%`, color: "bg-secondary-fixed" },
+        { name: "Warmest hour (next 48h)", delta: `${maxTemp48}°C`, width: `${Math.min(100, Math.abs(maxTemp48) * 2.5)}%`, color: "bg-secondary" },
+        { name: "Coolest hour (next 48h)", delta: `${minTemp48}°C`, width: `${Math.min(100, Math.abs(minTemp48) * 2.5)}%`, color: "bg-tertiary-container" },
+        { name: "Rain chance peak", delta: `${maxRain48}%`, width: `${Math.max(15, Math.min(100, maxRain48))}%`, color: "bg-secondary-fixed" },
+        { name: "Average humidity", delta: `${avgHum48}%`, width: `${Math.min(100, Math.max(10, avgHum48))}%`, color: "bg-primary-container" },
       ];
     } else {
       const swing7d = Math.max(4, Math.abs(maxTemp7d - minTemp7d));
       if (els.insightsBaselineLabel) {
-        els.insightsBaselineLabel.textContent = `7-Day Synoptic Variance & Macro Envelope (Spread: ${minTemp7d}° to ${maxTemp7d}°C)`;
+        els.insightsBaselineLabel.textContent = `Across the week (from ${minTemp7d}° to ${maxTemp7d}°C)`;
       }
       bars = [
-        { name: "Weekly Thermal Amplitude", delta: `Δ ${swing7d}°C`, width: `${Math.min(100, swing7d * 7)}%`, color: "bg-primary-container" },
-        { name: "Rainiest Day Probability", delta: `${maxRain7d}%`, width: `${Math.max(15, Math.min(100, maxRain7d))}%`, color: "bg-secondary" },
-        { name: "Cumulative Rainfall Volume", delta: `${totalRain7d} mm`, width: `${Math.min(100, Math.max(20, parseFloat(totalRain7d) * 4))}%`, color: "bg-tertiary-container" },
-        { name: "Weekly Max Wind", delta: `${maxWind7d} km/h`, width: `${Math.min(100, maxWind7d * 2)}%`, color: "bg-secondary-fixed" },
+        { name: "Low-to-high spread", delta: `Δ ${swing7d}°C`, width: `${Math.min(100, swing7d * 7)}%`, color: "bg-primary-container" },
+        { name: "Rainiest day chance", delta: `${maxRain7d}%`, width: `${Math.max(15, Math.min(100, maxRain7d))}%`, color: "bg-secondary" },
+        { name: "Total rain this week", delta: `${totalRain7d} mm`, width: `${Math.min(100, Math.max(20, parseFloat(totalRain7d) * 4))}%`, color: "bg-tertiary-container" },
+        { name: "Strongest wind", delta: `${maxWind7d} km/h`, width: `${Math.min(100, maxWind7d * 2)}%`, color: "bg-secondary-fixed" },
       ];
     }
 
@@ -2729,7 +2727,7 @@ async function generateAiReport(requestId = state.locationRequestId) {
     const cacheKey = `${state.currentLocation.latitude},${state.currentLocation.longitude}:${language}`;
     if (state.reportCache && state.reportCache.key === cacheKey) {
       els.heroSynopsisText.innerHTML = renderMarkdownLite(state.reportCache.report);
-      els.heroSynopsisMeta.textContent = `Synthesized in ${language} • Ready`;
+      els.heroSynopsisMeta.textContent = `Written in ${language} • just now`;
       return;
     }
 
@@ -2742,7 +2740,7 @@ async function generateAiReport(requestId = state.locationRequestId) {
       els.heroSynopsisText.innerHTML = renderMarkdownLite(res.report);
     }
     if (els.heroSynopsisMeta) {
-      els.heroSynopsisMeta.textContent = `Synthesized in ${language} • Ready`;
+      els.heroSynopsisMeta.textContent = `Written in ${language} • just now`;
     }
   } catch (err) {
     console.warn("AI report synthesis skipped:", err);
@@ -2823,7 +2821,7 @@ async function submitAssistantQuery(userQuery) {
         ? `${Math.round(realTemp)}°C, ${CONDITION_TITLES[document.body.dataset.condition] || "current conditions"}`
         : "Live weather data unavailable";
     appendAssistantResponseNode({
-      answer: `Unable to reach the AI service right now (${err.message}). Current conditions in ${locationDisplayName()}: ${fallbackLine}.`,
+      answer: `I couldn't reach the AI service just now (${err.message}). Current conditions in ${locationDisplayName()}: ${fallbackLine}.`,
     });
   }
 }
@@ -2878,7 +2876,7 @@ function appendAssistantResponseNode(data) {
 
   let actionCardsHtml = "";
 
-  // Action Card 1: Optimal Window
+  // Action Card 1: Best time window
   if (data.optimal_window && data.optimal_window.time_range) {
     actionCardsHtml += `
     <div class="rounded-xl bg-surface-bright/70 border border-glass-border-subtle p-3 shadow-inner space-y-1.5">
@@ -2886,7 +2884,7 @@ function appendAssistantResponseNode(data) {
         <div class="flex items-center gap-1.5">
           <span class="material-symbols-outlined text-primary text-[18px]">timelapse</span>
           <span class="font-headline-card text-xs text-ink-primary font-semibold">${escapeHTML(
-            data.optimal_window.title || "Optimal Activity Window"
+            data.optimal_window.title || "Best time"
           )}</span>
         </div>
         <span class="px-2 py-0.5 rounded-full bg-primary-container/20 text-primary font-label-caps text-[9px] font-semibold">
@@ -2895,7 +2893,7 @@ function appendAssistantResponseNode(data) {
       </div>
       <div class="grid grid-cols-2 gap-2 pt-1">
         <div class="bg-surface-container-high/80 rounded-lg p-2 flex flex-col">
-          <span class="font-label-caps text-[9px] text-ink-tertiary uppercase">Recommended Window</span>
+          <span class="font-label-caps text-[9px] text-ink-tertiary uppercase">Good time</span>
           <span class="font-headline-card text-xs text-ink-primary font-bold mt-0.5">${escapeHTML(
             data.optimal_window.time_range
           )}</span>
@@ -2904,26 +2902,26 @@ function appendAssistantResponseNode(data) {
           )}</span>
         </div>
         <div class="bg-surface-container-high/80 rounded-lg p-2 flex flex-col">
-          <span class="font-label-caps text-[9px] text-ink-tertiary uppercase">Thermal / Weather Shift</span>
+          <span class="font-label-caps text-[9px] text-ink-tertiary uppercase">Watch out for</span>
           <span class="font-headline-card text-xs text-alert-coral font-bold mt-0.5">${escapeHTML(
             data.optimal_window.caution_note || "Later hours"
           )}</span>
-          <span class="font-body-dim text-[10px] text-ink-secondary mt-0.5">Prepare accordingly</span>
+          <span class="font-body-dim text-[10px] text-ink-secondary mt-0.5">Plan around it</span>
         </div>
       </div>
     </div>`;
   }
 
-  // Action Card 2: Route Micro-Climate Progression
+  // Action Card 2: Along the way
   if (data.route_progression && data.route_progression.length > 0) {
     actionCardsHtml += `
     <div class="rounded-xl bg-surface-bright/70 border border-glass-border-subtle p-3 shadow-inner space-y-2">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-1.5">
           <span class="material-symbols-outlined text-secondary text-[18px]">route</span>
-          <span class="font-headline-card text-xs text-ink-primary font-semibold">Route Micro-Climate Progression</span>
+          <span class="font-headline-card text-xs text-ink-primary font-semibold">Along the way</span>
         </div>
-        <span class="font-body-dim text-[10px] text-ink-tertiary">Transect Telemetry</span>
+        <span class="font-body-dim text-[10px] text-ink-tertiary">Start, midway, destination</span>
       </div>
       <div class="grid grid-cols-3 gap-1.5 pt-1">
         ${data.route_progression
@@ -2941,7 +2939,7 @@ function appendAssistantResponseNode(data) {
     </div>`;
   }
 
-  // Action Card 3: Smart Apparel Guidance
+  // Action Card 3: What to wear
   if (data.attire_guidance && data.attire_guidance.headline) {
     actionCardsHtml += `
     <div class="rounded-xl bg-surface-bright/70 border border-glass-border-subtle p-3 shadow-inner space-y-1.5">
@@ -2972,7 +2970,7 @@ function appendAssistantResponseNode(data) {
       <div class="w-6 h-6 rounded-full bg-amber-glow-surface text-primary flex items-center justify-center">
         <span class="material-symbols-outlined text-[15px]">auto_awesome</span>
       </div>
-      <span class="font-label-section text-xs text-ink-primary font-semibold">WeatherGPT Synoptic Intelligence</span>
+      <span class="font-label-section text-xs text-ink-primary font-semibold">WeatherGPT</span>
       <span class="font-label-caps text-[9px] text-secondary font-mono px-1.5 py-1 rounded bg-secondary-container/40">AI</span>
     </div>
     <div class="w-full bg-surface-container/70 border border-glass-border/30 backdrop-blur-xl rounded-2xl p-4 shadow-xl space-y-3">
@@ -3096,7 +3094,7 @@ async function handleVoiceRecordingFinished() {
   if (state.isRecording || state.recordedChunks.length === 0) return;
   state.isRecording = true; // guard: MediaRecorder 'onstop' can fire twice
 
-  showStatus("Transcribing your recording...");
+  showStatus("Listening to your recording...");
 
   try {
     const mime = state.mediaRecorder?.mimeType || "audio/webm";
@@ -3112,7 +3110,7 @@ async function handleVoiceRecordingFinished() {
 
     const transcript = data.transcript;
     if (transcript) {
-      showStatus(`Heard (${data.language}): "${transcript}"`);
+      showStatus(`You said: "${transcript}"`);
       // Route query to assistant view
       switchView("view-weathergpt");
       submitAssistantQuery(transcript);

@@ -1,7 +1,7 @@
 {
-  "name": "WeatherGPT \u2022 Atmospheric Intelligence",
+  "name": "WeatherGPT \u2022 Your Sky, Explained",
   "short_name": "WeatherGPT",
-  "description": "Atmospheric intelligence, hyper-local radar and multilingual AI forecasts in English, Hindi, and Telugu.",
+  "description": "Live weather, hyper-local radar and a friendly AI assistant in English, Hindi, and Telugu.",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",

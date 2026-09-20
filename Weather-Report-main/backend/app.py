@@ -145,37 +145,38 @@ LANG_NAME_TO_CODE = {"english": "en", "hindi": "hi", "telugu": "te"}
 
 ANALYZE_PROMPT = """Extract weather request data. Return ONLY JSON with location, language, forecast_days, weather_focus, time_reference. User language may be English, Hindi or Telugu. If no location, location is null. forecast_days: current/today=1, tomorrow=2, next 3 days=3, next 5 days=5, week=7. weather_focus: general,rain,temperature,humidity,uv,wind,clothing,alerts."""
 
-REPORT_PROMPT = """You are WeatherGPT, a meteorological intelligence assistant. Using the provided request, location, Open-Meteo weather data and alerts, answer accurately.
+REPORT_PROMPT = """You are WeatherGPT, a friendly weather assistant. Using the provided request, location, Open-Meteo weather data and alerts, answer accurately.
 Respond ONLY in {language}.
+Write for an ordinary person — short, warm, plain language. No jargon, no filler.
 Format your response using concise bullet points and bold section labels:
-- **Atmospheric Summary**: Brief condition and temperature trend.
-- **Key Meteorological Factors**: Rain chance, wind, humidity, UV index.
-- **Recommendations**: Practical advice for travel, outdoor activities, or clothing.
+- **What's happening**: What the sky and temperature are doing right now.
+- **Worth knowing**: Rain chance, wind, humidity, UV — only the numbers that matter today.
+- **What you can do**: Practical, specific advice for travel, outdoor plans, or clothing.
 Use Celsius, km/h and mm. Be concise and practical."""
 
-ASSISTANT_PROMPT = """You are WeatherGPT, an advanced Atmospheric Intelligence Assistant.
+ASSISTANT_PROMPT = """You are WeatherGPT, a friendly, practical weather assistant.
 The user is asking: "{query}".
 Current Location: {location_name}
-Current Weather Telemetry: {weather_summary}
+Current Weather Data: {weather_summary}
 Language: Respond in {language}.
 
 Return a valid JSON object with the following keys:
 {{
-  "answer": "A clear, natural-language conversational response addressing the user query in {language}. Explain what the conditions mean practically for their activity or question.",
+  "answer": "A clear, natural-language response addressing the user query in {language}. Write like a knowledgeable neighbour — plain words, no jargon. Explain what the conditions mean practically for their activity or question.",
   "optimal_window": {{
-    "title": "Optimal Activity Window",
+    "title": "Best time",
     "time_range": "e.g., 1:30 PM – 4:15 PM or Morning Hours",
-    "reliability": "e.g., 94% Reliability",
-    "favorable_note": "e.g., Winds < 12 km/h, pleasant humidity",
-    "caution_note": "e.g., Gusts or cooling after 5:00 PM"
+    "reliability": "e.g., High confidence",
+    "favorable_note": "e.g., Light winds, comfortable humidity",
+    "caution_note": "e.g., Gusts pick up or it cools down after 5:00 PM"
   }},
   "route_progression": [
-    {{"label": "Origin", "place": "{location_name}", "temp": "Current Temp", "condition": "Condition notes"}},
-    {{"label": "Midway", "place": "En route", "temp": "Midway Temp", "condition": "Wind/exposure notes"}},
-    {{"label": "Destination", "place": "Target Zone", "temp": "Target Temp", "condition": "Arrival conditions"}}
+    {{"label": "Start", "place": "{location_name}", "temp": "Current temp", "condition": "Short condition note"}},
+    {{"label": "Midway", "place": "En route", "temp": "Midway temp", "condition": "Wind or exposure notes"}},
+    {{"label": "Arrival", "place": "Destination", "temp": "Arrival temp", "condition": "Arrival conditions"}}
   ],
   "attire_guidance": {{
-    "headline": "Recommended Attire",
+    "headline": "What to wear",
     "layers": ["Base layer description", "Mid/Outer layer description"],
     "accessories": ["Hat, sunglasses, or rain gear"],
     "thermal_rating": "Comfortable / Mild / Chilly / Cold / Hot"
@@ -618,30 +619,30 @@ def build_alerts(weather_data):
         alerts.append({
             "severity": "Warning",
             "type": "Extreme Heat Alert",
-            "text": "Extreme heat alert: Ambient temperature is 40°C or higher. Avoid prolonged sun exposure.",
-            "protocol": ["Stay indoors in air-conditioned environments", "Drink plenty of water and electrolytes"],
+            "text": "Extreme heat: it's 40°C or hotter. Stay out of the sun as much as you can.",
+            "protocol": ["Stay indoors where it's cool if possible", "Drink plenty of water — don't wait until you're thirsty"],
         })
     elif temperature is not None and temperature >= 35:
         alerts.append({
             "severity": "Advisory",
             "type": "High Temperature Advisory",
-            "text": "High temperature advisory: Temperature exceeds 35°C. Hydrate frequently.",
-            "protocol": ["Limit strenuous outdoor activity between 12 PM and 4 PM"],
+            "text": "It's a hot day — above 35°C. Drink water often and take breaks in the shade.",
+            "protocol": ["Avoid heavy outdoor work between 12 PM and 4 PM"],
         })
     elif temperature is not None and temperature <= 0:
         alerts.append({
             "severity": "Warning",
             "type": "Freeze Warning",
-            "text": "Sub-zero temperatures detected. Frost and black ice risks on elevated surfaces.",
-            "protocol": ["Protect sensitive vegetation and exposed plumbing", "Drive with caution"],
+            "text": "It's below freezing. Watch for frost and slippery patches, especially early morning.",
+            "protocol": ["Protect plants and exposed pipes from the cold", "Drive carefully — bridges freeze first"],
         })
 
     if (wind_speed is not None and wind_speed >= 50) or (gusts is not None and gusts >= 65):
         alerts.append({
             "severity": "Advisory",
             "type": "Gale / Strong Wind Advisory",
-            "text": f"Strong winds detected: Sustained {round(wind_speed or 0)} km/h with gusts topping {round(gusts or wind_speed or 0)} km/h.",
-            "protocol": ["Secure loose outdoor furniture and architectural elements", "Exercise caution on open highways"],
+            "text": f"Strong winds today — steady around {round(wind_speed or 0)} km/h, gusting to {round(gusts or wind_speed or 0)} km/h.",
+            "protocol": ["Bring in or tie down loose outdoor items", "Take extra care on open roads"],
         })
 
     for i, p in enumerate(daily.get("precipitation_probability_max", [])):
@@ -650,8 +651,8 @@ def build_alerts(weather_data):
             alerts.append({
                 "severity": "Advisory",
                 "type": "High Precipitation Probability",
-                "text": f"Heavy rain probability on {day_name}: {p}% likelihood of rain.",
-                "protocol": ["Carry high-durability waterproof gear", "Check local drainage updates"],
+                "text": f"Rain is very likely on {day_name}: about a {p}% chance. Keep an umbrella handy.",
+                "protocol": ["Carry an umbrella or raincoat", "Expect wet roads — allow extra travel time"],
             })
             break
 
@@ -660,8 +661,8 @@ def build_alerts(weather_data):
             alerts.append({
                 "severity": "Advisory",
                 "type": "Extreme UV Index",
-                "text": f"Very high solar radiation: UV index peaking at {round(u, 1)}.",
-                "protocol": ["Apply broad-spectrum SPF 50+ sunscreen", "Wear UV400 sunglasses and protective headwear"],
+                "text": f"The sun will be intense — UV index peaks at {round(u, 1)}.",
+                "protocol": ["Use sunscreen (SPF 30 or higher) and reapply through the day", "Wear sunglasses and a hat outdoors"],
             })
             break
 
@@ -1267,17 +1268,17 @@ def generate_synoptic_report_fallback(body, language="English"):
     is_telugu = (language or "").lower() in ["te", "telugu"]
 
     if is_hindi:
-        return f"""- **Atmospheric Summary**: {loc} में वर्तमान तापमान {temp}°C है। वायुमंडलीय स्थिति सामान्य और स्थिर बनी हुई है।
-- **Key Meteorological Factors**: वर्षा की संभावना {rain_prob}%, हवा की गति {wind} किमी/घंटा और यूवी इंडेक्स {uv} है।
-- **Recommendations**: दोपहर के समय पर्याप्त मात्रा में पानी पिएं और धूप से बचाव के लिए उपयुक्त चश्मा या टोपी का प्रयोग करें।"""
+        return f"""- **What's happening**: {loc} में अभी तापमान {temp}°C है। मौसम शांत और स्थिर है।
+- **Worth knowing**: बारिश की संभावना {rain_prob}%, हवा {wind} किमी/घंटा, UV इंडेक्स {uv}।
+- **What you can do**: दिन में पानी पीते रहें और तेज़ धूप में टोपी या चश्मा रखें।"""
     elif is_telugu:
-        return f"""- **Atmospheric Summary**: {loc}లో ప్రస్తుత ఉష్ణోగ్రత {temp}°C గా నమోదైంది. వాతావరణం నిలకడగా ఉంది.
-- **Key Meteorological Factors**: వర్షం పడే అవకాశం {rain_prob}%, గాలి వేగం {wind} km/h మరియు UV ఇండెక్స్ {uv}.
-- **Recommendations**: సాధారణ సమయాల్లో బయటకు వెళ్లడం అనుకూలం, ఎండ వేళల్లో తగిన జాగ్రత్తలు తీసుకోండి."""
+        return f"""- **What's happening**: {loc}లో ప్రస్తుత ఉష్ణోగ్రత {temp}°C. వాతావరణం ప్రశాంతంగా ఉంది.
+- **Worth knowing**: వర్షం అవకాశం {rain_prob}%, గాలి {wind} km/h, UV ఇండెక్స్ {uv}.
+- **What you can do**: పగటిపూట నీరు తగినంత తాగండి, ఎండ వేళల్లో టోపీ లేదా కళ్లద్దాలు వాడండి."""
     else:
-        return f"""- **Atmospheric Summary**: Current ambient temperature in {loc} is {temp}°C with balanced isobaric density.
-- **Key Meteorological Factors**: Precipitation risk at {rain_prob}%, wind velocities averaging {wind} km/h, and peak UV index of {uv}.
-- **Recommendations**: Favorable conditions for outdoor activity. Keep protective eyewear on hand during peak solar hours."""
+        return f"""- **What's happening**: The temperature in {loc} is {temp}°C with calm, settled weather.
+- **Worth knowing**: Rain chance {rain_prob}%, wind around {wind} km/h, UV index {uv}.
+- **What you can do**: A good day to be outdoors — drink water through the day and keep a hat or sunglasses handy in the sun."""
 
 
 def generate_synoptic_assistant_fallback(query, location_name, weather_summary, language="English"):
@@ -1296,26 +1297,26 @@ def generate_synoptic_assistant_fallback(query, location_name, weather_summary, 
         elif is_telugu:
             answer = f"{location_name}లో ప్రస్తుత వాతావరణం: {weather_summary}। మధ్యాహ్నం సైక్లింగ్ చేయడానికి పరిస్థితులు అనుకూలంగా ఉన్నాయి. ఎండ తీవ్రత తగ్గాక మధ్యాహ్నం 2:30 నుండి 5:00 గంటల మధ్య బయటకు వెళ్లడం మంచిది."
         else:
-            answer = f"Conditions in {location_name} currently show {weather_summary}. Biking is favorable this afternoon with manageable winds and good atmospheric visibility. Plan for an afternoon departure between 2:00 PM and 4:45 PM for the best thermal comfort."
+            answer = f"It's {weather_summary} in {location_name} — a good afternoon for a ride, with light winds and clear air. Leaving between 2:00 PM and 4:45 PM keeps you ahead of the heat and any evening breeze."
 
         return {
             "answer": answer,
             "optimal_window": {
-                "title": "Optimal Cycling Window",
+                "title": "Best time to ride",
                 "time_range": "2:15 PM – 4:45 PM",
-                "reliability": "93% High Confidence",
-                "favorable_note": "Favorable tailwinds & pavement dry",
-                "caution_note": "UV protection advised around midday",
+                "reliability": "High confidence",
+                "favorable_note": "Dry roads, light wind",
+                "caution_note": "Strong sun around midday — carry water",
             },
             "route_progression": [
-                {"label": "Origin", "place": location_name, "temp": "Current", "condition": "Favorable road grade"},
-                {"label": "Midway", "place": "Parkway Transect", "temp": "Nominal", "condition": "Crosswind < 14 km/h"},
-                {"label": "Destination", "place": "Outer Loop", "temp": "Comfortable", "condition": "Optimal visibility"},
+                {"label": "Start", "place": location_name, "temp": "Current", "condition": "Roads dry"},
+                {"label": "Midway", "place": "En route", "temp": "Warm", "condition": "Light crosswind"},
+                {"label": "Arrival", "place": "Destination", "temp": "Comfortable", "condition": "Clear visibility"},
             ],
             "attire_guidance": {
-                "headline": "Recommended Cycling Attire",
-                "layers": ["Breathable athletic base layer", "Lightweight wind vest"],
-                "accessories": ["UV400 cycling shades", "Hydration bottle"],
+                "headline": "What to wear",
+                "layers": ["Breathable t-shirt or jersey", "Light wind vest if it gets breezy"],
+                "accessories": ["Sunglasses", "Water bottle"],
                 "thermal_rating": "Comfortable",
             },
         }
@@ -1326,26 +1327,26 @@ def generate_synoptic_assistant_fallback(query, location_name, weather_summary, 
         elif is_telugu:
             answer = f"{location_name}లో ప్రస్తుత వాతావరణ పరిస్థితి: {weather_summary}। సాయంత్రం ప్రయాణ సమయంలో తేలికపాటి వర్షం కురిసే అవకాశం ఉంది. మీ వెంట గొడుగు లేదా రెయిన్‌కోట్ ఉంచుకోవడం శ్రేయస్కరం."
         else:
-            answer = f"Atmospheric scans for {location_name} indicate {weather_summary}. There is a moderate potential for isolated showers during evening peak transit. We advise having rain gear or an umbrella on hand for your commute."
+            answer = f"It's {weather_summary} in {location_name}. Light showers are possible during the evening commute, so carry an umbrella or rain jacket just in case."
 
         return {
             "answer": answer,
             "optimal_window": {
-                "title": "Commute Departure Window",
+                "title": "Leave before the showers",
                 "time_range": "4:30 PM – 6:00 PM",
-                "reliability": "89% Reliability",
-                "favorable_note": "Pre-shower departure window",
-                "caution_note": "Localized damp roads post-6:00 PM",
+                "reliability": "High confidence",
+                "favorable_note": "Roads mostly dry if you leave early",
+                "caution_note": "Wet roads possible after 6:00 PM",
             },
             "route_progression": [
-                {"label": "Origin", "place": location_name, "temp": "Current", "condition": "Dry pavements"},
-                {"label": "Midway", "place": "Transit Corridor", "temp": "Cooling", "condition": "Overcast gradient"},
-                {"label": "Destination", "place": "Target Zone", "temp": "Humid", "condition": "Showers possible"},
+                {"label": "Start", "place": location_name, "temp": "Current", "condition": "Pavements dry"},
+                {"label": "Midway", "place": "En route", "temp": "Cooling", "condition": "Clouds building"},
+                {"label": "Arrival", "place": "Destination", "temp": "Muggy", "condition": "Showers possible"},
             ],
             "attire_guidance": {
-                "headline": "Commuter Rain Protection",
-                "layers": ["Water-resistant outer shell", "Comfortable commuter apparel"],
-                "accessories": ["Compact durable umbrella", "Waterproof footwear"],
+                "headline": "What to wear",
+                "layers": ["Water-resistant jacket on top", "Comfortable everyday clothes"],
+                "accessories": ["Compact umbrella", "Shoes that can get wet"],
                 "thermal_rating": "Mild / Damp",
             },
         }
@@ -1356,26 +1357,26 @@ def generate_synoptic_assistant_fallback(query, location_name, weather_summary, 
         elif is_telugu:
             answer = f"{location_name}లో {weather_summary} నమోదైంది. ఈ రోజు సౌకర్యవంతమైన కాటన్ దుస్తులు అనుకూలం. సాయంత్రం వేళల్లో ఉష్ణోగ్రత కాస్త తగ్గితే తేలికపాటి జాకెట్ లేదా శాలువా ఉపయోగపడుతుంది."
         else:
-            answer = f"Given {location_name}'s current telemetry of {weather_summary}, we suggest versatile, breathable layers. Cotton or technical blend fabric will keep you comfortable during peak daylight hours, with a light over-layer for air-conditioned interiors or evening cooling."
+            answer = f"With {weather_summary} in {location_name}, light and breathable clothes are your friend today. Keep a light layer handy for air-conditioned rooms or once the evening cools down."
 
         return {
             "answer": answer,
             "optimal_window": {
-                "title": "Attire Thermal Comfort",
-                "time_range": "All Day Balance",
-                "reliability": "95% Reliability",
-                "favorable_note": "Mild thermal comfort range",
-                "caution_note": "Diurnal cooling after sunset",
+                "title": "Comfortable hours",
+                "time_range": "All day, mildest in the morning",
+                "reliability": "High confidence",
+                "favorable_note": "Pleasant through midday",
+                "caution_note": "Cools down after sunset",
             },
             "route_progression": [
-                {"label": "Morning", "place": location_name, "temp": "Crisp", "condition": "Light layer recommended"},
-                {"label": "Midday", "place": "Solar Peak", "temp": "Warm", "condition": "Breathable base layer"},
-                {"label": "Evening", "place": "Dusk Transect", "temp": "Mild", "condition": "Comfortable breeze"},
+                {"label": "Morning", "place": location_name, "temp": "Cool", "condition": "A light layer helps"},
+                {"label": "Midday", "place": "Out and about", "temp": "Warm", "condition": "Light, breathable clothes"},
+                {"label": "Evening", "place": "After sunset", "temp": "Mild", "condition": "Comfortable with a breeze"},
             ],
             "attire_guidance": {
-                "headline": "Smart Daily Layering",
-                "layers": ["Moisture-wicking breathable base", "Light cardigan or windbreaker shell"],
-                "accessories": ["UV sunglasses", "Comfortable walking shoes"],
+                "headline": "What to wear",
+                "layers": ["Light, breathable base", "Cardigan or windbreaker for later"],
+                "accessories": ["Sunglasses", "Comfortable walking shoes"],
                 "thermal_rating": "Comfortable",
             },
         }
@@ -1386,26 +1387,26 @@ def generate_synoptic_assistant_fallback(query, location_name, weather_summary, 
         elif is_telugu:
             answer = f"{location_name}లో రేపటి వాతావరణం దాదాపు ప్రస్తుత పరిస్థితి ({weather_summary}) లాగే కొనసాగుతుంది. సాధారణ ఉష్ణోగ్రతలతో వాతావరణం అనుకూలంగా ఉంటుంది."
         else:
-            answer = f"Tomorrow's synoptic forecast for {location_name} projects steady atmospheric continuity aligned with {weather_summary}. Barometric stability will support clear morning travel and outdoor schedules."
+            answer = f"Tomorrow looks much like today in {location_name} ({weather_summary}). A steady morning works well for travel and outdoor plans."
 
         return {
             "answer": answer,
             "optimal_window": {
-                "title": "Tomorrow's Peak Window",
+                "title": "Best time tomorrow",
                 "time_range": "8:00 AM – 11:30 AM",
-                "reliability": "91% Reliability",
-                "favorable_note": "Crisp morning breeze, clear horizon",
-                "caution_note": "Standard diurnal heat increase midday",
+                "reliability": "High confidence",
+                "favorable_note": "Fresh morning air, clear skies",
+                "caution_note": "Warms up around midday",
             },
             "route_progression": [
-                {"label": "Morning", "place": location_name, "temp": "Cool", "condition": "Stable atmosphere"},
-                {"label": "Midday", "place": "Urban Metro", "temp": "Warm", "condition": "Solar exposure"},
-                {"label": "Evening", "place": "Surrounding Hills", "temp": "Mild", "condition": "Steady breezes"},
+                {"label": "Morning", "place": location_name, "temp": "Cool", "condition": "Calm and clear"},
+                {"label": "Midday", "place": "Around town", "temp": "Warm", "condition": "Full sun"},
+                {"label": "Evening", "place": "After sunset", "temp": "Mild", "condition": "Light breeze"},
             ],
             "attire_guidance": {
-                "headline": "Next-Day Casual Travel",
-                "layers": ["Everyday breathable cottons", "Lightweight wind layer"],
-                "accessories": ["Sun protection hat", "Refillable hydration flask"],
+                "headline": "What to wear tomorrow",
+                "layers": ["Everyday light clothes", "A light layer for the evening"],
+                "accessories": ["Sun hat", "Water bottle"],
                 "thermal_rating": "Mild",
             },
         }
@@ -1416,25 +1417,25 @@ def generate_synoptic_assistant_fallback(query, location_name, weather_summary, 
         elif is_telugu:
             answer = f"{location_name} వాతావరణ సమాచారం: ప్రస్తుతం {weather_summary} నమోదైంది. వాతావరణ పీడనం మరియు గాలి వేగం సాధారణ పరిమితుల్లో ఉన్నాయి."
         else:
-            answer = f"Atmospheric telemetry for {location_name} reports {weather_summary}. Local sensor nodes show stable pressure gradients and standard ambient conditions across the urban transect."
+            answer = f"Right now in {location_name} it's {weather_summary}. Pressure and wind are sitting in their normal range — a steady, unremarkable weather day."
 
         return {
             "answer": answer,
             "optimal_window": {
-                "title": "Optimal Activity Window",
+                "title": "Good time for plans",
                 "time_range": "1:30 PM – 4:45 PM",
-                "reliability": "92% Reliability",
-                "favorable_note": "Stable synoptic pressure",
-                "caution_note": "Check local radar updates periodically",
+                "reliability": "High confidence",
+                "favorable_note": "Steady weather through the afternoon",
+                "caution_note": "Worth a quick radar check before you head out",
             },
             "route_progression": [
-                {"label": "Origin", "place": location_name, "temp": "Current", "condition": "Stable telemetry"},
-                {"label": "Midway", "place": "En Route", "temp": "Nominal", "condition": "Light breezes"},
-                {"label": "Destination", "place": "Target Zone", "temp": "Expected", "condition": "Normal conditions"},
+                {"label": "Start", "place": location_name, "temp": "Current", "condition": "Settled conditions"},
+                {"label": "Midway", "place": "En route", "temp": "Normal", "condition": "Light breeze"},
+                {"label": "Arrival", "place": "Destination", "temp": "As expected", "condition": "No surprises"},
             ],
             "attire_guidance": {
-                "headline": "Weather-Appropriate Guidance",
-                "layers": ["Everyday comfortable attire", "Optional light layer"],
+                "headline": "What to wear",
+                "layers": ["Everyday comfortable clothes", "An optional light layer"],
                 "accessories": ["Sunglasses or weather-appropriate gear"],
                 "thermal_rating": "Comfortable",
             },
@@ -1544,7 +1545,7 @@ def api_assistant():
             response = groq_client.chat.completions.create(
                 model=GROQ_CHAT_MODEL,
                 messages=[
-                    {"role": "system", "content": "You are WeatherGPT, an advanced Atmospheric Intelligence Assistant. Output strictly JSON."},
+                    {"role": "system", "content": "You are WeatherGPT, a friendly, practical weather assistant. Output strictly JSON."},
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.2,

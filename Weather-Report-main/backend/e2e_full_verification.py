@@ -92,7 +92,7 @@ with sync_playwright() as p:
     check("AI report: synopsis populated (fallback template)",
           bool(synopsis and "temperature" in synopsis.lower() and "Loading" not in synopsis), (synopsis or "")[:80])
     meta = page.text_content("#hero-synopsis-meta")
-    check("AI report: meta shows language", bool(meta and "Synthesized" in meta), meta or "")
+    check("AI report: meta shows language", bool(meta and "Written in" in meta), meta or "")
 
     # ---------- 6. AQI CARD ----------
     aqi_state = page.evaluate("""(() => ({
