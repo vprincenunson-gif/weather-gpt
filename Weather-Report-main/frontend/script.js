@@ -1499,6 +1499,10 @@ const els = {
   chatStream: document.getElementById("chat-stream"),
   assistantChatForm: document.getElementById("assistant-chat-form"),
   assistantInputText: document.getElementById("assistant-input-text"),
+  voiceOutputControls: document.getElementById("voice-output-controls"),
+  voiceSpeakBtn: document.getElementById("voice-speak-btn"),
+  voiceSpeakIcon: document.getElementById("voice-speak-icon"),
+  voiceSpeakLabel: document.getElementById("voice-speak-label"),
   assistantMicBtn: document.getElementById("assistant-mic-btn"),
   assistantPromptChips: document.getElementById("assistant-prompt-chips"),
 
@@ -1624,6 +1628,8 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
     btn.classList.add("is-active");
     state.voiceLang = btn.dataset.lang;
     document.documentElement.lang = state.voiceLang === "auto" ? "en" : state.voiceLang;
+    // Spoken output follows the same selector: en-US / hi-IN / te-IN.
+    window.VoiceOutput?.setLanguage(state.voiceLang);
 
     updatePromptChipsForLanguage(state.voiceLang);
 
@@ -2813,6 +2819,8 @@ async function submitAssistantQuery(userQuery) {
 
     removeThinkingBubble(thinkingId);
     appendAssistantResponseNode(res);
+    // Remember the answer for Replay (success or failure alike).
+    rememberAnswerForReplay(res.answer);
   } catch (err) {
     removeThinkingBubble(thinkingId);
     const realTemp = state.weather?.current?.temperature_2m;
@@ -2820,8 +2828,10 @@ async function submitAssistantQuery(userQuery) {
       realTemp != null
         ? `${Math.round(realTemp)}°C, ${CONDITION_TITLES[document.body.dataset.condition] || "current conditions"}`
         : "Live weather data unavailable";
+    const fallbackAnswer = `I couldn't reach the AI service just now (${err.message}). Current conditions in ${locationDisplayName()}: ${fallbackLine}.`;
+    rememberAnswerForReplay(fallbackAnswer);
     appendAssistantResponseNode({
-      answer: `I couldn't reach the AI service just now (${err.message}). Current conditions in ${locationDisplayName()}: ${fallbackLine}.`,
+      answer: fallbackAnswer,
     });
   }
 }
@@ -2984,8 +2994,91 @@ function appendAssistantResponseNode(data) {
 }
 
 // ============================================================
-// GROQ WHISPER VOICE RECORDING MODULE
+// VOICE OUTPUT (Web Speech API) — accessible spoken answers
 // ============================================================
+// Wiring between window.VoiceOutput (voice-output.js) and the app:
+// ONE stateful Speak button (Speak answer / Stop / Replay answer).
+// Nothing is ever spoken automatically — speaking happens only when
+// the user presses the button.
+
+// Tailwind's "hidden" class loses to the flex/display utilities on the
+// controls bar, so visibility is owned here via inline style.
+const VOICE_PHASE_UI = {
+  idle: { icon: "volume_up", label: "Speak answer", disabled: true },
+  ready: { icon: "volume_up", label: "Speak answer", disabled: false },
+  replay: { icon: "replay", label: "Replay answer", disabled: false },
+  speaking: { icon: "stop", label: "Stop speaking", disabled: false },
+};
+
+function syncVoiceOutputControls() {
+  const Vo = window.VoiceOutput;
+  if (!Vo || !els.voiceOutputControls) return;
+  const hide = !Vo.supported();
+  els.voiceOutputControls.style.display = hide ? "none" : "flex";
+  els.voiceOutputControls.classList.toggle("hidden", hide);
+
+  if (hide) return;
+  if (els.voiceSpeakBtn) {
+    const phase = Vo.phase; // idle | ready | replay | speaking
+    const ui = VOICE_PHASE_UI[phase];
+    els.voiceSpeakBtn.dataset.phase = phase;
+    els.voiceSpeakBtn.disabled = ui.disabled;
+    els.voiceSpeakBtn.setAttribute(
+      "aria-label",
+      phase === "speaking" ? "Stop speaking" : phase === "replay" ? "Replay last answer" : "Speak answer"
+    );
+    if (els.voiceSpeakIcon) els.voiceSpeakIcon.textContent = ui.icon;
+    if (els.voiceSpeakLabel) els.voiceSpeakLabel.textContent = ui.label;
+  }
+}
+
+// Screen-reader announcement for user-driven speak/stop transitions
+// (mirrors the aria-live region voice-output.js uses internally).
+function announceVoiceOutput(message) {
+  const region = document.getElementById("voice-speech-status");
+  if (region) region.textContent = message;
+}
+
+function initVoiceOutput() {
+  const Vo = window.VoiceOutput;
+  if (!Vo) return; // script missing/blocked — app works without speech
+
+  if (!Vo.supported()) {
+    syncVoiceOutputControls(); // hides the whole controls bar
+    return;
+  }
+
+  Vo.setLanguage(state.voiceLang);
+  if (els.voiceSpeakBtn) {
+    els.voiceSpeakBtn.addEventListener("click", () => {
+      if (Vo.phase === "speaking") {
+        Vo.stop();
+        announceVoiceOutput("Speech stopped.");
+      } else if (Vo.phase === "replay" || Vo.phase === "ready") {
+        Vo.speakLast();
+      }
+      syncVoiceOutputControls();
+    });
+  }
+
+  // Speaking state changes drive the button's Stop phase.
+  document.addEventListener("voice-output-state", syncVoiceOutputControls);
+  syncVoiceOutputControls();}
+
+// Never speaks automatically — speaking is strictly user-controlled via
+// the Speak button. Every answer (voice-origin or typed) is only
+// remembered, which arms the button; the user decides when to listen.
+function rememberAnswerForReplay(answer) {
+  const Vo = window.VoiceOutput;
+  if (!Vo || !Vo.supported()) return;
+  if (!answer) return;
+  Vo.remember(answer);
+  syncVoiceOutputControls(); // arm the Speak button for this answer
+}
+
+// ------------------------------------------------------------
+// GROQ WHISPER VOICE RECORDING MODULE
+// ------------------------------------------------------------
 
 function pickSupportedMimeType() {
   const candidates = [
@@ -3113,6 +3206,8 @@ async function handleVoiceRecordingFinished() {
       showStatus(`You said: "${transcript}"`);
       // Route query to assistant view
       switchView("view-weathergpt");
+      // Nothing is spoken automatically — the answer is only remembered,
+      // and the user presses the Speak button to hear it.
       submitAssistantQuery(transcript);
     }
   } catch (err) {
@@ -3386,6 +3481,7 @@ window.addEventListener("DOMContentLoaded", () => {
   bindAssistantChips();
   bindInsightsScopeChips();
   initFarmAdvisor();
+  initVoiceOutput();
   // Render the default location's labels immediately (the old pipeline set
   // them inside refreshWeatherData; label updates now live in
   // updateLocationDisplay and must run once at startup too).

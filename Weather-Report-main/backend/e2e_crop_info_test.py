@@ -11,6 +11,13 @@ Evidence: prints PASS/FAIL per check; exits non-zero on any FAIL.
 import json
 import sys
 
+# Windows consoles default to cp1252 — Hindi/Telugu/emoji evidence text
+# would crash printing. Force UTF-8 with replacement.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 from playwright.sync_api import sync_playwright
 
 BASE = "http://127.0.0.1:5000"

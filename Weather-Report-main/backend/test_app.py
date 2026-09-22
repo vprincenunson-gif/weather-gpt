@@ -401,7 +401,24 @@ class TestLiveApiContract(unittest.TestCase):
     def test_health(self):
         r = self.client.get("/api/health")
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.get_json()["status"], "ok")
+        self.assertTrue(r.content_type.startswith("application/json"))
+        body = r.get_json()
+        self.assertEqual(body["status"], "ok")
+        # Service flags are booleans and never leak secret material.
+        self.assertIsInstance(body["groq_whisper"], bool)
+        self.assertIsInstance(body["ollama"], bool)
+        self.assertIsInstance(body["weatherapi_fallback"], bool)
+        self.assertTrue(body["groq_model"])
+        self.assertTrue(body["ollama_model"])
+        self.assertNotIn("API_KEY", str(body))
+        # Timestamp parses as ISO 8601.
+        datetime.fromisoformat(body["timestamp"])
+
+    def test_health_is_not_rate_limited(self):
+        # Health probes must not count against any /api/* rate limit.
+        for _ in range(30):
+            r = self.client.get("/api/health")
+            self.assertEqual(r.status_code, 200)
 
     def test_config_exposes_only_public_key(self):
         r = self.client.get("/api/config")

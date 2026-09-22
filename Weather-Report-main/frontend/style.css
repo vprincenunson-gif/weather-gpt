@@ -552,6 +552,45 @@ html[data-theme="dark"] .sky-layer.sky-cold {
   box-shadow: 0 1px 4px rgba(var(--shadow-tint), 0.18) !important;
 }
 
+/* ============================================================
+   VOICE OUTPUT — stateful Speak button (user-controlled only)
+   ============================================================ */
+
+/* Speaking state: calm coral treatment signals "tap to stop", matching
+   the recording overlay's stop-button language. */
+#voice-speak-btn[data-phase="speaking"] {
+  background-color: rgb(var(--alert-coral) / 0.15);
+  border-color: rgb(var(--alert-coral) / 0.35);
+  color: rgb(var(--alert-coral));
+}
+
+/* Replay state: primary-container pill matching the app's active-pill
+   treatment (same as the old Auto Speak ON / lang-btn active look). */
+#voice-speak-btn[data-phase="replay"] {
+  background-color: rgb(var(--primary-container));
+  border-color: transparent;
+  color: #FFFFFF;
+}
+
+/* Speaking pulse on the whole button: a slow, calm opacity breath so the
+   talking state is visible without motion risk. */
+@keyframes voiceSpeakingPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+#voice-speak-btn[data-phase="speaking"] {
+  animation: voiceSpeakingPulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #voice-speak-btn[data-phase="speaking"] {
+    animation: none;
+  }
+  #voice-speak-btn {
+    transition: none;
+  }
+}
+
 /* Voice Recording Ripple Animations (kept, restrained) */
 .voice-ripple-1 {
   animation: pulseAura 1.8s infinite ease-out;

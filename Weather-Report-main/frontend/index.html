@@ -720,6 +720,18 @@
         </div>
       </div>
 
+      <!-- Voice Output: one stateful Speak button (user-controlled only). -->
+      <div id="voice-output-controls"
+        class="hidden items-center gap-2 px-3 py-2 rounded-2xl bg-surface-container/70 border border-glass-border/30">
+        <button type="button" id="voice-speak-btn" aria-label="Speak answer"
+          data-phase="idle"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all active:scale-95 text-[11px] font-pill-text font-semibold text-ink-secondary bg-surface-container-high border-glass-border hover:text-ink-primary disabled:opacity-40 disabled:cursor-not-allowed">
+          <span id="voice-speak-icon" class="material-symbols-outlined text-[16px]" aria-hidden="true">volume_up</span>
+          <span id="voice-speak-label">Speak answer</span>
+        </button>
+        <span id="voice-output-hint" class="font-body-dim text-[10px] text-ink-tertiary truncate">Answers are spoken only when you press Speak</span>
+      </div>
+
       <!-- Conversational Chat Stream -->
       <div id="chat-stream" class="flex flex-col space-y-4 min-h-[300px]">
         <!-- Welcome Prompt Node -->
@@ -1054,6 +1066,11 @@
 
   <!-- CORE SCRIPTS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Voice output (Web Speech API) loads first so script.js can bind to
+       window.VoiceOutput; the visually hidden live region announces
+       speak/stop transitions to screen readers. -->
+  <div id="voice-speech-status" aria-live="polite" role="status" class="sr-only"></div>
+  <script src="voice-output.js"></script>
   <script src="script.js"></script>
   <script src="radar-map.js"></script>
 </body>

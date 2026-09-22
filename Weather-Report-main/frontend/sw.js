@@ -1,10 +1,11 @@
-const CACHE_NAME = "weathergpt-shell-v13"; // v13: humanized UI wording (SIH polish)
+const CACHE_NAME = "weathergpt-shell-v15"; // v15: user-controlled voice output (stateful Speak button)
 
 const SHELL_FILES = [
   "/",
   "/index.html",
   "/style.css",
   "/script.js",
+  "/voice-output.js",
   "/radar-map.js",
   "/manifest.json",
   "/icons/icon-192.png",
