@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v20"; // v20: stable layout restored; subtle condition-true atmosphere (clear skies cloud-free, reduced sun glow)
+const CACHE_NAME = "weathergpt-shell-v21"; // v21: consistent radar layer states, full EN/HI/TE chrome i18n, satellite explainer + fallback, location-anchored field layers
 
 const SHELL_FILES = [
   "/",

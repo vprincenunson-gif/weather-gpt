@@ -278,9 +278,16 @@
 
     let grid = null;
     try {
+      // Anchor the grid on the app's CURRENT location — the exact same
+      // coordinates the main weather view uses (state.currentLocation),
+      // not the map viewport center the user may have panned anywhere.
+      const loc = window.WeatherState?.currentLocation;
+      const hasLoc = loc && Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude);
       const center = map.getCenter();
+      const lat = hasLoc ? loc.latitude : center.lat;
+      const lon = hasLoc ? loc.longitude : center.lng;
       const res = await fetch(
-        `/api/field?metric=${metric}&latitude=${center.lat.toFixed(4)}&longitude=${center.lng.toFixed(4)}`
+        `/api/field?metric=${metric}&latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}`
       );
       if (token !== fieldFetchToken) return; // superseded by a newer request
       if (res.status === 404) {
@@ -403,15 +410,55 @@
       frames = { radar: radarFrames, satellite: satelliteFrames };
       framesLoadedAt = Date.now();
 
-      // Default to the most recent real (non-forecast) frame, matching the "LIVE" label.
-      activeFrameIndex = Math.max(0, (data.radar?.past || []).length - 1);
+      // Default to the most recent real (non-forecast) frame, matching the
+      // "LIVE" label — only on the initial load. TTL refreshes must not
+      // yank the user's scrubbed timeline position.
+      if (activeFrameIndex < 0) {
+        activeFrameIndex = Math.max(0, (data.radar?.past || []).length - 1);
+      }
     } catch (error) {
       console.warn("RainViewer frame list unavailable:", error);
+      // Cache the failure too (keeping whatever frames we already have) so
+      // a transient outage can't hammer the API on every interaction. A
+      // failed FIRST load keeps framesLoadedAt at 0 so the next explicit
+      // layer selection retries fresh.
+      if (frames.radar.length > 0 || frames.satellite.length > 0) {
+        framesLoadedAt = Date.now();
+      }
     }
   }
 
   function currentFrameSet() {
     return activeLayer === "clouds" ? frames.satellite : frames.radar;
+  }
+
+  // Full visual reset of the data-tile layer. Called on EVERY layer
+  // change so no ring/glow/state of the previous layer can survive:
+  // replacing the Leaflet layer object is the only way to guarantee
+  // Leaflet's internal tile/ring caches don't leak the old frame.
+  function destroyTileLayer() {
+    if (tileLayer && map) {
+      map.removeLayer(tileLayer);
+    }
+    tileLayer = null;
+  }
+
+  // The infrared satellite feed sometimes returns an empty frame list
+  // (RainViewer outage). Fall back to precipitation radar with an honest
+  // status message instead of a blank map.
+  function satelliteUnavailable() {
+    emitFieldStatus("error", "clouds");
+    activeLayer = "precip";
+    framesLoadedAt = 0; // retry fresh next time
+    (async () => {
+      await loadFramesIfNeeded();
+      const set = currentFrameSet();
+      if (set.length) {
+        applyFrame(Math.max(0, set.length - 1));
+      } else {
+        destroyTileLayer(); // honest blank: no data anywhere
+      }
+    })();
   }
 
   function applyFrame(index) {
@@ -434,6 +481,10 @@
 
   async function setLayer(layerName) {
     if (FIELD_METRICS[layerName]) {
+      // Leaving a tile layer: destroy the tile overlay so no previous
+      // selection ring/glow/frame survives into the field view.
+      destroyTileLayer();
+      clearFieldLayer();
       activeLayer = layerName;
       await loadFieldLayer(layerName);
       return;
@@ -451,8 +502,16 @@
     clearFieldLayer();
 
     activeLayer = layerName;
+    // Full reset of the previous layer's tile state (ring/glow/frame).
+    destroyTileLayer();
     await loadFramesIfNeeded();
+
     const set = currentFrameSet();
+    if (layerName === "clouds" && set.length === 0) {
+      satelliteUnavailable();
+      return;
+    }
+
     const defaultIndex = layerName === "precip" ? Math.max(0, frames.radar.length - 1) : set.length - 1;
     applyFrame(defaultIndex);
   }

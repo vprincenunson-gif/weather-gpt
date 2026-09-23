@@ -6,7 +6,7 @@
 // 1. Service Worker for Offline PWA Capabilities
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=20").catch((err) => {
+    navigator.serviceWorker.register("sw.js?v=21").catch((err) => {
       console.warn("ServiceWorker registration:", err);
     });
   });
@@ -876,6 +876,88 @@ const RAIN_I18N = {
   },
 };
 
+// ============================================================
+// UI CHROME I18N — header, top controls, navigation, sections and
+// modals translate IMMEDIATELY on language switch (no refresh). Static
+// markup carries data-i18n keys; dynamic surfaces re-render separately.
+// ============================================================
+
+const CHROME_I18N = {
+  en: {
+    brandTagline: "Your sky, explained",
+    changeLocation: "Change location",
+    navForecast: "Forecast", navMap: "Radar Map", navGpt: "WeatherGPT",
+    navFarmer: "Farmer", navInsights: "Insights", satPill: "Satellite",
+    nearby: "Nearby areas", openMap: "Open the map →",
+    hours: "Next 24 hours", rightNow: "Right now", days: "Next 7 days",
+    weekAhead: "A week ahead", liveReadings: "Live readings",
+    insightsTitle: "Insights", liveData: "Live data",
+    searchPlaceholder: "Enter city (e.g. Hyderabad, San Francisco, Tokyo)...",
+    popularCities: "Popular Cities",
+    locating: "Locating…", today: "Today",
+    satNote: "Satellite shows live infrared cloud imagery — bright areas are cold, high cloud tops. Radar shows precipitation.",
+    satHelpTitle: "Why it matters",
+    satHelp: "Infrared satellites measure cloud-top temperature: brighter white means taller, colder clouds that often bring storms; grey means thin or low cloud; dark means clear ground. For farmers, tracking these cloud bands over the farm shows rain or hail risk approaching hours before the first drop.",
+    satUnavailable: "Satellite imagery unavailable right now — showing precipitation radar instead.",
+  },
+  hi: {
+    brandTagline: "आपका आसमान, समझाया गया",
+    changeLocation: "स्थान बदलें",
+    navForecast: "पूर्वानुमान", navMap: "रडार मैप", navGpt: "WeatherGPT",
+    navFarmer: "किसान", navInsights: "इनसाइट्स", satPill: "सैटेलाइट",
+    nearby: "नज़दीकी क्षेत्र", openMap: "मैप खोलें →",
+    hours: "अगले 24 घंटे", rightNow: "अभी", days: "अगले 7 दिन",
+    weekAhead: "एक सप्ताह आगे", liveReadings: "सजीव रीडिंग",
+    insightsTitle: "इनसाइट्स", liveData: "सजीव डेटा",
+    searchPlaceholder: "शहर खोजें (जैसे हैदराबाद, सैन फ़्रांसिस्को, टोक्यो)...",
+    popularCities: "लोकप्रिय शहर",
+    locating: "पता लगाया जा रहा है…", today: "आज",
+    satNote: "सैटेलाइट लाइव इन्फ्रारेड बादल चित्र दिखाती है — चमकीले हिस्से ठंडी, ऊँची बादल छतें हैं। रडार वर्षा दिखाता है।",
+    satHelpTitle: "यह क्यों ज़रूरी है",
+    satHelp: "इन्फ्रारेड सैटेलाइट बादल-शिखर का तापमान मापती है: जितनी चमकीली सफ़ेद, उतनी ऊँची और ठंडी बादल — जिनसे अक्सर तूफ़ान आते हैं; स्लेटी का मतलब पतले या नीचे के बादल; गहरा का मतलब साफ़ ज़मीन। किसानों के लिए, खेत के ऊपर इन बादल-पट्टियों को देखना पहली बूँद से घंटों पहले वर्षा या ओलावृष्टि का खतरा बता देता है।",
+    satUnavailable: "सैटेलाइट चित्र अभी उपलब्ध नहीं — वर्षा रडार दिखाया जा रहा है।",
+  },
+  te: {
+    brandTagline: "మీ ఆకాశం, వివరించబడింది",
+    changeLocation: "స్థానాన్ని మార్చు",
+    navForecast: "ఫోర్‌కాస్ట్", navMap: "రాడార్ మ్యాప్", navGpt: "WeatherGPT",
+    navFarmer: "రైతు", navInsights: "ఇన్‌సైట్స్", satPill: "ఉపగ్రహం",
+    nearby: "సమీప ప్రాంతాలు", openMap: "మ్యాప్ తెరువు →",
+    hours: "తర్వాతి 24 గంటలు", rightNow: "ప్రస్తుతం", days: "తర్వాతి 7 రోజులు",
+    weekAhead: "వారం ముందుకు", liveReadings: "ప్రత్యక్ష రీడింగ్‌లు",
+    insightsTitle: "ఇన్‌సైట్స్", liveData: "ప్రత్యక్ష డేటా",
+    searchPlaceholder: "నగరం వెతకండి (ఉదా. హైదరాబాద్, శాన్ ఫ్రాన్సిస్కో, టోక్యో)...",
+    popularCities: "జనప్రియ నగరాలు",
+    locating: "గుర్తిస్తోంది…", today: "ఈరోజు",
+    satNote: "ఉపగ్రహం ప్రత్యక్ష ఇన్‌ఫ్రారెడ్ మేఘ చిత్రాలను చూపుతుంది — ప్రకాశవంతమైన భాగాలు చల్లని, ఎత్తైన మేఘ పైభాగాలు. రాడార్ వర్షాన్ని చూపుతుంది.",
+    satHelpTitle: "ఇది ఎందుకు ముఖ్యం",
+    satHelp: "ఇన్‌ఫ్రారెడ్ ఉపగ్రహం మేఘ పైభాగ ఉష్ణోగ్రతను కొలుస్తుంది: ఎంత తెల్లగా ప్రకాశించినా అంత ఎత్తుగా, చల్లగా ఉంటుంది — తరచుగా తుఫానులను తీసుకువస్తుంది; బూడుద అంటే సన్నని లేదా తక్కువ మేఘాలు; ముదురు అంటే స్పష్టమైన నేల. రైతులకు, పొలం పైన ఈ మేఘ పట్టీలను గమనించడం మొదటి చుక్కకు గంటల ముందే వర్ష లేదా వడగళ్ళ ప్రమాదాన్ని తెలియజేస్తుంది.",
+    satUnavailable: "ఉపగ్రహ చిత్రాలు ప్రస్తుతం అందుబాటులో లేవు — వర్ష రాడార్ చూపుతున్నాము.",
+  },
+};
+
+function applyChromeI18n() {
+  const t = CHROME_I18N[farmLang()] || CHROME_I18N.en;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const v = t[el.dataset.i18n];
+    if (v !== undefined) el.textContent = v;
+  });
+  // Attribute translations (e.g. location button title/aria-label).
+  document.querySelectorAll("[data-i18n-attr]").forEach((el) => {
+    for (const pair of el.dataset.i18nAttr.split(",")) {
+      const [attr, key] = pair.split(":").map((s) => s.trim());
+      const v = t[key];
+      if (attr && key && v !== undefined) el.setAttribute(attr, v);
+    }
+  });
+  const searchInput = document.getElementById("city-search-input");
+  if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+  const satNote = document.getElementById("satellite-note");
+  if (satNote) satNote.textContent = t.satNote;
+  const satHelp = document.getElementById("satellite-help");
+  if (satHelp) satHelp.textContent = t.satHelp;
+}
+
 function rainLang() {
   return farmLang(); // same EN/HI/TE mapping as the farm advisor
 }
@@ -930,6 +1012,28 @@ const CONDITION_TITLES = {
   "snow": "Snowfall",
   "thunder": "Thunderstorm",
 };
+
+// Localized condition titles — same real WMO categories, worded per UI
+// language. Falls back to the English map for unlisted keys.
+const CONDITION_TITLES_I18N = {
+  hi: {
+    "clear-day": "साफ़ आसमान", "clear-night": "साफ़ आसमान",
+    "partly-cloudy-day": "आंशिक बादल", "partly-cloudy-night": "आंशिक बादल",
+    "cloudy": "बादल छाए", "fog": "घना कोहरा", "drizzle": "बूँदाबाँदी",
+    "rain": "वर्षा", "snow": "हिमपात", "thunder": "आंधी-तूफ़ान",
+  },
+  te: {
+    "clear-day": "స్పష్టమైన ఆకాశం", "clear-night": "స్పష్టమైన ఆకాశం",
+    "partly-cloudy-day": "పాక్షికంగా మేఘావృతం", "partly-cloudy-night": "పాక్షికంగా మేఘావృతం",
+    "cloudy": "మేఘావృతం", "fog": "దట్టమైన పొగమంచు", "drizzle": "జల్లు",
+    "rain": "వర్షం", "snow": "మంచు", "thunder": "ఉరుముల తుఫాను",
+  },
+};
+
+function conditionTitleFor(cat) {
+  const localized = CONDITION_TITLES_I18N[farmLang()];
+  return (localized && localized[cat]) || CONDITION_TITLES[cat] || "Clear";
+}
 
 const CONDITION_ICONS = {
   "clear-day": "wb_sunny",
@@ -1895,6 +1999,8 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
     populateFarmSelectors(farmLangCode);
     applyFarmStaticText(farmLangCode);
     renderFarmGuide(farmLangCode);
+    // Header, nav, section titles, placeholders — immediate, no refresh.
+    applyChromeI18n();
     state.farmCacheKey = null;
     if (state.weather && state.activeView === "view-farmer") {
       refreshFarmAdvice();
@@ -1909,6 +2015,12 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
       renderRainTimeline();
     }
 
+    // Radar map surface (sensor-card title, marker tooltip, address bar)
+    // re-words immediately; the active field layer keeps its own data.
+    if (state.weather) renderMapScreen();
+
+    // Hero condition title + daily labels use the new language.
+    if (state.weather) renderForecastScreen();
 
     // Refresh weather synopsis in new language if data already loaded
     if (state.weather) {
@@ -2283,7 +2395,7 @@ function renderForecastScreen() {
   if (els.heroTempFeels) els.heroTempFeels.textContent = `${feels}°`;
   if (els.heroTempHigh) els.heroTempHigh.textContent = `${high}°`;
   if (els.heroTempLow) els.heroTempLow.textContent = `${low}°`;
-  if (els.heroConditionText) els.heroConditionText.textContent = CONDITION_TITLES[cat] || "Clear";
+  if (els.heroConditionText) els.heroConditionText.textContent = conditionTitleFor(cat);
   if (els.heroConditionIcon) els.heroConditionIcon.textContent = CONDITION_ICONS[cat] || "wb_sunny";
 
   // Telemetry Grid
@@ -2399,7 +2511,8 @@ function renderForecastScreen() {
     els.dailyForecastContainer.innerHTML = days
       .map((dStr, i) => {
         const d = new Date(dStr + "T00:00:00");
-        const dayLabel = i === 0 ? "Today" : d.toLocaleDateString([], { weekday: "short" });
+        const dayLabel = i === 0 ? (CHROME_I18N[farmLang()] || CHROME_I18N.en).today
+          : d.toLocaleDateString(farmLang() === "hi" ? "hi-IN" : farmLang() === "te" ? "te-IN" : undefined, { weekday: "short" });
         const dCode = daily.weather_code?.[i] ?? 0;
         const dCat = getConditionCategory(dCode, 1);
         const dMax = Math.round(daily.temperature_2m_max?.[i] ?? temp + 2);
@@ -2495,9 +2608,10 @@ function renderMapScreen() {
   const current = state.weather?.current || {};
   const temp = Math.round(current.temperature_2m ?? 0);
   const hasTemp = current.temperature_2m !== undefined;
+  const mapT = (CHROME_I18N[farmLang()] || CHROME_I18N.en);
 
   if (els.sensorCardTitle) {
-    els.sensorCardTitle.textContent = `${locationDisplayName()} — Live Reading`;
+    els.sensorCardTitle.textContent = `${locationDisplayName()} — ${mapT.liveReading || "Live Reading"}`;
   }
   if (els.sensorMetricTemp) els.sensorMetricTemp.textContent = hasTemp ? `${temp}°C` : "—";
   if (els.sensorMetricWind) {
@@ -3488,11 +3602,17 @@ els.voiceCancelBtn?.addEventListener("click", cancelVoiceRecording);
 // MAP SCREEN INTERACTIONS
 // ============================================================
 
+// First paint: translate the static chrome in the persisted language.
+applyChromeI18n();
+
 // Layer Toggle — ALL pills are wired to real data: precip + satellite
 // ("clouds") stream RainViewer tiles, while Micro-Temp / Wind Vectors /
 // AQI Plume sample real gridded model data through the backend
 // /api/field endpoint (status surfaced via the radar-field-status event).
 const FIELD_LAYER_LABELS = { temp: "Micro-Temp", wind: "Wind Vectors", aqi: "AQI Plume" };
+
+// The map view starts on the precipitation layer, matching the markup.
+state.activeMapLayer = state.activeMapLayer || "precip";
 
 function setMapLayerPillActive(layer) {
   document.querySelectorAll(".map-layer-pill").forEach((p) => {
@@ -3516,14 +3636,40 @@ window.addEventListener("radar-field-status", (event) => {
   } else if (status === "empty") {
     showMapFieldStatus(`${label}: no model data available for this region.`);
   } else if (status === "error") {
-    showMapFieldStatus(`${label}: field data temporarily unavailable.`);
+    // Satellite (clouds) has its own localized unavailable wording.
+    if (metric === "clouds") {
+      showMapFieldStatus((CHROME_I18N[farmLang()] || CHROME_I18N.en).satUnavailable);
+    } else {
+      showMapFieldStatus(`${label}: field data temporarily unavailable.`);
+    }
   } else if (status === "ready") {
     hideStatus();
   }
 });
 
+// A pill wired to real data reported itself unavailable (e.g. unknown
+// layer name) — say so instead of silently doing nothing.
+window.addEventListener("radar-layer-unavailable", (event) => {
+  showMapFieldStatus(`${event.detail?.layer || "This layer"}: not available on this map.`);
+});
+
+// Satellite explainer: expandable "why it matters" help text.
+document.getElementById("satellite-help-btn")?.addEventListener("click", () => {
+  const btn = document.getElementById("satellite-help-btn");
+  const panel = document.getElementById("satellite-help");
+  if (!btn || !panel) return;
+  const open = panel.classList.toggle("hidden") === false;
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+});
+
+// Read-only mirror of the app state for decoupled modules (radar-map.js
+// anchors its field grids on the CURRENT location, the same coordinates
+// the main weather view uses — never the panned map center).
+window.WeatherState = state;
+
 document.querySelectorAll(".map-layer-pill").forEach((pill) => {
   pill.addEventListener("click", () => {
+    if (state.activeMapLayer === pill.dataset.layer) return; // already active
     setMapLayerPillActive(pill.dataset.layer);
     state.activeMapLayer = pill.dataset.layer;
     window.RadarMap?.setLayer(state.activeMapLayer);

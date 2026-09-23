@@ -628,11 +628,28 @@ html[data-theme="dark"] .sky-layer.sky-cold {
   transform: scale(0.95);
 }
 
-/* Map Layer Pills */
+/* Map Layer Pills — ONE consistent active style for every layer
+   (Precipitation, Micro-Temp, Wind, AQI, Satellite). The active pill is
+   raised via shadow + subtle ring; inactive pills stay quiet. Utilities
+   that fight this are neutralized with !important so the state can never
+   drift between markup variants. */
 .map-layer-pill.active {
   background-color: rgb(var(--primary-container)) !important;
   color: #FFFFFF !important;
   border-color: transparent !important;
+  box-shadow: 0 2px 10px rgb(var(--primary) / 0.45), 0 0 0 1.5px rgb(var(--primary) / 0.55) !important;
+}
+.map-layer-pill.active .material-symbols-outlined {
+  color: #FFFFFF !important;
+}
+.map-layer-pill:not(.active) {
+  box-shadow: none !important;
+}
+.map-layer-pill:not(.active):hover {
+  color: rgb(var(--ink-primary)) !important;
+}
+.map-layer-pill:not(.active):hover .material-symbols-outlined {
+  color: rgb(var(--ink-primary)) !important;
 }
 
 /* ============================================================

@@ -211,12 +211,12 @@
         </div>
         <div class="flex flex-col">
           <span class="font-headline-brand text-[15px] sm:text-[17px] text-ink-primary tracking-tight leading-tight">WeatherGPT</span>
-          <span class="font-label-caps text-[9px] sm:text-[10px] text-secondary tracking-wider uppercase font-semibold hidden sm:block">Your sky, explained</span>
+          <span class="font-label-caps text-[9px] sm:text-[10px] text-secondary tracking-wider uppercase font-semibold hidden sm:block" data-i18n="brandTagline">Your sky, explained</span>
         </div>
       </div>
 
       <!-- Location Trigger Button -->
-      <button id="location-trigger-btn" class="min-h-[34px] sm:min-h-[38px] px-2 sm:px-3 py-1 rounded-full bg-glass-base border border-glass-border/40 backdrop-blur-md hover:bg-glass-elevated active:scale-95 transition-all flex items-center gap-1 shrink min-w-0 max-w-[105px] sm:max-w-[130px] md:max-w-[160px]" title="Change Location" aria-label="Change location">
+      <button id="location-trigger-btn" class="min-h-[34px] sm:min-h-[38px] px-2 sm:px-3 py-1 rounded-full bg-glass-base border border-glass-border/40 backdrop-blur-md hover:bg-glass-elevated active:scale-95 transition-all flex items-center gap-1 shrink min-w-0 max-w-[105px] sm:max-w-[130px] md:max-w-[160px]" title="Change Location" aria-label="Change location" data-i18n-attr="title:changeLocation,aria-label:changeLocation">
         <span class="material-symbols-outlined text-primary text-[15px] sm:text-[16px] shrink-0">near_me</span>
         <span id="header-location-name" class="font-pill-text text-[11px] sm:text-[12px] text-ink-primary truncate font-medium flex-1 min-w-0">Locating…</span>
         <span class="material-symbols-outlined text-ink-tertiary text-[13px] sm:text-[14px] shrink-0">expand_more</span>
@@ -267,7 +267,7 @@
       </div>
 
       <div class="pt-2">
-        <span class="font-label-caps text-ink-tertiary uppercase text-[10px] tracking-wider">Popular Cities</span>
+        <span class="font-label-caps text-ink-tertiary uppercase text-[10px] tracking-wider" data-i18n="popularCities">Popular Cities</span>
         <div class="flex flex-wrap gap-2 mt-2">
           <button class="popular-city-chip px-3 py-1.5 rounded-full bg-surface-container text-ink-secondary hover:text-ink-primary hover:bg-surface-bright text-xs transition-all" data-city="Hyderabad">Hyderabad</button>
           <button class="popular-city-chip px-3 py-1.5 rounded-full bg-surface-container text-ink-secondary hover:text-ink-primary hover:bg-surface-bright text-xs transition-all" data-city="San Francisco">San Francisco</button>
@@ -430,7 +430,6 @@
           <div class="flex-1 min-w-0">
             <div class="flex items-center justify-between gap-2 mb-1">
               <span class="font-headline-card text-[15px] text-primary font-semibold">Today's briefing</span>
-              <span class="px-2 py-0.5 rounded-full bg-glass-base border border-glass-border-subtle text-ink-tertiary font-label-caps text-[9px] uppercase">AI-written</span>
             </div>
             <p id="hero-synopsis-text" class="report-content font-body-report text-xs text-ink-secondary leading-relaxed">
             Loading today's weather in plain words...
@@ -449,8 +448,8 @@
       <!-- Microclimate Comparative Bar -->
       <div class="flex flex-col gap-2 md:order-3 md:w-full">
         <div class="flex items-center justify-between px-1">
-          <span class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Nearby areas</span>
-          <button id="view-map-matrix-btn" class="font-label-caps text-xs text-primary cursor-pointer hover:underline">Open the map →</button>
+          <span class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold" data-i18n="nearby">Nearby areas</span>
+          <button id="view-map-matrix-btn" class="font-label-caps text-xs text-primary cursor-pointer hover:underline" data-i18n="openMap">Open the map →</button>
         </div>
         <div id="microclimate-chips-scroll" class="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none">
           <!-- Dynamic Microclimate Pills inserted here -->
@@ -494,7 +493,7 @@
       <!-- 24-Hour Horizon Hourly Scroller -->
       <div class="flex flex-col gap-2.5 md:order-6 md:w-full">
         <div class="flex items-center justify-between px-1">
-          <span class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Next 24 hours</span>
+          <span id="lbl-hours" class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold" data-i18n="hours">Next 24 hours</span>
           <div class="flex items-center gap-2 text-ink-tertiary font-label-caps text-[10px]">
             <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>Rain %</span>
             <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>UV</span>
@@ -508,8 +507,8 @@
       <!-- Precision Telemetry Grid (2x2) -->
       <div class="flex flex-col gap-2 md:order-7 md:w-full">
         <div class="flex items-center justify-between px-1">
-          <span class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Right now</span>
-          <span class="font-label-caps text-[10px] text-ink-tertiary">Live readings</span>
+          <span id="lbl-right-now" class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold" data-i18n="rightNow">Right now</span>
+          <span class="font-label-caps text-[10px] text-ink-tertiary" data-i18n="liveReadings">Live readings</span>
         </div>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <!-- 1. Wind & Gusts -->
@@ -584,8 +583,8 @@
       <!-- 7-Day Synoptic Outlook -->
       <div class="flex flex-col gap-2.5 md:order-8 md:w-full">
         <div class="flex items-center justify-between px-1">
-          <span class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Next 7 days</span>
-          <span class="font-label-caps text-[10px] text-ink-tertiary">A week ahead</span>
+          <span id="lbl-days" class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold" data-i18n="days">Next 7 days</span>
+          <span class="font-label-caps text-[10px] text-ink-tertiary" data-i18n="weekAhead">A week ahead</span>
         </div>
         <div id="daily-forecast-container" class="flex flex-col gap-2 rounded-2xl bg-surface-container-high border border-glass-border/20 p-3.5 md:p-4 shadow-md">
           <!-- 7-Day rows dynamically rendered -->
@@ -616,7 +615,7 @@
 
           <!-- Layer Toggle Strip -->
           <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" id="map-layer-pills">
-            <button class="map-layer-pill active shrink-0 px-3 py-1.5 rounded-full bg-primary-container text-on-amber font-pill-text text-[11px] flex items-center gap-1.5 shadow-md font-semibold transition-all" data-layer="precip">
+            <button class="map-layer-pill active shrink-0 px-3 py-1.5 rounded-full font-pill-text text-[11px] flex items-center gap-1.5 transition-all" data-layer="precip" aria-pressed="true">
               <span class="material-symbols-outlined text-[14px]">rainy</span>
               <span>Precipitation</span>
               <span class="w-1.5 h-1.5 rounded-full bg-on-primary-dark animate-ping"></span>
@@ -633,12 +632,25 @@
               <span class="material-symbols-outlined text-tertiary text-[14px]">eco</span>
               <span>AQI Plume</span>
             </button>
-            <button class="map-layer-pill shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high/90 border border-glass-border-subtle text-ink-secondary font-pill-text text-[11px] flex items-center gap-1.5 transition-all" data-layer="clouds">
+            <button class="map-layer-pill shrink-0 px-3 py-1.5 rounded-full bg-surface-container-high/90 border border-glass-border-subtle text-ink-secondary font-pill-text text-[11px] flex items-center gap-1.5 transition-all" data-layer="clouds" aria-pressed="false">
               <span class="material-symbols-outlined text-ink-tertiary text-[14px]">cloud</span>
-              <span>Satellite</span>
+              <span data-i18n="satPill">Satellite</span>
             </button>
           </div>
         </div>
+
+        <!-- Satellite section explainer: what the imagery actually shows
+             and why it matters. Honest, RainViewer-only claim; the help
+             toggle expands the detail. Unavailable state is surfaced by
+             the status bar + auto-fallback to radar. -->
+        <div class="flex items-start gap-1.5 px-2 pointer-events-auto">
+          <span class="material-symbols-outlined text-[13px] text-ink-tertiary mt-0.5" aria-hidden="true">info</span>
+          <p id="satellite-note" class="text-[10px] leading-snug text-ink-tertiary flex-1">Satellite shows live infrared cloud imagery — bright areas are cold, high cloud tops. Radar shows precipitation.</p>
+          <button id="satellite-help-btn" type="button" class="font-label-caps text-[10px] text-primary hover:underline shrink-0" aria-expanded="false" data-i18n="satHelpTitle">Why it matters</button>
+        </div>
+        <p id="satellite-help" class="hidden px-2 text-[10px] leading-relaxed text-ink-secondary">
+          Infrared satellites measure cloud-top temperature: brighter white means taller, colder clouds that often bring storms; grey means thin or low cloud; dark means clear ground. For farmers, tracking these cloud bands over the farm shows rain or hail risk approaching hours before the first drop.
+        </p>
 
         <!-- Field layer legends (Micro-Temp / Wind Vectors / AQI Plume).
              Shown only while that layer is active; values are the real
@@ -926,7 +938,7 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
-            <span class="font-label-caps text-xs text-primary tracking-wider uppercase font-semibold">Live data</span>
+            <span id="lbl-live-data" class="font-label-caps text-xs text-primary tracking-wider uppercase font-semibold" data-i18n="liveData">Live data</span>
           </div>
           <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high border border-glass-border-subtle text-ink-secondary">
             <span class="material-symbols-outlined text-[14px] text-secondary">sensors</span>
@@ -934,7 +946,7 @@
           </div>
         </div>
         <div>
-          <h2 class="font-headline-lg text-xl text-ink-primary tracking-tight font-bold">Insights</h2>
+          <h2 id="lbl-insights-title" class="font-headline-lg text-xl text-ink-primary tracking-tight font-bold" data-i18n="insightsTitle">Insights</h2>
           <p id="insights-scope-subtitle" class="font-body-dim text-xs text-ink-tertiary">Today's weather at a glance, with any alerts worth knowing about</p>
         </div>
 
@@ -1042,31 +1054,31 @@
           <!-- Tab 1: Forecast -->
           <button class="nav-tab is-active min-w-[50px] min-h-[44px] px-3 py-1.5 rounded-full flex flex-col items-center justify-center transition-all text-primary bg-amber-glow-surface shadow-[0_0_16px_rgba(255,184,79,0.30)]" data-view="view-forecast">
             <span class="material-symbols-outlined text-[20px]">partly_cloudy_day</span>
-            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap">Forecast</span>
+            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap" data-i18n="navForecast">Forecast</span>
           </button>
 
           <!-- Tab 2: Map -->
           <button class="nav-tab min-w-[50px] min-h-[44px] px-3 py-1.5 rounded-full flex flex-col items-center justify-center transition-all text-ink-tertiary hover:text-ink-primary" data-view="view-map">
             <span class="material-symbols-outlined text-[20px]">radar</span>
-            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap">Radar Map</span>
+            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap" data-i18n="navMap">Radar Map</span>
           </button>
 
           <!-- Tab 3: WeatherGPT Assistant -->
           <button class="nav-tab min-w-[50px] min-h-[44px] px-3 py-1.5 rounded-full flex flex-col items-center justify-center transition-all text-ink-tertiary hover:text-ink-primary" data-view="view-weathergpt">
             <span class="material-symbols-outlined text-[20px]">chat</span>
-            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap">WeatherGPT</span>
+            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap" data-i18n="navGpt">WeatherGPT</span>
           </button>
 
           <!-- Tab 4: Smart Farm Advisor -->
           <button class="nav-tab min-w-[50px] min-h-[44px] px-2 sm:px-3 py-1.5 rounded-full flex flex-col items-center justify-center transition-all text-ink-tertiary hover:text-ink-primary" data-view="view-farmer" aria-label="Smart Farm Weather Advisor">
             <span class="material-symbols-outlined text-[20px]" aria-hidden="true">agriculture</span>
-            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap">Farmer</span>
+            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap" data-i18n="navFarmer">Farmer</span>
           </button>
 
           <!-- Tab 5: Insights -->
           <button class="nav-tab min-w-[50px] min-h-[44px] px-2 sm:px-3 py-1.5 rounded-full flex flex-col items-center justify-center transition-all text-ink-tertiary hover:text-ink-primary" data-view="view-insights">
             <span class="material-symbols-outlined text-[20px]">pulse_alert</span>
-            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap">Insights</span>
+            <span class="font-label-caps text-[10px] mt-0.5 whitespace-nowrap" data-i18n="navInsights">Insights</span>
           </button>
 
         </div>
