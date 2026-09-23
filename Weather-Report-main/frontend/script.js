@@ -52,6 +52,7 @@ function initThemeToggle() {
     if (meta) meta.setAttribute("content", currentTheme() === "dark" ? "#0F1626" : "#3D7CC9");
     syncRainFxTheme();
     syncSceneFxTheme();
+    syncCardSceneFxTheme();
   });
   // Keep "system-default" sessions in sync with OS changes until the
   // user explicitly picks a side (an explicit pick persists and wins).
@@ -1282,6 +1283,8 @@ if (window.matchMedia) {
     applyPrecipFx(document.body.dataset.condition || "clear-day");
     // Scene pools follow: static mode parks drops/ripples/stars.
     applySceneFx(document.body.dataset.condition || "clear-day", sceneFx.lastIsDay);
+    // Card scene pools follow: static mode parks in-card particles.
+    applyCardSceneFx(document.body.dataset.condition || "clear-day", sceneFx.lastIsDay, cardScene.lastTempBand);
   };
   if (rmQuery.addEventListener) rmQuery.addEventListener("change", onRmChange);
   else if (rmQuery.addListener) rmQuery.addListener(onRmChange);
@@ -1424,6 +1427,251 @@ function applySceneFx(condition, isDay = 1) {
 function syncSceneFxTheme() {
   if (!sceneFx.current) return;
   applySceneFx(document.body.dataset.condition || "clear-day", sceneFx.lastIsDay);
+}
+
+// ============================================================
+// CARD SCENE — animated weather scene clipped entirely inside the
+// hero card (#card-scene). Driven by the SAME REAL condition as the
+// page Living Sky (never fabricated): each condition gets its own
+// in-card sky gradient + matching animated elements (sun, clouds,
+// rain, storm+lightning, mist, snow, moon+stars). The layer paints
+// below the card's content (z-0 vs z-10) and never touches the page
+// background layers, so the two scenes stay fully separate.
+// Perf: pooled drops/flakes/stars seeded lazily and reused across
+// switches (DOM bounded), transform/opacity-only animations, zero
+// per-frame JS. Reduced-motion parks the pools static inside the
+// card (the page rain-fx static field does not cover the card).
+// ============================================================
+
+const CARD_SKY_CLASS_BY_CONDITION = {
+  "clear-day": "cs-clear-day",
+  "clear-night": "cs-clear-night",
+  "partly-cloudy-day": "cs-partly-cloudy-day",
+  "partly-cloudy-night": "cs-partly-cloudy-night",
+  "cloudy": "cs-cloudy",
+  "fog": "cs-fog",
+  "drizzle": "cs-drizzle",
+  "rain": "cs-rain",
+  "snow": "cs-snow",
+  "thunder": "cs-thunder",
+};
+
+const CARD_SKY_CLASS_BY_TEMP_BAND = {
+  hot: "cs-hot",
+  cold: "cs-cold",
+};
+
+// Fair skies keep the page scene's rule: temperature bands override
+// clear/partly-cloudy only; rain/snow/fog/storm carry their own mood.
+function cardSkyClassFor(condition, tempBand = "mild") {
+  if ((tempBand === "hot" || tempBand === "cold") && (condition === "clear-day" || condition === "partly-cloudy-day")) {
+    return CARD_SKY_CLASS_BY_TEMP_BAND[tempBand];
+  }
+  return CARD_SKY_CLASS_BY_CONDITION[condition] || CARD_SKY_CLASS_BY_CONDITION["clear-day"];
+}
+
+// 7 illustrated scenes: rain and drizzle share the rain scene,
+// thunder gets the storm scene with its gated flash, everything
+// else maps 1:1 to its scene (snow and mist included).
+const CARD_SCENE_BY_CONDITION = {
+  "clear-day": "sun",
+  "partly-cloudy-day": "clouds",
+  "cloudy": "clouds",
+  "fog": "mist",
+  "drizzle": "rain",
+  "rain": "rain",
+  "snow": "snow",
+  "thunder": "storm",
+};
+
+const cardScene = {
+  front: 0,           // which cs-sky layer is live (crossfade alternation)
+  retireTimer: null,
+  currentSky: null,
+  currentScene: null,
+  lastIsDay: 1,
+  lastTempBand: "mild",
+  lastCondition: "clear-day",
+  seededDrops: false,
+  seededDropCount: 0,
+  seededRipples: false,
+  seededStormDrops: false,
+  seededStormRipples: false,
+  seededSnow: false,
+  seededStars: false,
+};
+
+function seedCardDropsInto(field, count, lenMin, lenSpan) {
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < count; i++) {
+    const drop = document.createElement("span");
+    drop.className = "cs-drop";
+    const length = lenMin + Math.random() * lenSpan;
+    drop.style.left = (Math.random() * 100).toFixed(2) + "%";
+    drop.style.height = length.toFixed(1) + "px";
+    drop.style.setProperty("--cs-dur", (0.6 + Math.random() * 0.5).toFixed(2) + "s");
+    drop.style.setProperty("--cs-delay", (-Math.random() * 1.4).toFixed(2) + "s");
+    drop.style.setProperty("--cs-o", (0.35 + Math.random() * 0.45).toFixed(2));
+    frag.appendChild(drop);
+  }
+  field.textContent = "";
+  field.appendChild(frag);
+}
+
+function seedCardRipples(poolId) {
+  const pool = document.getElementById(poolId);
+  if (!pool) return;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 7; i++) {
+    const ripple = document.createElement("span");
+    ripple.className = "cs-ripple";
+    ripple.style.left = (Math.random() * 84).toFixed(2) + "%";
+    ripple.style.setProperty("--cs-delay", (-Math.random() * 1.4).toFixed(2) + "s");
+    frag.appendChild(ripple);
+  }
+  pool.textContent = "";
+  pool.appendChild(frag);
+}
+
+function seedCardSnow(count = 30) {
+  const field = document.getElementById("cs-snow-field");
+  if (!field) return;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < count; i++) {
+    const flake = document.createElement("span");
+    flake.className = "cs-snowflake";
+    const size = 2.5 + Math.random() * 3.5;
+    flake.style.width = size.toFixed(1) + "px";
+    flake.style.height = size.toFixed(1) + "px";
+    flake.style.left = (Math.random() * 100).toFixed(2) + "%";
+    flake.style.setProperty("--cs-dur", (3.6 + Math.random() * 2.8).toFixed(2) + "s");
+    flake.style.setProperty("--cs-delay", (-Math.random() * 6).toFixed(2) + "s");
+    flake.style.setProperty("--cs-o", (0.5 + Math.random() * 0.5).toFixed(2));
+    frag.appendChild(flake);
+  }
+  field.textContent = "";
+  field.appendChild(frag);
+}
+
+function seedCardStars(count = 26) {
+  const field = document.getElementById("cs-star-field");
+  if (!field) return;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < count; i++) {
+    const star = document.createElement("span");
+    star.className = "cs-star";
+    const size = 1 + Math.random() * 1.6;
+    star.style.width = size.toFixed(2) + "px";
+    star.style.height = size.toFixed(2) + "px";
+    star.style.top = (Math.random() * 68).toFixed(2) + "%";
+    star.style.left = (Math.random() * 100).toFixed(2) + "%";
+    star.style.setProperty("--cs-delay", (-Math.random() * 3.4).toFixed(2) + "s");
+    frag.appendChild(star);
+  }
+  field.textContent = "";
+  field.appendChild(frag);
+}
+
+// Reduced motion: park pooled particles as a faint static scatter
+// inside the card (their fall/float animations are disabled by CSS;
+// without a parked top they would all bunch at the container top).
+function parkCardPoolsStatic() {
+  document.querySelectorAll("#card-scene .cs-drop").forEach((d) => {
+    d.style.top = (Math.random() * 70 + 6).toFixed(2) + "%";
+  });
+  document.querySelectorAll("#card-scene .cs-snowflake").forEach((f) => {
+    f.style.top = (Math.random() * 70 + 6).toFixed(2) + "%";
+  });
+}
+
+function seedCardPools(condition, reduced) {
+  if (condition === "drizzle" || condition === "rain" || condition === "thunder") {
+    const rainCount = condition === "thunder" ? 42 : condition === "drizzle" ? 20 : 30;
+    const rainFieldId = condition === "thunder" ? "cs-storm-drop-field" : "cs-drop-field";
+    const rainRippleId = condition === "thunder" ? "cs-storm-ripple-pool" : "cs-ripple-pool";
+    const storm = condition === "thunder";
+    const alreadySeeded = storm ? cardScene.seededStormDrops : cardScene.seededDrops;
+    const wantedCount = storm ? cardScene.seededStormDropCount : cardScene.seededDropCount;
+    if (!alreadySeeded || wantedCount !== rainCount || reduced) {
+      seedCardDropsInto(document.getElementById(rainFieldId), rainCount, storm ? 16 : 12, storm ? 8 : 8);
+      if (storm) { cardScene.seededStormDrops = true; cardScene.seededStormDropCount = rainCount; }
+      else { cardScene.seededDrops = true; cardScene.seededDropCount = rainCount; }
+    }
+    const ripplesSeeded = storm ? cardScene.seededStormRipples : cardScene.seededRipples;
+    if (!ripplesSeeded) {
+      seedCardRipples(rainRippleId);
+      if (storm) cardScene.seededStormRipples = true;
+      else cardScene.seededRipples = true;
+    }
+  }
+  if (condition === "snow") {
+    if (!cardScene.seededSnow) {
+      seedCardSnow(30);
+      cardScene.seededSnow = true;
+    }
+  }
+  if (cardScene.currentScene === "night" || condition === "clear-night" || condition === "partly-cloudy-night") {
+    if (!cardScene.seededStars) {
+      seedCardStars(26);
+      cardScene.seededStars = true;
+    }
+  }
+  if (reduced) parkCardPoolsStatic();
+}
+
+// Public entry: apply the card scene for the REAL condition. Called from
+// renderForecastScreen with the live payload, on theme flips and at boot.
+function applyCardSceneFx(condition, isDay = 1, tempBand = "mild") {
+  const host = document.getElementById("card-scene");
+  if (!host) return;
+  const day = isDay !== 0;
+  cardScene.lastIsDay = day ? 1 : 0;
+  cardScene.lastCondition = condition;
+  cardScene.lastTempBand = tempBand;
+
+  // Same real-condition + theme mapping as the page scene: in dark theme
+  // the sun scene never shows — moon + stars match the moonlit palette.
+  let scene = CARD_SCENE_BY_CONDITION[condition] || (day ? "sun" : "night");
+  if (currentTheme() === "dark" && scene === "sun") scene = "night";
+  if (!day && scene === "sun") scene = "night";
+
+  // In-card sky gradient follows the SAME condition + temp band as the
+  // page Living Sky (hot/cold override fair skies only).
+  const skyClass = cardSkyClassFor(condition, tempBand);
+  const layers = [host.querySelector(".cs-sky-a"), host.querySelector(".cs-sky-b")];
+  if (layers[0] && layers[1] && cardScene.currentSky !== skyClass) {
+    const incoming = layers[(cardScene.front + 1) % 2];
+    const outgoing = layers[cardScene.front];
+    cardScene.front = (cardScene.front + 1) % 2;
+    incoming.classList.remove(...Object.values(CARD_SKY_CLASS_BY_CONDITION), ...Object.values(CARD_SKY_CLASS_BY_TEMP_BAND));
+    incoming.classList.add(skyClass);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        incoming.classList.add("is-live");
+        clearTimeout(cardScene.retireTimer);
+        cardScene.retireTimer = setTimeout(() => outgoing.classList.remove("is-live"), 1800);
+      });
+    });
+    cardScene.currentSky = skyClass;
+  }
+
+  if (host.dataset.scene === scene && cardScene.currentScene === scene) {
+    // Same scene: keep pools intensity-fresh (drizzle↔rain↔thunder
+    // reseed when the tier changes even though "rain" stays).
+    seedCardPools(condition, prefersReducedMotion());
+    return;
+  }
+
+  host.dataset.scene = scene;
+  cardScene.currentScene = scene;
+  seedCardPools(condition, prefersReducedMotion());
+}
+
+// Theme flip: re-run the mapping so dark theme swaps sun→night (and
+// light theme restores it) without waiting for the next weather fetch.
+function syncCardSceneFxTheme() {
+  if (cardScene.currentScene === null) return;
+  applyCardSceneFx(cardScene.lastCondition, cardScene.lastIsDay, cardScene.lastTempBand);
 }
 
 // ============================================================
@@ -2016,6 +2264,9 @@ function renderForecastScreen() {
   applySkyFx(cat, isDay);
   // Illustrated scene layer (sun/clouds/rain/night), same real condition.
   applySceneFx(cat, isDay);
+  // In-card hero scene (sun/clouds/rain/storm/mist/snow/night), same
+  // real condition + temperature band — clipped inside the hero card.
+  applyCardSceneFx(cat, isDay, tempBandFor(temp));
   // Precipitation overlay + storm lightning, from the same real payload.
   applyPrecipFx(cat, current.precipitation, current.wind_direction_10m);
   // Smart Rain Alert + Rain Timeline — same real hourly payload.
@@ -3490,6 +3741,7 @@ window.addEventListener("DOMContentLoaded", () => {
   applyDynamicSky("clear-day", "mild");
   applySkyFx("clear-day", 1); // clouds/sun-glow/rays layer starts on the fair-day default
   applySceneFx("clear-day", 1); // illustrated scene starts on the fair-day default
+  applyCardSceneFx("clear-day", 1, "mild"); // in-card hero scene starts fair
   applyPrecipFx("clear-day"); // rain/lightning layers start hidden
   // Auto-request GPS on first load (graceful fallback to the default
   // city on denial/timeout/unsupported) instead of always loading SF.

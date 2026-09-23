@@ -323,7 +323,46 @@
     <section id="view-forecast" class="app-view flex flex-col w-full gap-5 md:flex-row md:flex-wrap md:items-start">
 
       <!-- Ambient Sky Canvas Card -->        <div class="relative w-full overflow-hidden rounded-3xl p-5 md:p-6 bg-surface-container-lowest border border-glass-border shadow-xl md:order-1 md:w-[420px] md:shrink-0 flex flex-col">
-        <!-- Location Pin & Sync Status -->
+        <!-- CARD SCENE: self-contained animated sky clipped entirely inside
+           the hero card. Same REAL condition as the page Living Sky (set by
+           applyCardSceneFx from the live WMO code) — never fabricated. Sits
+           behind the card's content (z-0 vs content z-10). -->
+      <div id="card-scene" aria-hidden="true" data-scene="sun">
+        <div class="cs-sky cs-sky-a"></div>
+        <div class="cs-sky cs-sky-b"></div>
+        <!-- SUN: pulsing orb + soft halo -->
+        <div class="cs-part cs-sun"><span class="cs-sun-halo"></span><span class="cs-sun-orb"></span></div>
+        <!-- CLOUDS: three drifting SVG clouds (shared with the page scene) -->
+        <div class="cs-part cs-clouds">
+          <span class="cs-cloud cs-cloud-1"><svg width="220" height="90" viewBox="0 0 220 90" focusable="false"><ellipse cx="70" cy="55" rx="65" ry="32" fill="#fff"/><ellipse cx="130" cy="42" rx="50" ry="28" fill="#fff"/><ellipse cx="170" cy="58" rx="42" ry="24" fill="#fff"/></svg></span>
+          <span class="cs-cloud cs-cloud-2"><svg width="160" height="70" viewBox="0 0 160 70" focusable="false"><ellipse cx="55" cy="42" rx="50" ry="24" fill="#fff"/><ellipse cx="100" cy="34" rx="38" ry="20" fill="#fff"/></svg></span>
+          <span class="cs-cloud cs-cloud-3"><svg width="130" height="60" viewBox="0 0 130 60" focusable="false"><ellipse cx="45" cy="36" rx="40" ry="20" fill="#fff"/><ellipse cx="85" cy="30" rx="30" ry="16" fill="#fff"/></svg></span>
+        </div>
+        <!-- RAIN: dark storm cloud + pooled drops + ripples -->
+        <div class="cs-part cs-rain">
+          <span class="cs-rain-cloud"><svg width="240" height="110" viewBox="0 0 240 110" focusable="false"><ellipse cx="75" cy="58" rx="70" ry="34" fill="#4a5164"/><ellipse cx="140" cy="44" rx="54" ry="30" fill="#525a6e"/><ellipse cx="182" cy="60" rx="45" ry="26" fill="#3f4657"/></svg></span>
+          <div class="cs-drops" id="cs-drop-field"></div>
+          <div class="cs-ripples" id="cs-ripple-pool"></div>
+        </div>
+        <!-- LIGHTNING: storm scene + flash sheet (REAL thunder only, gated in JS+CSS) -->
+        <div class="cs-part cs-storm">
+          <span class="cs-rain-cloud"><svg width="240" height="110" viewBox="0 0 240 110" focusable="false"><ellipse cx="75" cy="58" rx="70" ry="34" fill="#3b4254"/><ellipse cx="140" cy="44" rx="54" ry="30" fill="#454d61"/><ellipse cx="182" cy="60" rx="45" ry="26" fill="#313848"/></svg></span>
+          <div class="cs-drops" id="cs-storm-drop-field"></div>
+          <div class="cs-ripples" id="cs-storm-ripple-pool"></div>
+          <span class="cs-flash"></span>
+        </div>
+        <!-- MIST: slow-drifting fog veils -->
+        <div class="cs-part cs-mist"><span class="cs-mist-band cs-mist-1"></span><span class="cs-mist-band cs-mist-2"></span><span class="cs-mist-band cs-mist-3"></span></div>
+        <!-- SNOW: pooled flakes + settled ground strip -->
+        <div class="cs-part cs-snow">
+          <div class="cs-snow-field" id="cs-snow-field"></div>
+          <span class="cs-snow-ground"></span>
+        </div>
+        <!-- NIGHT: crescent moon + pooled twinkle stars -->
+        <div class="cs-part cs-night"><span class="cs-moon-glow"></span><span class="cs-moon"></span><div class="cs-stars" id="cs-star-field"></div></div>
+      </div>
+
+      <!-- Location Pin & Sync Status -->
         <div class="relative z-10 flex items-center justify-between md:justify-center">
           <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-glass-base backdrop-blur-md text-ink-primary border border-glass-border/20">
             <span class="material-symbols-outlined text-primary text-[15px]">location_on</span>

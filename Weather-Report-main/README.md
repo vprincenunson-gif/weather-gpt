@@ -70,6 +70,7 @@ The application's purpose is to act as a **conversational, multilingual "atmosph
 | 10 | **Smart Farm Weather Advisor** — crop & stage-aware action advice (irrigation, rain, harvest windows, wind/heat safety, field operations) in EN/HI/TE | Farmer tab |
 | 11 | Illustrative "regional microclimate" chips derived from the current temperature | Forecast tab |
 | 12 | **Smart Rain Alert** — evidence-backed, localized rain advisory + **Rain Timeline** window bar from the real hourly payload | Forecast tab |
+| 13 | **Fully weather-synchronized visuals** — page Living Sky + an in-card animated hero scene, both driven by the same real condition | Forecast tab |
 
 ## 5. Feature Details
 
@@ -160,6 +161,17 @@ The background is a layered, weather-aware atmosphere built entirely from the re
 - **Full-surface theming** — the entire Tailwind palette is mapped to rgb-triplet CSS variables re-declared under `html[data-theme="dark"]`, so every tab (Forecast, Radar Map, WeatherGPT, Farmer, Insights), the header, modals, the bottom dock, charts, cards and ink re-theme consistently. AQI status colors and the radar marker label read theme tokens; the radar basemap switches between CARTO light tiles and Dark Matter to match.
 - **Readability & motion care** — dark-theme accents are lightened for AA contrast, content sits on a dark paper wash below the hero, and `prefers-reduced-motion` freezes all atmosphere motion (clouds park, rays stop swaying, sparkle stills) alongside the existing rain/lightning rules. Rain drop tint follows the theme (paler drops on dark skies); the rain and thunderstorm effects remain fully functional in both themes.
 
+### 5.12c Fully Weather-Synchronized Visual System (Page Sky + In-Card Scene)
+
+Both visual layers — the full-page background and the hero card — are driven by the **same single real condition category** (`getConditionCategory(code, isDay)` from the live WMO weather code; `applyDynamicSky`, `applySkyFx`, `applySceneFx`, `applyCardSceneFx` and `applyPrecipFx` are all called together from `renderForecastScreen` on every weather/location refresh), so the two can never disagree or fabricate a condition:
+
+- **Page background (Living Sky)** — the full-viewport atmosphere mirrors the real condition: rain→steel rain sky with real-precipitation drops, cloudy→slate cloud deck, clear/hot→bright sunlit sky (+ hot temp-band override), thunderstorm→graphite storm sky with lightning, fog→milky haze, snow→porcelain snow sky with sparkle, night→indigo night with stars. All existing layers (gradient crossfade, cloud bands, sun glow, rays, sparkle, stars, mist veil, rain-fx with real wind slant, lightning-fx with synthesized thunder) are unchanged.
+- **Hero card scene (`#card-scene`)** — the main weather card now contains its **own self-contained animated scene clipped entirely inside the card's rounded corners** (`overflow: hidden`, `border-radius: inherit`), with its own in-card sky gradient that crossfades on condition change. Seven illustrated scenes: **sun** (pulsing orb + halo), **clouds** (drifting SVG clouds), **rain** (storm cloud + pooled drops + ripples), **storm** (thunderstorm with a flash sheet gated to REAL thunder), **mist** (drifting fog veils), **snow** (pooled snowfall + settled ground), **night** (moon + twinkle stars). Drizzle shares the rain scene with a lighter pool; the hot/cold temperature bands override fair skies only — the same rule as the page sky.
+- **Separation & stacking** — the card scene paints above the card's paper background but **below the card's text/data** (`z-index: 0` vs the content's `z-10`), and never touches the page background layers — verified geometrically and by pixel-diff (zero scene motion outside the card).
+- **Sync points** — scene state recomputes on every `refreshWeatherData()` render, on light/dark theme flips (`syncCardSceneFxTheme`; dark theme remaps sun→night on both layers), and on `prefers-reduced-motion` changes (card pools park as a faint static scatter inside the card).
+- **Performance** — pooled particles (drops/flakes/stars) are seeded lazily and reused across scene switches (bounded DOM), transform/opacity-only animations, zero per-frame JS.
+- **Verification** — `backend/e2e_card_scene_test.py` checks every condition on mobile (390×844) and desktop (1280×900), both themes, reduced motion, real-payload rendering, clipping and stacking (112 checks). `backend/scene_preview_capture.py` captures per-condition page-sky and card-scene previews (with motion pairs) into `scene-previews/`.
+
 ### 5.13 Radar Map Field Layers — Micro-Temp, Wind Vectors, AQI Plume
 
 All three previously-"coming soon" radar pills are wired to **real gridded model data** (no fabricated values anywhere):
@@ -220,7 +232,7 @@ All backend logic lives in `backend/app.py` (a single Flask application file).
 All client logic lives in `frontend/script.js` (vanilla JavaScript, no bundler).
 
 - **`state`** — a single in-memory object holding the current location, fetched weather/alerts/air-quality data, selected voice language, active view/tab, active map layer, and voice-recording state.
-- **`getConditionCategory(code, isDay)`** — maps a WMO weather code (plus day/night flag) to a visual condition category (e.g. `clear-day`, `cloudy-night`, `rain`) used to theme the background glow and hero glyph.
+- **`getConditionCategory(code, isDay)`** — maps a WMO weather code (plus day/night flag) to a visual condition category (e.g. `clear-day`, `cloudy-night`, `rain`) used to theme the background glow, hero glyph, page sky and in-card scene.
 - **`switchView(targetViewId)`** — toggles which of the four `<section>` "screens" (Forecast, Radar Map, WeatherGPT, Insights) is visible and updates the bottom nav's active tab.
 - **`refreshWeatherData()`** — calls `/api/weather` for the current coordinates and updates `state.weather`, `state.alerts`, and `state.airQuality`, then triggers all screen render functions.
 - **`renderForecastScreen()` / `renderMapScreen()` / `renderInsightsScreen()`** — populate each tab's DOM elements from the current `state`.
@@ -230,6 +242,9 @@ All client logic lives in `frontend/script.js` (vanilla JavaScript, no bundler).
 - **`pickSupportedMimeType()` / `startVoiceRecording()` / `stopVoiceRecording()` / `cancelVoiceRecording()` / `handleVoiceRecordingFinished()`** — the full voice-capture lifecycle: microphone permission, `MediaRecorder` setup, 20-second countdown, and posting the recorded clip to `/api/transcribe`.
 - **`renderMarkdownLite(rawText)` / `escapeHTML(str)`** — a minimal, dependency-free Markdown-to-HTML renderer (bold, bullet lists, line breaks) with HTML-escaping for safety.
 - **`getJSON(path)` / `postJSON(path, body)`** — small `fetch()` wrappers used by every API call above.
+- **`applySceneFx(condition, isDay)`** — picks the illustrated page scene (sun/clouds/rain/night) and seeds its lazy pools from the real condition.
+- **`applyCardSceneFx(condition, isDay, tempBand)`** — drives the in-card hero scene (`#card-scene`): picks one of seven card scenes (sun/clouds/rain/storm/mist/snow/night), crossfades the in-card sky gradient, and seeds the card's pooled particles — always from the same real condition as the page sky.
+- **`syncCardSceneFxTheme()`** — re-applies the card scene after a light/dark flip so dark theme swaps sun→night inside the card too.
 - **`radar-map.js`** — initializes the real Leaflet radar map, fetches and caches RainViewer's live frame list, switches between the precipitation/satellite layers, and steps the playback slider through real frames (see [5.8](#58-radar-map-view)).
 - **`sw.js`** — the service worker implementing the cache-first app-shell / network-first API strategy described in [5.10](#510-progressive-web-app-installable).
 

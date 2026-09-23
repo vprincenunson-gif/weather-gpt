@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v15"; // v15: user-controlled voice output (stateful Speak button)
+const CACHE_NAME = "weathergpt-shell-v16"; // v16: weather-synchronized in-card hero scene
 
 const SHELL_FILES = [
   "/",

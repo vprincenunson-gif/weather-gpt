@@ -1436,6 +1436,391 @@ html[data-theme="dark"] .scene-cloud {
 }
 
 /* ============================================================
+   CARD SCENE — self-contained animated weather scene clipped
+   entirely inside the hero card (#card-scene). Driven by the SAME
+   REAL condition as the page Living Sky (applyCardSceneFx from the
+   live WMO code — never fabricated): each scene pairs its own
+   in-card sky gradient with matching animated elements (sun orb,
+   drifting clouds, rain drops, storm + lightning, mist veils,
+   snowfall, moon + stars). The layer paints ABOVE the card's own
+   paper background but BELOW the card's content (z-0 vs z-10), and
+   overflow clipping keeps every element inside the card's rounded
+   corners — the page background layers stay fully separate.
+   ============================================================ */
+
+#card-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  /* Card paper shows only in the first paint frame; the scene's own
+     sky covers it before the fade-in completes. */
+  background: transparent;
+}
+
+/* ---- In-card sky gradients: two layers crossfade on condition
+   change (same pattern as the page Living Sky, faster + tighter). */
+.cs-sky {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+  will-change: opacity;
+}
+.cs-sky.is-live { opacity: 1; }
+
+.cs-sky.cs-clear-day {
+  background:
+    radial-gradient(90% 46% at 82% -8%, rgba(255, 208, 116, 0.5) 0%, rgba(255, 208, 116, 0) 60%),
+    linear-gradient(180deg, #2E7BC4 0%, #5C9BD8 34%, #9CC6EA 68%, #DCEEFA 100%);
+}
+.cs-sky.cs-clear-night {
+  background:
+    radial-gradient(80% 42% at 78% -6%, rgba(196, 218, 255, 0.22) 0%, rgba(196, 218, 255, 0) 60%),
+    linear-gradient(180deg, #101B36 0%, #182646 40%, #24365E 72%, #32477A 100%);
+}
+.cs-sky.cs-partly-cloudy-day {
+  background:
+    radial-gradient(80% 44% at 76% -6%, rgba(255, 218, 150, 0.32) 0%, rgba(255, 218, 150, 0) 56%),
+    linear-gradient(180deg, #4A82BE 0%, #78A3D2 36%, #B4D0EA 70%, #E7F0F9 100%);
+}
+.cs-sky.cs-partly-cloudy-night {
+  background: linear-gradient(180deg, #1A2542 0%, #243154 42%, #31426B 74%, #40547F 100%);
+}
+.cs-sky.cs-cloudy { background: linear-gradient(180deg, #6B7D8F 0%, #8A9AA9 36%, #B0BDC8 70%, #DDE4EB 100%); }
+.cs-sky.cs-fog { background: linear-gradient(180deg, #97A4B0 0%, #B4BEC7 40%, #D1D8DD 72%, #ECF0F3 100%); }
+.cs-sky.cs-drizzle { background: linear-gradient(180deg, #52708B 0%, #6E8CA6 38%, #9AB2C7 70%, #D8E3EE 100%); }
+.cs-sky.cs-rain { background: linear-gradient(180deg, #3A5570 0%, #52708C 36%, #7C97B0 68%, #C6D5E4 100%); }
+.cs-sky.cs-snow { background: linear-gradient(180deg, #A3BDD4 0%, #C3D5E5 38%, #DEEAF4 70%, #F8FBFE 100%); }
+.cs-sky.cs-thunder {
+  background:
+    radial-gradient(110% 38% at 50% 112%, rgba(126, 146, 204, 0.4) 0%, rgba(126, 146, 204, 0) 60%),
+    linear-gradient(180deg, #20283C 0%, #2C3854 40%, #414D70 72%, #5D6789 100%);
+}
+.cs-sky.cs-hot {
+  background:
+    radial-gradient(100% 52% at 80% -10%, rgba(255, 178, 82, 0.55) 0%, rgba(255, 178, 82, 0) 58%),
+    linear-gradient(180deg, #3B7EC0 0%, #6BA3D4 32%, #B7D3EA 64%, #F6E6CA 100%);
+}
+.cs-sky.cs-cold { background: linear-gradient(180deg, #7EA0C2 0%, #9FBCD6 40%, #C6DAE8 72%, #F0F6FB 100%); }
+
+html[data-theme="dark"] .cs-sky.cs-clear-day {
+  background:
+    radial-gradient(90% 46% at 82% -8%, rgba(255, 190, 110, 0.22) 0%, rgba(255, 190, 110, 0) 58%),
+    linear-gradient(180deg, #101A30 0%, #1A2846 36%, #26395E 68%, #34496E 100%);
+}
+html[data-theme="dark"] .cs-sky.cs-clear-night {
+  background:
+    radial-gradient(80% 42% at 78% -6%, rgba(196, 218, 255, 0.26) 0%, rgba(196, 218, 255, 0) 60%),
+    linear-gradient(180deg, #0A1322 0%, #101D38 40%, #182747 72%, #203054 100%);
+}
+html[data-theme="dark"] .cs-sky.cs-partly-cloudy-day { background: linear-gradient(180deg, #131F34 0%, #1D2C4A 38%, #2A3D62 70%, #384C72 100%); }
+html[data-theme="dark"] .cs-sky.cs-partly-cloudy-night { background: linear-gradient(180deg, #0D1626 0%, #16223C 42%, #1F2E50 74%, #2A3C64 100%); }
+html[data-theme="dark"] .cs-sky.cs-cloudy { background: linear-gradient(180deg, #151D2C 0%, #202C40 38%, #2C3A52 70%, #3A4A64 100%); }
+html[data-theme="dark"] .cs-sky.cs-fog { background: linear-gradient(180deg, #171F2C 0%, #222D3C 40%, #2F3C4C 72%, #404E5E 100%); }
+html[data-theme="dark"] .cs-sky.cs-drizzle { background: linear-gradient(180deg, #131F2C 0%, #1C2C3C 38%, #273A4E 70%, #344A60 100%); }
+html[data-theme="dark"] .cs-sky.cs-rain { background: linear-gradient(180deg, #0F1B26 0%, #182835 36%, #223648 68%, #2F4557 100%); }
+html[data-theme="dark"] .cs-sky.cs-snow { background: linear-gradient(180deg, #202F48 0%, #2F4463 38%, #44597C 70%, #5C7495 100%); }
+html[data-theme="dark"] .cs-sky.cs-thunder {
+  background:
+    radial-gradient(110% 38% at 50% 112%, rgba(120, 142, 210, 0.35) 0%, rgba(120, 142, 210, 0) 60%),
+    linear-gradient(180deg, #0B101E 0%, #141C30 40%, #1E2942 72%, #2A3652 100%);
+}
+html[data-theme="dark"] .cs-sky.cs-hot {
+  background:
+    radial-gradient(100% 50% at 80% -10%, rgba(255, 160, 80, 0.26) 0%, rgba(255, 160, 80, 0) 58%),
+    linear-gradient(180deg, #111C2C 0%, #1E2E48 34%, #3A3A54 66%, #5E4840 100%);
+}
+html[data-theme="dark"] .cs-sky.cs-cold { background: linear-gradient(180deg, #16233A 0%, #22344E 40%, #304662 72%, #40587A 100%); }
+
+/* ---- Scene parts: exactly one displayed per data-scene. ---- */
+.cs-part { display: none; position: absolute; inset: 0; }
+
+#card-scene[data-scene="sun"] .cs-sun,
+#card-scene[data-scene="clouds"] .cs-clouds,
+#card-scene[data-scene="rain"] .cs-rain,
+#card-scene[data-scene="storm"] .cs-storm,
+#card-scene[data-scene="mist"] .cs-mist,
+#card-scene[data-scene="snow"] .cs-snow,
+#card-scene[data-scene="night"] .cs-night {
+  display: block;
+  animation: cs-part-in 0.9s ease both;
+}
+
+@keyframes cs-part-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---- SUN: warm pulsing orb + halo, upper right of the card. ---- */
+.cs-sun-orb {
+  position: absolute;
+  top: 30px;
+  right: 26px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #FFF6D8 0%, #FFD873 55%, rgba(255, 216, 115, 0) 78%);
+  animation: cs-sun-pulse 4.5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.cs-sun-halo {
+  position: absolute;
+  top: 4px;
+  right: -10px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 224, 150, 0.5) 0%, rgba(255, 224, 150, 0) 65%);
+  animation: cs-halo-breathe 6s ease-in-out infinite;
+}
+
+@keyframes cs-sun-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.9; transform: scale(1.06); }
+}
+
+@keyframes cs-halo-breathe {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.08); }
+}
+
+/* ---- CLOUDS: three illustrated clouds drifting across the card. ---- */
+.cs-cloud {
+  position: absolute;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.1));
+  will-change: transform;
+}
+
+.cs-cloud svg { display: block; width: 100%; height: auto; }
+
+.cs-cloud-1 { top: 16px;  width: 104px; animation: cs-cloud-drift 34s linear infinite; animation-delay: -14s; }
+.cs-cloud-2 { top: 58px;  width: 74px;  animation: cs-cloud-drift 46s linear infinite; opacity: 0.75; animation-delay: -30s; }
+.cs-cloud-3 { top: 2px;   width: 58px;  animation: cs-cloud-drift 27s linear infinite; opacity: 0.55; animation-delay: -5s; }
+
+/* Travel spans the widest card (+ margins); overflow clips the rest. */
+@keyframes cs-cloud-drift {
+  from { transform: translateX(-130px); }
+  to   { transform: translateX(470px); }
+}
+
+/* ---- RAIN / STORM: dark cloud overhead + pooled drops + ripples.
+   Pools are built by script.js and reused across scene switches. */
+.cs-rain-cloud {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: 150px;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.3));
+  animation: cs-storm-bob 7s ease-in-out infinite;
+}
+
+.cs-rain-cloud svg { display: block; width: 100%; height: auto; }
+
+@keyframes cs-storm-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(4px); }
+}
+
+.cs-drops {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.cs-drop {
+  position: absolute;
+  top: -8%;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(173, 205, 240, 0) 0%, rgba(160, 196, 234, 1) 55%, rgba(224, 240, 255, 1) 100%);
+  animation: cs-drop-fall var(--cs-dur, 0.9s) linear var(--cs-delay, 0s) infinite;
+  opacity: var(--cs-o, 0.6);
+  will-change: transform;
+}
+
+@keyframes cs-drop-fall {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(-16px, 400px); }
+}
+
+.cs-ripples {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 20%;
+}
+
+.cs-ripple {
+  position: absolute;
+  bottom: 4px;
+  width: 20px;
+  height: 6px;
+  border: 1.5px solid rgba(206, 226, 248, 0.75);
+  border-radius: 50%;
+  opacity: 0;
+  animation: cs-ripple-out 1.4s ease-out var(--cs-delay, 0s) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes cs-ripple-out {
+  0%   { transform: scale(0.3); opacity: 0.55; }
+  75%  { opacity: 0.15; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Lightning flash sheet — REAL thunder only (gated in CSS + JS).
+   Synced loosely with the page scene's 8s cycle. */
+.cs-flash {
+  position: absolute;
+  inset: 0;
+  background: #EAF2FF;
+  opacity: 0;
+}
+
+body[data-condition="thunder"] #card-scene[data-scene="storm"] .cs-flash {
+  animation: cs-lightning 8s infinite;
+}
+
+body[data-condition="thunder"] #card-scene[data-scene="storm"] .cs-rain-cloud {
+  animation: cs-storm-bob 7s ease-in-out infinite, cs-cloud-flicker 8s infinite;
+}
+
+@keyframes cs-lightning {
+  0%, 90.8%, 100% { opacity: 0; }
+  91.2%           { opacity: 0.6; }
+  91.6%           { opacity: 0.06; }
+  92%             { opacity: 0.36; }
+  92.6%           { opacity: 0; }
+}
+
+/* ---- MIST: slow-drifting translucent fog veils. ---- */
+.cs-mist-band {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(7px);
+  will-change: transform;
+}
+
+.cs-mist-1 { top: 18%; left: -20%; width: 150%; height: 22%; background: linear-gradient(90deg, rgba(240, 245, 250, 0) 0%, rgba(240, 245, 250, 0.5) 30%, rgba(240, 245, 250, 0.28) 70%, rgba(240, 245, 250, 0) 100%); animation: cs-mist-drift 26s ease-in-out infinite alternate; }
+.cs-mist-2 { top: 48%; left: -25%; width: 160%; height: 20%; background: linear-gradient(90deg, rgba(228, 236, 244, 0) 0%, rgba(228, 236, 244, 0.42) 40%, rgba(228, 236, 244, 0.2) 75%, rgba(228, 236, 244, 0) 100%); animation: cs-mist-drift 34s ease-in-out infinite alternate-reverse; }
+.cs-mist-3 { top: 74%; left: -18%; width: 140%; height: 18%; background: linear-gradient(90deg, rgba(238, 243, 248, 0) 0%, rgba(238, 243, 248, 0.55) 35%, rgba(238, 243, 248, 0.3) 72%, rgba(238, 243, 248, 0) 100%); animation: cs-mist-drift 22s ease-in-out infinite alternate; animation-delay: -8s; }
+
+@keyframes cs-mist-drift {
+  from { transform: translateX(-24px); }
+  to   { transform: translateX(30px); }
+}
+
+/* ---- SNOW: pooled flakes + settled ground strip. ---- */
+.cs-snowflake {
+  position: absolute;
+  top: -6%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #FFFFFF 0%, rgba(255, 255, 255, 0.85) 60%, rgba(255, 255, 255, 0) 100%);
+  animation: cs-snow-fall var(--cs-dur, 5s) linear var(--cs-delay, 0s) infinite;
+  opacity: var(--cs-o, 0.85);
+  will-change: transform;
+}
+
+@keyframes cs-snow-fall {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(10px, 200px); }
+  100% { transform: translate(-6px, 400px); }
+}
+
+.cs-snow-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.55) 100%);
+}
+
+/* ---- NIGHT: crescent moon + pooled twinkle stars. ---- */
+.cs-moon {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #FDFAF0 0%, #ECE6CF 55%, #CFC9AE 100%);
+  box-shadow: inset -8px -4px 0 0 rgba(120, 116, 96, 0.22);
+}
+
+.cs-moon-glow {
+  position: absolute;
+  top: -6px;
+  right: -2px;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(230, 225, 200, 0.4) 0%, rgba(230, 225, 200, 0) 65%);
+  animation: cs-halo-breathe 7s ease-in-out infinite;
+}
+
+.cs-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #FFFFFF;
+  animation: cs-star-twinkle 3.4s ease-in-out var(--cs-delay, 0s) infinite;
+  opacity: 0.55;
+  will-change: opacity;
+}
+
+@keyframes cs-star-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 1; }
+}
+
+/* ---- DARK THEME element tints: moonlit clouds, paler precip. ---- */
+html[data-theme="dark"] .cs-cloud ellipse { fill: rgba(203, 216, 236, 0.9); }
+html[data-theme="dark"] .cs-cloud { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.4)); }
+html[data-theme="dark"] .cs-drop {
+  background: linear-gradient(180deg, rgba(160, 196, 234, 0) 0%, rgba(173, 205, 240, 0.9) 55%, rgba(205, 224, 245, 1) 100%);
+}
+html[data-theme="dark"] .cs-mist-1,
+html[data-theme="dark"] .cs-mist-2,
+html[data-theme="dark"] .cs-mist-3 {
+  background: linear-gradient(90deg, rgba(160, 178, 200, 0) 0%, rgba(160, 178, 200, 0.3) 35%, rgba(160, 178, 200, 0.16) 72%, rgba(160, 178, 200, 0) 100%);
+}
+html[data-theme="dark"] .cs-snow-ground { background: linear-gradient(180deg, rgba(205, 224, 245, 0) 0%, rgba(205, 224, 245, 0.35) 100%); }
+html[data-theme="dark"] .cs-ripple { border-color: rgba(160, 185, 220, 0.55); }
+
+/* ---- REDUCED MOTION: every card-scene animation freezes. Pools stay
+   seeded (the card has no rain-fx fallback), parked mid-scene by JS —
+   drops/flakes get a static top + faint opacity, stars rest dim. */
+@media (prefers-reduced-motion: reduce) {
+  .cs-sky { transition: none; }
+  .cs-part,
+  .cs-sun-orb,
+  .cs-sun-halo,
+  .cs-cloud,
+  .cs-rain-cloud,
+  .cs-drop,
+  .cs-ripple,
+  .cs-flash,
+  .cs-mist-band,
+  .cs-snowflake,
+  .cs-moon-glow,
+  .cs-star {
+    animation: none !important;
+  }
+
+  /* JS parks drops/flakes with inline top; CSS only dims them. */
+  .cs-drop { opacity: 0.2; }
+  .cs-snowflake { opacity: 0.5; }
+  .cs-star { opacity: 0.6; }
+  .cs-sun-orb, .cs-sun-halo, .cs-moon-glow { opacity: 0.85; }
+}
+
+/* ============================================================
    FARM VISUAL GUIDE — real photos (Wikimedia Commons), local-
    ized captions. Images are lazy-loaded, aspect-ratio-locked so
    the grid never jumps while photos stream in, and themed via
