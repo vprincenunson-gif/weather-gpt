@@ -375,7 +375,10 @@
     <!-- ======================================================== -->
     <section id="view-forecast" class="app-view flex flex-col w-full gap-5 md:flex-row md:flex-wrap md:items-start">
 
-      <!-- Ambient Sky Canvas Card -->        <div class="relative w-full overflow-hidden rounded-3xl p-5 md:p-6 bg-surface-container-lowest border border-glass-border shadow-xl md:order-1 md:w-[420px] md:shrink-0 flex flex-col">
+      <!-- Ambient Sky Canvas Card (wrapped with the Next Few Hours strip
+           so the strip sits directly under the card in the left column) -->
+      <div class="flex flex-col w-full md:order-1 md:w-[420px] md:shrink-0">
+        <div class="relative w-full overflow-hidden rounded-3xl p-5 md:p-6 bg-surface-container-lowest border border-glass-border shadow-xl flex flex-col">
         <!-- CARD SCENE: self-contained animated sky clipped entirely inside
            the hero card. Same REAL condition as the page Living Sky (set by
            applyCardSceneFx from the live WMO code) — never fabricated. Sits
@@ -473,6 +476,17 @@
         </div>
       </div>
 
+        <!-- Next Few Hours — compact real hourly outlook strip, directly
+             under the hero card in the left column (reference-matched) -->
+        <div class="flex flex-col gap-1.5 mt-4">
+          <div class="flex items-center justify-between px-1">
+            <span data-i18n="nfhTitle" class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Next few hours</span>
+            <span data-i18n="nfhSubtitle" class="font-label-caps text-[10px] text-ink-tertiary">Next 6 hours</span>
+          </div>
+          <div id="next-hours-strip" class="flex items-stretch gap-1.5 overflow-x-auto pb-0.5 scrollbar-none rounded-2xl bg-surface-container-high/60 border border-glass-border/15 px-1.5 py-0.5 shadow-sm" role="list" data-i18n-attr="aria-label:nfhTitle"></div>
+        </div>
+      </div>
+
       <!-- AI Quick Synopsis Banner (Handoff to Assistant) -->
       <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-surface-container-high via-surface-container to-surface-container-high border border-glass-border/30 p-4 shadow-lg md:order-2 md:flex-1 md:min-w-[380px]">
         <div class="absolute -right-8 -bottom-8 w-28 h-28 rounded-full bg-amber-glow-surface blur-2xl pointer-events-none"></div>
@@ -496,15 +510,6 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Next Few Hours — compact real hourly outlook strip (lightweight, localized) -->
-      <div class="flex flex-col gap-1.5 md-order-2 md:w-full">
-        <div class="flex items-center justify-between px-1">
-          <span data-i18n="nfhTitle" class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Next few hours</span>
-          <span data-i18n="nfhSubtitle" class="font-label-caps text-[10px] text-ink-tertiary">Next 6 hours</span>
-        </div>
-        <div id="next-hours-strip" class="flex items-stretch gap-1.5 overflow-x-auto pb-0.5 scrollbar-none rounded-2xl bg-surface-container-high/60 border border-glass-border/15 px-1.5 py-0.5 shadow-sm" role="list" data-i18n-attr="aria-label:nfhTitle"></div>
       </div>
 
       <!-- Microclimate Comparative Bar -->

@@ -142,11 +142,15 @@ def strip_state(pg):
 
 
 def hero_bottom_gap(pg):
+    """Gap between the animated scene card's bottom edge and the strip
+    (the strip lives inside the hero column, directly under the card)."""
     return pg.evaluate(
         """() => {
-          const card = document.querySelector('main [class*="order-1"]');
+          const scene = document.querySelector('main .cs-sky-a');
           const strip = document.getElementById('next-hours-strip');
-          if (!card || !strip) return null;
+          if (!scene || !strip) return null;
+          const card = scene.closest('.rounded-3xl');
+          if (!card) return null;
           const cr = card.getBoundingClientRect();
           const sr = strip.getBoundingClientRect();
           return Math.round(sr.top - cr.bottom);
@@ -215,7 +219,25 @@ def run():
             st and st["firstLabel"],
         )
         gap = hero_bottom_gap(page)
-        check("strip sits directly below hero card (< 90px gap)", gap is not None and -20 <= gap <= 90, f"gap={gap}")
+        check("strip sits directly below hero scene card (0..60px gap)", gap is not None and 0 <= gap <= 60, f"gap={gap}")
+        check(
+            "strip is inside the left hero column",
+            page.evaluate(
+                """() => {
+                  const strip = document.getElementById('next-hours-strip');
+                  return !!strip.closest('[class*="order-1"]');
+                }"""
+            ),
+        )
+        check(
+            "all 6 slots visible without scrolling (desktop)",
+            page.evaluate(
+                """() => {
+                  const s = document.getElementById('next-hours-strip');
+                  return s.scrollWidth <= s.clientWidth + 2;
+                }"""
+            ),
+        )
 
         page.screenshot(path=os.path.join(OUT, "nfh_hi_desktop.png"))
 
