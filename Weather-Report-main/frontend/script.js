@@ -6,7 +6,7 @@
 // 1. Service Worker for Offline PWA Capabilities
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=22").catch((err) => {
+    navigator.serviceWorker.register("sw.js?v=23").catch((err) => {
       console.warn("ServiceWorker registration:", err);
     });
   });
@@ -17,6 +17,7 @@ if ("serviceWorker" in navigator) {
 // before first paint (no flash); this adds the toggle, localStorage
 // persistence and live prefers-color-scheme tracking for "system".
 const THEME_KEY = "weathergpt-theme";
+const LANG_KEY = "weathergpt-lang";
 
 function currentTheme() {
   return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
@@ -98,7 +99,8 @@ const state = {
   alerts: [],
   airQuality: null,
   synopsis: "",
-  voiceLang: "auto",
+  voiceLang: (document.documentElement.__i18nBootLang === "hi" ||
+    document.documentElement.__i18nBootLang === "te") ? document.documentElement.__i18nBootLang : "auto",
   activeView: "view-forecast",
   activeMapLayer: "precip",
   insightsScope: "today",
@@ -1788,6 +1790,7 @@ const els = {
   askAiQuickBtn: document.getElementById("ask-ai-quick-btn"),
   microclimateChipsScroll: document.getElementById("microclimate-chips-scroll"),
   hourlyForecastScroll: document.getElementById("hourly-forecast-scroll"),
+  nextHoursStrip: document.getElementById("next-hours-strip"),
   dailyForecastContainer: document.getElementById("daily-forecast-container"),
   telemetryWindSpeed: document.getElementById("telemetry-wind-speed"),
   telemetryWindDir: document.getElementById("telemetry-wind-dir"),
@@ -1953,6 +1956,7 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
     document.querySelectorAll(".lang-btn").forEach((b) => b.classList.remove("is-active"));
     btn.classList.add("is-active");
     state.voiceLang = btn.dataset.lang;
+    try { localStorage.setItem(LANG_KEY, state.voiceLang); } catch (e) {}
     document.documentElement.lang = state.voiceLang === "auto" ? "en" : state.voiceLang;
     // Spoken output follows the same selector: en-US / hi-IN / te-IN.
     window.VoiceOutput?.setLanguage(state.voiceLang);
@@ -1971,6 +1975,10 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
     // Header, nav, section titles, placeholders — immediate, no refresh.
     applyChromeI18n();
     syncVoiceOutputControls();
+    // Pre-paint boot translator is done once the app is live.
+    disconnectI18nBootObserver();
+    syncLanguagePillActive();
+    if (state.weather) renderNextHoursStrip();
     state.farmCacheKey = null;
     if (state.weather && state.activeView === "view-farmer") {
       refreshFarmAdvice();
@@ -2001,6 +2009,96 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
     }
   });
 });
+
+// Boot-time language restore: the pre-paint inline translator already
+// rendered the chrome in the persisted language; here we sync the runtime
+// state and the active pill so behavior matches a real user click.
+(function restoreLanguageAtBoot() {
+  const bootLang = document.documentElement.__i18nBootLang;
+  if (bootLang === "hi" || bootLang === "te") {
+    state.voiceLang = bootLang;
+  }
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved === "en" || saved === "hi" || saved === "te") state.voiceLang = saved;
+  } catch (e) {}
+  syncLanguagePillActive();
+})();
+
+// Keep the EN/Auto/HI/TE pill row consistent with the active language
+// (Auto and EN render identically, so only HI/TE need explicit moves).
+function syncLanguagePillActive() {
+  const lang = state.voiceLang;
+  document.querySelectorAll(".lang-btn").forEach((b) => {
+    b.classList.toggle("is-active", b.dataset.lang === lang ||
+      (lang === "auto" && b.dataset.lang === "auto"));
+  });
+}
+
+// The inline pre-paint translator hands control to the app after load.
+function disconnectI18nBootObserver() {
+  try {
+    const obs = document.documentElement.__i18nBootObserver;
+    if (obs) { obs.disconnect(); document.documentElement.__i18nBootObserver = null; }
+  } catch (e) {}
+}
+
+// ============================================================
+// NEXT FEW HOURS — compact real hourly outlook strip
+// ============================================================
+// A lightweight band directly below the hero card: ~6 upcoming slots
+// from the SAME real hourly payload the 24h scroller uses. Fully
+// localized; hidden entirely when hourly data is unavailable (never
+// fabricated), with an honest localized empty note otherwise.
+function renderNextHoursStrip() {
+  const strip = els.nextHoursStrip;
+  if (!strip) return;
+  const hourly = state.weather?.hourly || {};
+  if (!hourly.time || !hourly.time.length) {
+    strip.innerHTML = `<span class="font-body-dim text-[11px] text-ink-tertiary px-1 py-1">${T("nfhUnavailable")}</span>`;
+    return;
+  }
+  const nowMs = Date.now();
+  let startIdx = hourly.time.findIndex((tStr) => new Date(tStr).getTime() >= nowMs - 1800e3);
+  if (startIdx < 0) startIdx = 0;
+  const temps = hourly.temperature_2m || [];
+  const probs = hourly.precipitation_probability || hourly.precipitation || [];
+  const codes = hourly.weather_code || [];
+  const locale = farmLang() === "hi" ? "hi-IN" : farmLang() === "te" ? "te-IN" : undefined;
+
+  const slots = [];
+  for (let i = startIdx; i < hourly.time.length && slots.length < 6; i++) {
+    const d = new Date(hourly.time[i]);
+    if (d.getTime() < nowMs - 3600e3) continue;
+    slots.push({
+      label: slots.length === 0 ? T("now") : d.toLocaleTimeString(locale, { hour: "numeric" }),
+      temp: Math.round(temps[i] ?? ""),
+      rain: Math.round(probs[i] ?? 0),
+      icon: CONDITION_ICONS[getConditionCategory(codes[i] ?? 0, 1)] || "wb_sunny",
+      cat: getConditionCategory(codes[i] ?? 0, 1),
+    });
+  }
+  if (!slots.length) {
+    strip.innerHTML = `<span class="font-body-dim text-[11px] text-ink-tertiary px-1 py-1">${T("nfhUnavailable")}</span>`;
+    return;
+  }
+
+  strip.innerHTML = slots
+    .map(
+      (s, idx) => `
+      <div role="listitem" class="flex flex-col items-center justify-between min-w-[64px] flex-1 px-1.5 py-0.5 rounded-xl ${
+        idx === 0 ? "bg-amber-glow-surface/70" : ""
+      }">
+        <span class="font-label-caps text-[10px] leading-tight ${idx === 0 ? "text-primary font-bold" : "text-ink-tertiary"} uppercase">${s.label}</span>
+        <span class="material-symbols-outlined text-[16px] leading-none ${idx === 0 ? "text-primary" : "text-ink-primary"}" role="img" aria-label="${conditionTitleFor(s.cat)}">${s.icon}</span>
+        <span class="flex items-baseline justify-center gap-1 leading-tight">
+          <span class="font-headline-card text-[12px] text-ink-primary font-bold leading-none">${s.temp === "" ? "–" : `${s.temp}°`}</span>
+          <span class="font-label-caps text-[9px] text-secondary font-medium leading-none" aria-label="${T("rainChance")} ${s.rain}%">${s.rain}%</span>
+        </span>
+      </div>`
+    )
+    .join("");
+}
 
 function updatePromptChipsForLanguage(lang) {
   if (!els.assistantPromptChips) return;
@@ -2336,6 +2434,7 @@ async function refreshWeatherData(requestId = state.locationRequestId) {
 }
 
 function renderForecastScreen() {
+  renderNextHoursStrip();
   const current = state.weather?.current || {};
   const daily = state.weather?.daily || {};
   const hourly = state.weather?.hourly || {};

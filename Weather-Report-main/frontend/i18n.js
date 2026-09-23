@@ -100,6 +100,9 @@ window.CHROME_I18N = {
     gptWelcome: "Hi! Ask me anything about the weather — in English, हिंदी, or తెలుగు. Try “Will it rain this evening?”, “When should I leave for my ride?”, or “What should I wear today?”",
     mapSearchPh: "Search neighborhood or address...",
     gptInputPh: "Ask about rain, plans, or what to wear...",
+    nfhTitle: "Next few hours",
+    nfhSubtitle: "Next 6 hours",
+    nfhUnavailable: "Hourly outlook unavailable right now",
   },
   hi: {
     brandTagline: "आपका आसमान, समझाया गया",
@@ -193,6 +196,9 @@ window.CHROME_I18N = {
     gptWelcome: "नमस्ते! मौसम के बारे में कुछ भी पूछें — अंग्रेज़ी, हिंदी, या तेलुगु में। जैसे “क्या आज शाम बारिश होगी?”, “मेरी सवारी के लिए सही समय क्या है?”, या “आज मैं क्या पहनूँ?”",
     mapSearchPh: "मोहल्ला या पता खोजें...",
     gptInputPh: "बारिश, योजना या कपड़ों के बारे में पूछें...",
+    nfhTitle: "अगले कुछ घंटे",
+    nfhSubtitle: "अगले 6 घंटे",
+    nfhUnavailable: "घंटेवार आउटलुक अभी उपलब्ध नहीं",
   },
   te: {
     brandTagline: "మీ ఆకాశం, వివరించబడింది",
@@ -286,5 +292,8 @@ window.CHROME_I18N = {
     gptWelcome: "నమస్తే! వాతావరణం గురించి ఏమైనా అడగండి — ఇంగ్లీష్, హిందీ, లేదా తెలుగులో. ఉదా: “ఈ సాయంత్రం వర్షం వస్తుందా?”, “నా రైడ్‌కి సరైన సమయం ఏది?”, లేదా “ఈరోజు నేను ఏమి ధరించాలి?”",
     mapSearchPh: "పరిసర ప్రాంతం లేదా చిరునామా వెతకండి...",
     gptInputPh: "వర్షం, ప్లాన్లు లేదా దుస్తుల గురించి అడగండి...",
+    nfhTitle: "తర్వాతి కొన్ని గంటలు",
+    nfhSubtitle: "తర్వాతి 6 గంటలు",
+    nfhUnavailable: "గంటల వారీ అవుట్‌లుక్ ప్రస్తుతం అందుబాటులో లేదు",
   },
 };

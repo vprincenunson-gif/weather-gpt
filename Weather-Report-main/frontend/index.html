@@ -19,12 +19,66 @@
   <link rel="icon" type="image/svg+xml" href="icons/logo.svg" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
+  <!-- Pre-paint i18n bundle: local translations MUST be available before
+       the inline pre-paint block below runs, so the first visible paint is
+       already in the persisted language (no raw-key/English flash). -->
+  <script src="i18n.js"></script>
+
   <!-- THEME BOOTSTRAP: runs before first paint — applies the saved theme
        (localStorage "weathergpt-theme": "light" | "dark" | system default
        via prefers-color-scheme) so there is never a light-flash on load in
        dark mode. script.js owns updates after this. -->
   <script>
     (function () {
+      // ---- PRE-PAINT LANGUAGE: apply the persisted language before any
+      // visible render so no raw translation key or English flash can ever
+      // appear. i18n.js (bundled, local) loads before this block; the
+      // inline handler guarantees order even if network scripts stall.
+      try {
+        var savedLang = localStorage.getItem("weathergpt-lang");
+        if (savedLang !== "en" && savedLang !== "hi" && savedLang !== "te") savedLang = "en";
+        var B = window.CHROME_I18N;
+        var dict = B && (B[savedLang] || B.en);
+        if (dict) {
+          document.documentElement.lang = savedLang;
+          var translate = function (root) {
+            root.querySelectorAll("[data-i18n]").forEach(function (el) {
+              var v = dict[el.getAttribute("data-i18n")];
+              if (v !== undefined) el.textContent = v;
+            });
+            root.querySelectorAll("[data-i18n-attr]").forEach(function (el) {
+              el.getAttribute("data-i18n-attr").split(",").forEach(function (pair) {
+                var parts = pair.split(":");
+                var v = dict[parts[1].trim()];
+                if (parts[0] && v !== undefined) el.setAttribute(parts[0].trim(), v);
+              });
+            });
+          };
+          translate(document);
+          // The observer only needs to cover initial parse; script.js owns
+          // everything after DOMContentLoaded and disconnects it.
+          var bootObserver = new MutationObserver(function (muts) {
+            muts.forEach(function (m) {
+              m.addedNodes.forEach(function (n) {
+                if (n.nodeType === 1) {
+                  if (n.hasAttribute && (n.hasAttribute("data-i18n") || n.hasAttribute("data-i18n-attr"))) translate(n.parentElement || n);
+                  else if (n.querySelector && (n.querySelector("[data-i18n], [data-i18n-attr]"))) translate(n);
+                }
+              });
+            });
+          });
+          bootObserver.observe(document, { childList: true, subtree: true });
+          document.documentElement.__i18nBootObserver = bootObserver;
+          document.addEventListener("DOMContentLoaded", function () {
+            setTimeout(function () {
+              try { document.documentElement.__i18nBootObserver && document.documentElement.__i18nBootObserver.disconnect(); } catch (e) {}
+            }, 0);
+          });
+          document.documentElement.__i18nBootLang = savedLang;
+        }
+      } catch (e) { /* default to EN chrome as-is */ }
+
+      // ---- PRE-PAINT THEME (existing behavior, unchanged) ----
       try {
         var saved = localStorage.getItem("weathergpt-theme");
         var dark = saved === "dark" ||
@@ -442,6 +496,15 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Next Few Hours — compact real hourly outlook strip (lightweight, localized) -->
+      <div class="flex flex-col gap-1.5 md-order-2 md:w-full">
+        <div class="flex items-center justify-between px-1">
+          <span data-i18n="nfhTitle" class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Next few hours</span>
+          <span data-i18n="nfhSubtitle" class="font-label-caps text-[10px] text-ink-tertiary">Next 6 hours</span>
+        </div>
+        <div id="next-hours-strip" class="flex items-stretch gap-1.5 overflow-x-auto pb-0.5 scrollbar-none rounded-2xl bg-surface-container-high/60 border border-glass-border/15 px-1.5 py-0.5 shadow-sm" role="list" data-i18n-attr="aria-label:nfhTitle"></div>
       </div>
 
       <!-- Microclimate Comparative Bar -->
@@ -1120,7 +1183,6 @@
        window.VoiceOutput; the visually hidden live region announces
        speak/stop transitions to screen readers. -->
   <div id="voice-speech-status" aria-live="polite" role="status" class="sr-only"></div>
-  <script src="i18n.js"></script>
   <script src="voice-output.js"></script>
   <script src="script.js"></script>
   <script src="radar-map.js"></script>

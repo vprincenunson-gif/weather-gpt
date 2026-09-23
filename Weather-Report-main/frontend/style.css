@@ -2072,3 +2072,15 @@ button.farm-guide-card.is-action:focus-visible {
     transition: none;
   }
 }
+
+/* ============================================================
+   NEXT FEW HOURS STRIP (compact real hourly outlook)
+   Slots into the hero row between the synopsis banner and the
+   microclimate row on desktop; sits directly under the hero card
+   on mobile. Purely static styling — no animation, reduced-motion safe.
+   ============================================================ */
+@media (min-width: 768px) {
+  .md-order-2 {
+    order: 2; /* ties with the synopsis banner; DOM order places the strip right below it */
+  }
+}

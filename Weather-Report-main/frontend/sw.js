@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v22"; // v22: full local translation bundle (i18n.js) — EN/HI/TE switching is instant, offline-capable, zero API calls
+const CACHE_NAME = "weathergpt-shell-v23"; // v23: pre-paint i18n (no raw-key flash, persisted language) + localized Next Few Hours strip
 
 const SHELL_FILES = [
   "/",
