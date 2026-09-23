@@ -204,8 +204,8 @@ with sync_playwright() as p:
             expected = f"sky-{cond}" if cond not in ("hot", "cold") else f"sky-{cond}"
             check(f"sky {theme}/{cond}: active layer correct", visible == expected, f"got {visible}")
             fx = st["fx"]
-            want_clouds = "0" if cond in ("clear-day", "clear-night", "hot", "cold", "snow") else (
-                "1" if cond.startswith("partly") else "2" if cond in ("cloudy", "fog") else "3")
+            want_clouds = "0" if cond in ("clear-day", "clear-night", "hot", "cold") else (
+                "1" if cond.startswith("partly") or cond == "snow" else "2" if cond in ("cloudy", "fog") else "3")
             want_sky = "fair" if cond in ("clear-day", "clear-night", "hot", "cold") or cond.startswith("partly") else cond
             check(f"sky {theme}/{cond}: fx state", fx["sky"] == want_sky and fx["clouds"] == want_clouds,
                   f"{fx['sky']}/{fx['clouds']}")

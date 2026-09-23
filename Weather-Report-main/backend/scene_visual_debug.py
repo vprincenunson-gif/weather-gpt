@@ -126,7 +126,9 @@ with sync_playwright() as p:
     verify_state(page, "fog", 1, "fog clouds", TOP_D, GUT_D, "clouds")
     # Drops cross any thin band in ~60ms bursts and sit behind the
     # frosted header, so sample several frames and take the max.
-    def band_max(cat, band, frames=6, gap=160):
+    # 14 samples at 140ms: a 6-sample window sat at the noise floor
+    # (~244-257 changed px vs a 250 threshold) and flipped run-to-run.
+    def band_max(cat, band, frames=14, gap=140):
         force(page, cat, 1, 13)
         page.wait_for_timeout(1800)
         hide_scene(page, True)

@@ -404,22 +404,25 @@ html[data-theme="dark"] .sky-layer.sky-cold {
   to   { transform: translate3d(240vw, 0, 0); }
 }
 
-/* Density tiers: partly cloudy is a whisper, overcast/rain a deck. */
-#sky-fx[data-clouds="1"] .sky-clouds { opacity: 0.45; }
+/* Density tiers: partly cloudy is a whisper, overcast/rain a deck.
+   Clear skies never show the band (condition purity — set in JS). */
+#sky-fx[data-clouds="1"] .sky-clouds { opacity: 0.4; }
 #sky-fx[data-clouds="2"] .sky-clouds { opacity: 0.8; }
 #sky-fx[data-clouds="3"] .sky-clouds { opacity: 1; }
+#sky-fx[data-sky="snow"] .sky-clouds { opacity: 0.22; }
 
 /* Sun / moon glow: warm disc halo on fair day skies; the same element
    doubles as moon glow at night and in dark theme via the token. */
 .sky-sun {
   position: absolute;
-  top: -18vh;
-  right: -12vw;
-  width: 66vh;
-  height: 66vh;
+  top: -30vh;
+  right: -20vw;
+  width: 34vh;
+  height: 34vh;
   border-radius: 50%;
   background: radial-gradient(circle, var(--atmo-glow) 0%, rgba(255, 255, 255, 0) 62%);
   opacity: 0;
+  transition: opacity 2s ease;
 }
 
 /* Crepuscular rays: a soft conic beam fan swaying gently. */
@@ -445,12 +448,12 @@ html[data-theme="dark"] .sky-layer.sky-cold {
   to   { transform: rotate(1.6deg); }
 }
 
-/* Fair daylight: sun glow + rays on. */
-#sky-fx[data-sky="fair"][data-day="1"] .sky-sun,
-#sky-fx[data-sky="fair"][data-day="1"] .sky-rays { opacity: 1; }
+/* Fair daylight: a SUBTLE warm horizon glow — atmospheric light, not a
+   visible sun disc (rays stay off; the big orb lives inside the hero card). */
+#sky-fx[data-sky="fair"][data-day="1"] .sky-sun { opacity: 1; }
 
-/* Fair night: a faint moon glow instead (rays stay off). */
-#sky-fx[data-sky="fair"][data-day="0"] .sky-sun { opacity: 0.6; }
+/* Fair night: a faint moon GLOW (the moon itself lives in the card scene). */
+#sky-fx[data-sky="fair"][data-day="0"] .sky-sun { opacity: 0.28; }
 
 /* Snow sparkle: a twinkling glitter field over pale skies. */
 .sky-sparkle {

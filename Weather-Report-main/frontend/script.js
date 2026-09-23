@@ -6,7 +6,7 @@
 // 1. Service Worker for Offline PWA Capabilities
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch((err) => {
+    navigator.serviceWorker.register("sw.js?v=20").catch((err) => {
       console.warn("ServiceWorker registration:", err);
     });
   });
@@ -988,9 +988,14 @@ const SKY_FX_STATE = {
     return condition; // cloudy | rain | drizzle | thunder | snow | fog
   },
   clouds(condition) {
+    // Condition purity: clouds only on skies that actually have clouds.
+    // Clear skies stay clean (no drifting band above the hero); hot/cold
+    // bands inherit the fair-day gating (also 0). Partly cloudy keeps
+    // only the whisper tier; snow gets a whisper under the sparkle.
     if (condition === "partly-cloudy-day" || condition === "partly-cloudy-night") return "1";
     if (condition === "cloudy" || condition === "fog") return "2";
     if (condition === "rain" || condition === "drizzle" || condition === "thunder") return "3";
+    if (condition === "snow") return "1";
     return "0";
   },
 };
@@ -1903,6 +1908,7 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
       renderSmartRainAlert();
       renderRainTimeline();
     }
+
 
     // Refresh weather synopsis in new language if data already loaded
     if (state.weather) {

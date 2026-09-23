@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v16"; // v16: weather-synchronized in-card hero scene
+const CACHE_NAME = "weathergpt-shell-v20"; // v20: stable layout restored; subtle condition-true atmosphere (clear skies cloud-free, reduced sun glow)
 
 const SHELL_FILES = [
   "/",
@@ -54,13 +54,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // App shell: cache-first, falling back to network, so the UI loads
-  // instantly (and still loads offline) even though live data won't.
+  // App shell: stale-while-revalidate. Serve the cached copy instantly
+  // (still works offline), then refresh it in the background so the next
+  // load always shows the latest UI. Cache-first was dropped because a
+  // deploy that changes the shell left clients on the old layout until a
+  // second reload — the redesign once shipped as fresh HTML + stale CSS,
+  // which rendered a broken oversized hero card.
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-
-      return fetch(event.request)
+      const refresh = fetch(event.request)
         .then((response) => {
           if (event.request.method === "GET" && response.ok) {
             const clone = response.clone();
@@ -69,6 +71,9 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
         .catch(() => cached);
+      // If we have nothing cached (first visit / new cache), await the
+      // network; otherwise respond immediately and let `refresh` update.
+      return cached || refresh;
     })
   );
 });
