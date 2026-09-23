@@ -268,6 +268,17 @@ with sync_playwright() as p:
         lang_state = page.evaluate(f"{HELPER}.state()")
         check(f"{lang}: language sync (VoiceOutput.language)", lang_state["lang"] == lang, lang_state["lang"])
 
+        # Expected Speak-button wording comes from the live i18n bundle —
+        # the UI localizes these labels per selected language.
+        expect = page.evaluate(
+            """(lang) => {
+              const d = window.CHROME_I18N[lang];
+              return { ready: d.speakAnswer, stop: d.speakStop, replay: d.speakReplay,
+                       stopAria: d.speakStop, replayAria: d.speakReplayA11y };
+            }""",
+            lang,
+        )
+
         page.route("**/api/assistant", route_json({"answer": answer}))
 
         # Typed query -> NEVER spoken, only remembered (button arms).
@@ -278,15 +289,15 @@ with sync_playwright() as p:
         check(f"{lang}: typed answer is NOT spoken automatically",
               len(st["spoken"]) == 0 and st["speaking"] is False, f"spoken={len(st['spoken'])}")
         check(f"{lang}: typed answer remembered -> button phase 'ready'",
-              st["phase"] == "ready" and ui["btnLabel"] == "Speak answer" and ui["btnDisabled"] is False,
+              st["phase"] == "ready" and ui["btnLabel"] == expect["ready"] and ui["btnDisabled"] is False,
               f"phase={st['phase']} label={ui['btnLabel']}")
 
         # Press the real Speak button -> speaks the cleaned answer.
         page.evaluate(f"{HELPER}.press()")
         page.wait_for_function("window.__vt.state().speaking", timeout=5000)
         ui = page.evaluate(f"{HELPER}.ui()")
-        check(f"{lang}: pressing Speak starts playback", ui["btnPhase"] == "speaking" and ui["btnLabel"] == "Stop speaking", f"{ui['btnPhase']} :: {ui['btnLabel']}")
-        check(f"{lang}: Stop phase exposes stop aria-label", ui["btnAria"] == "Stop speaking", ui["btnAria"])
+        check(f"{lang}: pressing Speak starts playback", ui["btnPhase"] == "speaking" and ui["btnLabel"] == expect["stop"], f"{ui['btnPhase']} :: {ui['btnLabel']}")
+        check(f"{lang}: Stop phase exposes stop aria-label", ui["btnAria"] == expect["stopAria"], ui["btnAria"])
 
         # Press again mid-speech -> stop.
         page.evaluate(f"{HELPER}.press()")
@@ -294,7 +305,7 @@ with sync_playwright() as p:
         st = page.evaluate(f"{HELPER}.state()")
         ui = page.evaluate(f"{HELPER}.ui()")
         check(f"{lang}: pressing again stops playback", st["speaking"] is False and len(st["queue"]) == 0, st["queue"])
-        check(f"{lang}: after stop, phase is 'replay' (Replay answer)", ui["btnPhase"] == "replay" and ui["btnLabel"] == "Replay answer", f"{ui['btnPhase']} :: {ui['btnLabel']}")
+        check(f"{lang}: after stop, phase is 'replay' (Replay answer)", ui["btnPhase"] == "replay" and ui["btnLabel"] == expect["replay"], f"{ui['btnPhase']} :: {ui['btnLabel']}")
         check(f"{lang}: stop fired canceled error once", st["cancelled"] >= 1, st["cancelled"])
 
         # Replay re-speaks the FULL answer from memory; drain the stub

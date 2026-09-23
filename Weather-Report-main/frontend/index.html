@@ -254,15 +254,14 @@
       </div>
 
       <form id="city-search-form" class="relative flex items-center" autocomplete="off">
-        <input id="city-search-input" type="text" placeholder="Enter city (e.g. Hyderabad, San Francisco, Tokyo)..." aria-label="City name" class="w-full py-3 pl-11 pr-24 bg-surface-container-lowest border border-glass-border rounded-2xl font-body-base text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:border-primary/60" />
-        <span class="material-symbols-outlined absolute left-3.5 text-ink-tertiary text-[20px]">search</span>
-        <button type="submit" class="absolute right-2 px-3 py-1.5 bg-primary text-on-primary-dark font-pill-text text-xs rounded-xl font-semibold hover:brightness-110 active:scale-95 transition-all">
+        <input id="city-search-input" type="text" placeholder="Enter city (e.g. Hyderabad, San Francisco, Tokyo)..." aria-label="City name" class="w-full py-3 pl-11 pr-24 bg-surface-container-lowest border border-glass-border rounded-2xl font-body-base text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:border-primary/60" data-i18n-attr="placeholder:searchPlaceholder,aria-label:cityNameA11y" />
+        <span class="material-symbols-outlined absolute left-3.5 text-ink-tertiary text-[20px]">search</span>          <button type="submit" id="city-search-submit" class="absolute right-2 px-3 py-1.5 bg-primary text-on-primary-dark font-pill-text text-xs rounded-xl font-semibold hover:brightness-110 active:scale-95 transition-all" data-i18n="searchBtn">
           Search
         </button>
       </form>      <div class="flex items-center gap-2">
           <button id="use-gps-btn" class="flex-1 py-2.5 px-3 rounded-2xl bg-amber-glow-surface border border-primary/40 text-primary font-pill-text text-xs flex items-center justify-center gap-2 hover:bg-primary-container/30 transition-all">
           <span class="material-symbols-outlined text-[17px]">my_location</span>
-          Use my current location
+          <span data-i18n="useGps">Use my current location</span>
         </button>
       </div>
 
@@ -292,11 +291,11 @@
     </div>
 
     <div class="flex flex-col items-center text-center space-y-2 max-w-sm">
-      <span class="px-3 py-1 rounded-full bg-alert-coral-bg text-alert-coral font-label-caps text-xs tracking-wider uppercase font-semibold">
+      <span class="px-3 py-1 rounded-full bg-alert-coral-bg text-alert-coral font-label-caps text-xs tracking-wider uppercase font-semibold" data-i18n="listening">
         Listening…
       </span>
       <h3 id="voice-countdown-label" class="font-headline-lg text-ink-primary">20s remaining</h3>
-      <p id="voice-language-hint" class="font-body-dim text-ink-secondary">
+      <p id="voice-language-hint" class="font-body-dim text-ink-secondary" data-i18n="voiceHint">
         Speak your weather question in English, Hindi (हिंदी), or Telugu (తెలుగు)…
       </p>
         <button id="voice-cancel-btn" class="mt-4 px-4 py-1.5 rounded-full bg-surface-bright text-ink-tertiary hover:text-ink-primary text-xs transition-all">
@@ -370,7 +369,7 @@
           </div>
           <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-glass-base border border-glass-border/20 text-ink-secondary font-label-caps text-[10px]">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span id="telemetry-sync-badge">Live</span>
+            <span id="telemetry-sync-badge" data-i18n="syncLive">Live</span>
           </div>
         </div>
 
@@ -407,15 +406,15 @@
           <div class="flex items-center gap-4 mt-3 text-ink-secondary font-body-dim text-xs">
             <span class="flex items-center gap-1">
               <span class="material-symbols-outlined text-alert-coral text-[14px]">arrow_upward</span>
-              <span>H: <strong id="hero-temp-high" class="text-ink-primary font-medium">68°</strong></span>
+              <span data-i18n="hlHigh">H:</span> <strong id="hero-temp-high" class="text-ink-primary font-medium">68°</strong>
             </span>
             <span class="w-1 h-1 rounded-full bg-glass-border"></span>
             <span class="flex items-center gap-1">
               <span class="material-symbols-outlined text-secondary text-[14px]">arrow_downward</span>
-              <span>L: <strong id="hero-temp-low" class="text-ink-primary font-medium">54°</strong></span>
+              <span data-i18n="hlLow">L:</span> <strong id="hero-temp-low" class="text-ink-primary font-medium">54°</strong>
             </span>
             <span class="w-1 h-1 rounded-full bg-glass-border"></span>
-            <span>Feels <strong id="hero-temp-feels" class="text-ink-primary font-medium">62°</strong></span>
+            <span data-i18n="hlFeels">Feels</span> <strong id="hero-temp-feels" class="text-ink-primary font-medium">62°</strong>
           </div>
         </div>
       </div>
@@ -429,7 +428,7 @@
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center justify-between gap-2 mb-1">
-              <span class="font-headline-card text-[15px] text-primary font-semibold">Today's briefing</span>
+              <span class="font-headline-card text-[15px] text-primary font-semibold" data-i18n="briefingTitle">Today's briefing</span>
             </div>
             <p id="hero-synopsis-text" class="report-content font-body-report text-xs text-ink-secondary leading-relaxed">
             Loading today's weather in plain words...
@@ -437,9 +436,9 @@
             <div class="mt-3 flex items-center gap-2">
               <button id="ask-ai-quick-btn" class="px-3 py-1 rounded-full bg-primary text-on-primary-dark font-pill-text text-xs flex items-center gap-1 shadow-sm hover:brightness-110 active:scale-95 transition-all font-semibold">
                 <span class="material-symbols-outlined text-[15px]">chat</span>
-                <span>Ask WeatherGPT</span>
+                <span data-i18n="askGpt">Ask WeatherGPT</span>
               </button>
-              <span id="hero-synopsis-meta" class="font-body-dim text-[10px] text-ink-tertiary">Updated just now</span>
+              <span id="hero-synopsis-meta" class="font-body-dim text-[10px] text-ink-tertiary" data-i18n="updatedJust">Updated just now</span>
             </div>
           </div>
         </div>
@@ -465,7 +464,7 @@
           <div class="flex-1 min-w-0">
             <div class="flex items-center justify-between gap-2 mb-0.5">
               <span id="smart-rain-title" class="font-headline-card text-[13px] text-secondary-fixed font-semibold">Smart Rain Alert</span>
-              <span id="smart-rain-badge" class="px-2 py-0.5 rounded-full bg-secondary text-white font-label-caps text-[9px] uppercase font-bold tracking-wider">Live</span>
+              <span id="smart-rain-badge" class="px-2 py-0.5 rounded-full bg-secondary text-white font-label-caps text-[9px] uppercase font-bold tracking-wider" data-i18n="syncLive">Live</span>
             </div>
             <p id="smart-rain-text" class="font-body-base text-xs text-ink-secondary leading-relaxed">Rain expected…</p>
           </div>
@@ -495,8 +494,8 @@
         <div class="flex items-center justify-between px-1">
           <span id="lbl-hours" class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold" data-i18n="hours">Next 24 hours</span>
           <div class="flex items-center gap-2 text-ink-tertiary font-label-caps text-[10px]">
-            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>Rain %</span>
-            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>UV</span>
+            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span><span data-i18n="rainPct">Rain %</span></span>
+            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span><span data-i18n="uv">UV</span></span>
           </div>
         </div>
         <div id="hourly-forecast-scroll" class="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none">
@@ -514,24 +513,24 @@
           <!-- 1. Wind & Gusts -->
           <div class="flex flex-col justify-between p-3.5 rounded-2xl bg-surface-container-high border border-glass-border/20 shadow-sm min-w-0">
             <div class="flex items-center justify-between">
-              <span class="font-label-caps text-[11px] text-ink-tertiary uppercase font-medium">Wind &amp; Gusts</span>
+              <span class="font-label-caps text-[11px] text-ink-tertiary uppercase font-medium" data-i18n="windGusts">Wind &amp; Gusts</span>
               <span class="material-symbols-outlined text-secondary text-[18px]">air</span>
             </div>
             <div class="my-2 flex items-baseline gap-1">
               <span id="telemetry-wind-speed" class="font-headline-lg text-2xl text-ink-primary font-bold">14</span>
-              <span class="font-body-dim text-xs text-ink-secondary">km/h</span>
+              <span class="font-body-dim text-xs text-ink-secondary" data-i18n="kmh">km/h</span>
               <span id="telemetry-wind-dir" class="font-pill-text text-xs text-primary ml-1">WSW</span>
             </div>
             <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-surface-container text-ink-secondary font-label-caps text-[10px] truncate">
               <span class="material-symbols-outlined text-alert-coral text-[13px]">cyclone</span>
-              <span class="truncate">Gusts to <strong id="telemetry-wind-gusts" class="text-ink-primary">22 km/h</strong></span>
+              <span class="truncate"><span data-i18n="gustsTo">Gusts to</span> <strong id="telemetry-wind-gusts" class="text-ink-primary">22 km/h</strong></span>
             </div>
           </div>
 
           <!-- 2. Air Quality Index (AQI) -->
           <div class="flex flex-col justify-between p-3.5 rounded-2xl bg-surface-container-high border border-glass-border/20 shadow-sm min-w-0">
             <div class="flex items-center justify-between">
-              <span class="font-label-caps text-[11px] text-ink-tertiary uppercase font-medium">Air Quality</span>
+              <span class="font-label-caps text-[11px] text-ink-tertiary uppercase font-medium" data-i18n="aqi">Air Quality</span>
               <span class="material-symbols-outlined text-tertiary text-[18px]">eco</span>
             </div>
             <div class="my-2 flex items-baseline gap-1.5">
@@ -549,7 +548,7 @@
           <!-- 3. Humidity & Dew Point -->
           <div class="flex flex-col justify-between p-3.5 rounded-2xl bg-surface-container-high border border-glass-border/20 shadow-sm min-w-0">
             <div class="flex items-center justify-between">
-              <span class="font-label-caps text-[11px] text-ink-tertiary uppercase font-medium">Humidity</span>
+              <span class="font-label-caps text-[11px] text-ink-tertiary uppercase font-medium" data-i18n="humidity">Humidity</span>
               <span class="material-symbols-outlined text-secondary text-[18px]">humidity_percentage</span>
             </div>
             <div class="my-2 flex items-baseline gap-1">
@@ -557,7 +556,7 @@
               <span class="font-body-dim text-xs text-ink-secondary">humidity</span>
             </div>
             <div class="flex items-center justify-between px-2 py-1 rounded-lg bg-surface-container text-ink-secondary font-label-caps text-[10px]">
-              <span>Dew Point</span>
+              <span data-i18n="dewPoint">Dew Point</span>
               <span id="telemetry-dewpoint" class="text-ink-primary font-medium">14°C</span>
             </div>
           </div>
@@ -565,7 +564,7 @@
           <!-- 4. Barometric Pressure -->
           <div class="flex flex-col justify-between p-3.5 rounded-2xl bg-surface-container-high border border-glass-border/20 shadow-sm min-w-0">
             <div class="flex items-center justify-between">
-              <span class="font-label-caps text-[11px] text-ink-tertiary uppercase font-medium">Pressure</span>
+              <span class="font-label-caps text-[11px] text-ink-tertiary uppercase font-medium" data-i18n="pressure">Pressure</span>
               <span class="material-symbols-outlined text-primary text-[18px]">speed</span>
             </div>
             <div class="my-2 flex items-baseline gap-1 truncate">
@@ -606,7 +605,7 @@
           <div class="w-full bg-surface-container-high/90 border border-glass-border/40 backdrop-blur-2xl rounded-full p-1.5 flex items-center justify-between shadow-xl">
             <div class="flex items-center gap-2 pl-3 flex-1 min-w-0">
               <span class="material-symbols-outlined text-primary text-[18px]">manage_search</span>
-              <input id="map-address-search-input" class="bg-transparent text-ink-primary font-body-base text-xs placeholder:text-ink-tertiary focus:outline-none w-full truncate" placeholder="Search neighborhood or address..." type="text" aria-label="Search neighborhood or address" />
+              <input id="map-address-search-input" class="bg-transparent text-ink-primary font-body-base text-xs placeholder:text-ink-tertiary focus:outline-none w-full truncate" placeholder="Search neighborhood or address..." type="text" aria-label="Search neighborhood or address" data-i18n-attr="placeholder:mapSearchPh,aria-label:mapSearchPh" />
             </div>
             <button id="map-gps-btn" class="w-8 h-8 rounded-full bg-primary-container text-on-amber flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shrink-0 shadow-md">
               <span class="material-symbols-outlined text-[16px]">my_location</span>
@@ -658,18 +657,18 @@
              Placed just under the layer pills so it never collides with
              the playback bar / chat input on small screens. -->
         <div class="absolute top-[100px] inset-x-3 z-20 flex justify-center pointer-events-none">
-          <div id="field-legend-temp" class="field-legend hidden pointer-events-auto" role="note" aria-label="Micro-Temperature legend">
+          <div id="field-legend-temp" class="field-legend hidden pointer-events-auto" role="note" aria-label="Micro-Temperature legend" data-i18n-attr="aria-label:legendTempA11y">
             <span class="material-symbols-outlined text-[13px] text-primary">device_thermostat</span>
-            <span class="field-legend-title">Micro-Temp (°C)</span>
+            <span class="field-legend-title" data-i18n="legendTemp">Micro-Temp (°C)</span>
             <span class="field-legend-scale">
               <span class="legend-range" data-legend-min>—</span>
               <span class="legend-gradient" aria-hidden="true" style="background:linear-gradient(90deg,#1e3a8a,#1d4ed8,#0ea5e9,#34d399,#fbbf24,#f97316,#dc2626,#7f1d1d)"></span>
               <span class="legend-range" data-legend-max>—</span>
             </span>
           </div>
-          <div id="field-legend-wind" class="field-legend hidden pointer-events-auto" role="note" aria-label="Wind legend">
+          <div id="field-legend-wind" class="field-legend hidden pointer-events-auto" role="note" aria-label="Wind legend" data-i18n-attr="aria-label:legendWindA11y">
             <span class="material-symbols-outlined text-[13px] text-secondary">air</span>
-            <span class="field-legend-title">Wind (km/h)</span>
+            <span class="field-legend-title" data-i18n="legendWind">Wind (km/h)</span>
             <span class="field-legend-scale">
               <span class="legend-range" data-legend-min>—</span>
               <span class="legend-wind-arrow" aria-hidden="true">
@@ -677,16 +676,16 @@
               </span>
               <span class="legend-range" data-legend-max>—</span>
             </span>
-            <span class="field-legend-hint">arrows point where wind blows</span>
+            <span class="field-legend-hint" data-i18n="legendWindHint">arrows point where wind blows</span>
           </div>
-          <div id="field-legend-aqi" class="field-legend hidden pointer-events-auto" role="note" aria-label="Air quality legend">
+          <div id="field-legend-aqi" class="field-legend hidden pointer-events-auto" role="note" aria-label="Air quality legend" data-i18n-attr="aria-label:legendAqiA11y">
             <span class="material-symbols-outlined text-[13px] text-tertiary">eco</span>
-            <span class="field-legend-title">AQI (US)</span>
+            <span class="field-legend-title" data-i18n="legendAqi">AQI (US)</span>
             <span class="field-legend-scale">
               <span class="legend-range" data-legend-min>—</span>
-              <span class="legend-chip" style="background:#22c55e"></span><span class="legend-range">Good</span>
-              <span class="legend-chip" style="background:#facc15"></span><span class="legend-range">Moderate</span>
-              <span class="legend-chip" style="background:#f97316"></span><span class="legend-range">Unhealthy</span>
+              <span class="legend-chip" style="background:#22c55e"></span><span class="legend-range" data-i18n="aqiGood">Good</span>
+              <span class="legend-chip" style="background:#facc15"></span><span class="legend-range" data-i18n="aqiModerate">Moderate</span>
+              <span class="legend-chip" style="background:#f97316"></span><span class="legend-range" data-i18n="aqiUnhealthy">Unhealthy</span>
               <span class="legend-range" data-legend-max>—</span>
             </span>
           </div>
@@ -737,7 +736,7 @@
         </div>
 
         <!-- Bottom Radar Playback Timeline -->
-        <div class="absolute bottom-2 inset-x-3 z-20 flex items-center justify-between p-2 rounded-full bg-surface-container-high/90 border border-glass-border-subtle backdrop-blur-xl shadow-lg">              <button id="radar-play-btn" class="w-7 h-7 rounded-full bg-primary text-on-primary-dark flex items-center justify-center shrink-0 active:scale-90 transition-transform" aria-label="Play radar animation">
+        <div class="absolute bottom-2 inset-x-3 z-20 flex items-center justify-between p-2 rounded-full bg-surface-container-high/90 border border-glass-border-subtle backdrop-blur-xl shadow-lg">              <button id="radar-play-btn" class="w-7 h-7 rounded-full bg-primary text-on-primary-dark flex items-center justify-center shrink-0 active:scale-90 transition-transform" aria-label="Play radar animation" data-i18n-attr="aria-label:radarPlayA11y">
             <span class="material-symbols-outlined text-[16px]">play_arrow</span>
           </button>
           <div class="flex-1 mx-3 flex items-center gap-2">
@@ -745,7 +744,7 @@
             <input id="radar-time-slider" type="range" min="-60" max="60" value="0" step="10" aria-label="Radar playback time" class="w-full accent-primary h-1 bg-surface-container rounded-lg" />
             <span class="font-label-caps text-[9px] text-primary font-bold">LIVE</span>
           </div>
-          <span class="px-2 py-0.5 rounded-full bg-glass-base text-[9px] font-label-caps text-secondary">
+          <span class="px-2 py-0.5 rounded-full bg-glass-base text-[9px] font-label-caps text-secondary" data-i18n="liveRadar">
             Live radar
           </span>
         </div>
@@ -766,7 +765,7 @@
           </div>
           <div class="flex flex-col min-w-0">
             <span class="font-headline-card text-sm text-ink-primary font-semibold">WeatherGPT</span>
-            <span class="font-body-dim text-[11px] text-ink-tertiary truncate">Ask anything about your local weather</span>
+            <span class="font-body-dim text-[11px] text-ink-tertiary truncate" data-i18n="gptIntroSub">Ask anything about your local weather</span>
           </div>
         </div>
       </div>
@@ -778,9 +777,9 @@
           data-phase="idle"
           class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all active:scale-95 text-[11px] font-pill-text font-semibold text-ink-secondary bg-surface-container-high border-glass-border hover:text-ink-primary disabled:opacity-40 disabled:cursor-not-allowed">
           <span id="voice-speak-icon" class="material-symbols-outlined text-[16px]" aria-hidden="true">volume_up</span>
-          <span id="voice-speak-label">Speak answer</span>
+          <span id="voice-speak-label" data-i18n="speakAnswer">Speak answer</span>
         </button>
-        <span id="voice-output-hint" class="font-body-dim text-[10px] text-ink-tertiary truncate">Answers are spoken only when you press Speak</span>
+        <span id="voice-output-hint" class="font-body-dim text-[10px] text-ink-tertiary truncate" data-i18n="speakHint">Answers are spoken only when you press Speak</span>
       </div>
 
       <!-- Conversational Chat Stream -->
@@ -792,10 +791,10 @@
               <span class="material-symbols-outlined text-[15px]">auto_awesome</span>
             </div>
             <span class="font-label-section text-xs text-ink-primary font-semibold">WeatherGPT</span>
-            <span class="font-label-caps text-[9px] text-secondary font-mono px-1.5 py-1 rounded bg-secondary-container/40">Ready</span>
+            <span class="font-label-caps text-[9px] text-secondary font-mono px-1.5 py-1 rounded bg-secondary-container/40" data-i18n="gptReady">Ready</span>
           </div>
           <div class="w-full bg-surface-container/70 border border-glass-border/30 rounded-2xl p-4 space-y-2">
-            <p class="font-body-base text-xs text-ink-primary leading-relaxed">
+            <p class="font-body-base text-xs text-ink-primary leading-relaxed" data-i18n="gptWelcome">
               Hi! Ask me anything about the weather — in English, हिंदी, or తెలుగు. Try “Will it rain this evening?”, “When should I leave for my ride?”, or “What should I wear today?”
             </p>
           </div>
@@ -804,7 +803,7 @@
 
       <!-- Quick Suggestion Prompt Chips -->
       <div class="flex flex-col gap-1.5 pt-2">
-        <span class="font-label-caps text-[10px] text-ink-tertiary uppercase tracking-wider">Try asking</span>
+        <span class="font-label-caps text-[10px] text-ink-tertiary uppercase tracking-wider" data-i18n="tryAsking">Try asking</span>
         <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none" id="assistant-prompt-chips">
           <button class="assistant-chip shrink-0 px-3 py-1.5 rounded-full bg-surface-container border border-glass-border-subtle hover:bg-surface-bright text-ink-secondary hover:text-ink-primary text-xs transition-all flex items-center gap-1.5 active:scale-95">
             <span class="material-symbols-outlined text-primary text-[15px]">directions_bike</span>
@@ -834,7 +833,7 @@
         <button type="button" id="assistant-mic-btn" class="w-8 h-8 rounded-full bg-amber-glow-surface text-primary flex items-center justify-center shrink-0 active:scale-95 transition-transform" title="Speak to WeatherGPT">
           <span class="material-symbols-outlined text-[18px]">mic</span>
         </button>
-        <input id="assistant-input-text" class="flex-1 min-w-0 bg-transparent border-none outline-none font-body-base text-ink-primary placeholder:text-ink-tertiary text-xs px-1" placeholder="Ask about rain, plans, or what to wear..." type="text" autocomplete="off" aria-label="Ask WeatherGPT" />
+        <input id="assistant-input-text" class="flex-1 min-w-0 bg-transparent border-none outline-none font-body-base text-ink-primary placeholder:text-ink-tertiary text-xs px-1" placeholder="Ask about rain, plans, or what to wear..." type="text" autocomplete="off" aria-label="Ask WeatherGPT" data-i18n-attr="placeholder:gptInputPh,aria-label:gptInputPh" />
         <button type="submit" class="w-8 h-8 rounded-full bg-primary text-on-primary-dark flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md shrink-0" title="Send question">
           <span class="material-symbols-outlined text-[16px] font-bold">arrow_upward</span>
         </button>
@@ -1121,6 +1120,7 @@
        window.VoiceOutput; the visually hidden live region announces
        speak/stop transitions to screen readers. -->
   <div id="voice-speech-status" aria-live="polite" role="status" class="sr-only"></div>
+  <script src="i18n.js"></script>
   <script src="voice-output.js"></script>
   <script src="script.js"></script>
   <script src="radar-map.js"></script>

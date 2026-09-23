@@ -6,7 +6,7 @@
 // 1. Service Worker for Offline PWA Capabilities
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=21").catch((err) => {
+    navigator.serviceWorker.register("sw.js?v=22").catch((err) => {
       console.warn("ServiceWorker registration:", err);
     });
   });
@@ -882,59 +882,23 @@ const RAIN_I18N = {
 // markup carries data-i18n keys; dynamic surfaces re-render separately.
 // ============================================================
 
-const CHROME_I18N = {
-  en: {
-    brandTagline: "Your sky, explained",
-    changeLocation: "Change location",
-    navForecast: "Forecast", navMap: "Radar Map", navGpt: "WeatherGPT",
-    navFarmer: "Farmer", navInsights: "Insights", satPill: "Satellite",
-    nearby: "Nearby areas", openMap: "Open the map →",
-    hours: "Next 24 hours", rightNow: "Right now", days: "Next 7 days",
-    weekAhead: "A week ahead", liveReadings: "Live readings",
-    insightsTitle: "Insights", liveData: "Live data",
-    searchPlaceholder: "Enter city (e.g. Hyderabad, San Francisco, Tokyo)...",
-    popularCities: "Popular Cities",
-    locating: "Locating…", today: "Today",
-    satNote: "Satellite shows live infrared cloud imagery — bright areas are cold, high cloud tops. Radar shows precipitation.",
-    satHelpTitle: "Why it matters",
-    satHelp: "Infrared satellites measure cloud-top temperature: brighter white means taller, colder clouds that often bring storms; grey means thin or low cloud; dark means clear ground. For farmers, tracking these cloud bands over the farm shows rain or hail risk approaching hours before the first drop.",
-    satUnavailable: "Satellite imagery unavailable right now — showing precipitation radar instead.",
-  },
-  hi: {
-    brandTagline: "आपका आसमान, समझाया गया",
-    changeLocation: "स्थान बदलें",
-    navForecast: "पूर्वानुमान", navMap: "रडार मैप", navGpt: "WeatherGPT",
-    navFarmer: "किसान", navInsights: "इनसाइट्स", satPill: "सैटेलाइट",
-    nearby: "नज़दीकी क्षेत्र", openMap: "मैप खोलें →",
-    hours: "अगले 24 घंटे", rightNow: "अभी", days: "अगले 7 दिन",
-    weekAhead: "एक सप्ताह आगे", liveReadings: "सजीव रीडिंग",
-    insightsTitle: "इनसाइट्स", liveData: "सजीव डेटा",
-    searchPlaceholder: "शहर खोजें (जैसे हैदराबाद, सैन फ़्रांसिस्को, टोक्यो)...",
-    popularCities: "लोकप्रिय शहर",
-    locating: "पता लगाया जा रहा है…", today: "आज",
-    satNote: "सैटेलाइट लाइव इन्फ्रारेड बादल चित्र दिखाती है — चमकीले हिस्से ठंडी, ऊँची बादल छतें हैं। रडार वर्षा दिखाता है।",
-    satHelpTitle: "यह क्यों ज़रूरी है",
-    satHelp: "इन्फ्रारेड सैटेलाइट बादल-शिखर का तापमान मापती है: जितनी चमकीली सफ़ेद, उतनी ऊँची और ठंडी बादल — जिनसे अक्सर तूफ़ान आते हैं; स्लेटी का मतलब पतले या नीचे के बादल; गहरा का मतलब साफ़ ज़मीन। किसानों के लिए, खेत के ऊपर इन बादल-पट्टियों को देखना पहली बूँद से घंटों पहले वर्षा या ओलावृष्टि का खतरा बता देता है।",
-    satUnavailable: "सैटेलाइट चित्र अभी उपलब्ध नहीं — वर्षा रडार दिखाया जा रहा है।",
-  },
-  te: {
-    brandTagline: "మీ ఆకాశం, వివరించబడింది",
-    changeLocation: "స్థానాన్ని మార్చు",
-    navForecast: "ఫోర్‌కాస్ట్", navMap: "రాడార్ మ్యాప్", navGpt: "WeatherGPT",
-    navFarmer: "రైతు", navInsights: "ఇన్‌సైట్స్", satPill: "ఉపగ్రహం",
-    nearby: "సమీప ప్రాంతాలు", openMap: "మ్యాప్ తెరువు →",
-    hours: "తర్వాతి 24 గంటలు", rightNow: "ప్రస్తుతం", days: "తర్వాతి 7 రోజులు",
-    weekAhead: "వారం ముందుకు", liveReadings: "ప్రత్యక్ష రీడింగ్‌లు",
-    insightsTitle: "ఇన్‌సైట్స్", liveData: "ప్రత్యక్ష డేటా",
-    searchPlaceholder: "నగరం వెతకండి (ఉదా. హైదరాబాద్, శాన్ ఫ్రాన్సిస్కో, టోక్యో)...",
-    popularCities: "జనప్రియ నగరాలు",
-    locating: "గుర్తిస్తోంది…", today: "ఈరోజు",
-    satNote: "ఉపగ్రహం ప్రత్యక్ష ఇన్‌ఫ్రారెడ్ మేఘ చిత్రాలను చూపుతుంది — ప్రకాశవంతమైన భాగాలు చల్లని, ఎత్తైన మేఘ పైభాగాలు. రాడార్ వర్షాన్ని చూపుతుంది.",
-    satHelpTitle: "ఇది ఎందుకు ముఖ్యం",
-    satHelp: "ఇన్‌ఫ్రారెడ్ ఉపగ్రహం మేఘ పైభాగ ఉష్ణోగ్రతను కొలుస్తుంది: ఎంత తెల్లగా ప్రకాశించినా అంత ఎత్తుగా, చల్లగా ఉంటుంది — తరచుగా తుఫానులను తీసుకువస్తుంది; బూడుద అంటే సన్నని లేదా తక్కువ మేఘాలు; ముదురు అంటే స్పష్టమైన నేల. రైతులకు, పొలం పైన ఈ మేఘ పట్టీలను గమనించడం మొదటి చుక్కకు గంటల ముందే వర్ష లేదా వడగళ్ళ ప్రమాదాన్ని తెలియజేస్తుంది.",
-    satUnavailable: "ఉపగ్రహ చిత్రాలు ప్రస్తుతం అందుబాటులో లేవు — వర్ష రాడార్ చూపుతున్నాము.",
-  },
-};
+// The dictionaries live in frontend/i18n.js (bundled locally, preloaded
+// before this script) — switching language never touches the network.
+
+// Dictionary lookup with graceful English fallback; a missing key can
+// never break a render.
+function T(key) {
+  const dicts = window.CHROME_I18N;
+  if (!dicts) return "";
+  return (dicts[farmLang()] && dicts[farmLang()][key]) ?? (dicts.en && dicts.en[key]) ?? "";
+}
+
+// Template lookup: replaces {n}/{d}/{m}/{s}/{t}/{a}/{b}/{loc} placeholders.
+function tf(key, vars = {}) {
+  let s = T(key);
+  for (const [k, v] of Object.entries(vars)) s = s.split("{" + k + "}").join(String(v));
+  return s;
+}
 
 function applyChromeI18n() {
   const t = CHROME_I18N[farmLang()] || CHROME_I18N.en;
@@ -952,6 +916,11 @@ function applyChromeI18n() {
   });
   const searchInput = document.getElementById("city-search-input");
   if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+  const unifiedInput = document.getElementById("unified-query-input");
+  if (unifiedInput) {
+    unifiedInput.placeholder = t.askGpt;
+    unifiedInput.setAttribute("aria-label", t.askGpt);
+  }
   const satNote = document.getElementById("satellite-note");
   if (satNote) satNote.textContent = t.satNote;
   const satHelp = document.getElementById("satellite-help");
@@ -2001,6 +1970,7 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
     renderFarmGuide(farmLangCode);
     // Header, nav, section titles, placeholders — immediate, no refresh.
     applyChromeI18n();
+    syncVoiceOutputControls();
     state.farmCacheKey = null;
     if (state.weather && state.activeView === "view-farmer") {
       refreshFarmAdvice();
@@ -2014,6 +1984,9 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
       renderSmartRainAlert();
       renderRainTimeline();
     }
+
+    // Insights re-renders fully from cached state in the new language.
+    if (state.weather) renderInsightsScreen();
 
     // Radar map surface (sensor-card title, marker tooltip, address bar)
     // re-words immediately; the active field layer keeps its own data.
@@ -2477,7 +2450,7 @@ function renderForecastScreen() {
     els.hourlyForecastScroll.innerHTML = times
       .map((tStr, i) => {
         const d = new Date(tStr);
-        const timeLabel = i === 0 ? "Now" : d.toLocaleTimeString([], { hour: "numeric" });
+        const timeLabel = i === 0 ? T("now") : d.toLocaleTimeString([], { hour: "numeric" });
         const hTemp = Math.round(temps[i] ?? temp);
         const hRain = rains[i] ?? 0;
         const hCode = codes[i] ?? 0;
@@ -2675,11 +2648,11 @@ function renderInsightsScreen() {
   // 1. Update Scope Subtitle
   if (els.insightsScopeSubtitle) {
     if (scope === "48h") {
-      els.insightsScopeSubtitle.textContent = "The next 48-hour stretch — temperature swings, rain and wind";
+      els.insightsScopeSubtitle.textContent = T("insightsScope48h");
     } else if (scope === "7d") {
-      els.insightsScopeSubtitle.textContent = "The 7-day outlook — highs, lows and rain days";
+      els.insightsScopeSubtitle.textContent = T("insightsScope7d");
     } else {
-      els.insightsScopeSubtitle.textContent = "Today's weather at a glance, with any alerts worth knowing about";
+      els.insightsScopeSubtitle.textContent = T("insightsScopeToday");
     }
   }
 
@@ -2718,24 +2691,24 @@ function renderInsightsScreen() {
       const todayHum = Math.round(current.relative_humidity_2m ?? 58);
 
       cards = [
-        { label: "Day range", val: `${todayMin}° / ${todayMax}°`, sub: "Low and high today", icon: "device_thermostat", color: "text-primary" },
-        { label: "Rain chance", val: `${todayRain}%`, sub: "Highest chance today", icon: "rainy", color: "text-secondary" },
-        { label: "Wind", val: `${todayWind} km/h`, sub: "Strongest today", icon: "air", color: "text-alert-coral" },
-        { label: "Humidity", val: `${todayHum}%`, sub: "Average moisture", icon: "water_drop", color: "text-tertiary" },
+        { label: T("dayRange"), val: `${todayMin}° / ${todayMax}°`, sub: T("lowHighToday"), icon: "device_thermostat", color: "text-primary" },
+        { label: T("rainChance"), val: `${todayRain}%`, sub: T("highestToday"), icon: "rainy", color: "text-secondary" },
+        { label: T("wind"), val: `${todayWind} km/h`, sub: T("strongestToday"), icon: "air", color: "text-alert-coral" },
+        { label: T("humidity"), val: `${todayHum}%`, sub: T("avgMoisture"), icon: "water_drop", color: "text-tertiary" },
       ];
     } else if (scope === "48h") {
       cards = [
-        { label: "48h range", val: `${minTemp48}° – ${maxTemp48}°`, sub: "Low to high over 48 hours", icon: "thermostat", color: "text-primary" },
-        { label: "48h rain peak", val: `${maxRain48}%`, sub: "Wettest stretch", icon: "umbrella", color: "text-secondary" },
-        { label: "48h wind peak", val: `${maxWind48} km/h`, sub: "Strongest gusts expected", icon: "air", color: "text-alert-coral" },
-        { label: "Average humidity", val: `${avgHum48}%`, sub: "Over the next 48 hours", icon: "humidity_mid", color: "text-tertiary" },
+        { label: T("range48"), val: `${minTemp48}° – ${maxTemp48}°`, sub: T("lowHigh48"), icon: "thermostat", color: "text-primary" },
+        { label: T("rainPeak48"), val: `${maxRain48}%`, sub: T("wettest48"), icon: "umbrella", color: "text-secondary" },
+        { label: T("windPeak48"), val: `${maxWind48} km/h`, sub: T("gusts48"), icon: "air", color: "text-alert-coral" },
+        { label: T("avgHum48"), val: `${avgHum48}%`, sub: T("over48"), icon: "humidity_mid", color: "text-tertiary" },
       ];
     } else {
       cards = [
-        { label: "Week range", val: `${minTemp7d}° – ${maxTemp7d}°`, sub: "Low to high over 7 days", icon: "calendar_today", color: "text-primary" },
-        { label: "Total rain", val: `${totalRain7d} mm`, sub: "Expected over the week", icon: "water", color: "text-secondary" },
-        { label: "Wettest day", val: `${maxRain7d}%`, sub: "Highest rain chance", icon: "grain", color: "text-alert-coral" },
-        { label: "Week wind peak", val: `${maxWind7d} km/h`, sub: "Strongest day", icon: "cyclone", color: "text-tertiary" },
+        { label: T("range7d"), val: `${minTemp7d}° – ${maxTemp7d}°`, sub: T("lowHigh7d"), icon: "calendar_today", color: "text-primary" },
+        { label: T("totalRain"), val: `${totalRain7d} mm`, sub: T("expectedWeek"), icon: "water", color: "text-secondary" },
+        { label: T("wettestDay"), val: `${maxRain7d}%`, sub: T("highestChance"), icon: "grain", color: "text-alert-coral" },
+        { label: T("windPeak7d"), val: `${maxWind7d} km/h`, sub: T("strongestDay"), icon: "cyclone", color: "text-tertiary" },
       ];
     }
 
@@ -2773,25 +2746,25 @@ function renderInsightsScreen() {
       if (maxRain48 >= 50) {
         alertItems.push({
           severity: "Advisory",
-          type: "48-Hour Precipitation Window",
-          text: `Rain chance peaks at ${maxRain48}% over the next 48 hours. Keep rain gear handy around the wettest hours.`,
-          protocol: ["Carry an umbrella or rain jacket", "Check the radar map before heading out in the evening"],
+          type: T("type48Rain"),
+          text: tf("alert48Rain", { n: maxRain48 }),
+          protocol: tf("alert48RainP").split("|"),
         });
       }
       if (maxWind48 >= 35) {
         alertItems.push({
           severity: "Notice",
-          type: "Wind Shift & Elevated Gusts",
-          text: `Winds up to ${maxWind48} km/h expected in the next 48 hours — a bit of a push on a bicycle.`,
-          protocol: ["Secure light outdoor items", "Take extra care on open roads"],
+          type: T("type48Wind"),
+          text: tf("alert48Wind", { n: maxWind48 }),
+          protocol: tf("alert48WindP").split("|"),
         });
       }
       if (maxTemp48 >= 36) {
         alertItems.push({
           severity: "Advisory",
-          type: "48h Thermal Index Advisory",
-          text: `Temperatures may reach ${maxTemp48}°C during the hottest afternoons of the next 48 hours.`,
-          protocol: ["Drink water often, even before you feel thirsty", "Do heavy outdoor work in the morning instead"],
+          type: T("type48Heat"),
+          text: tf("alert48Heat", { n: maxTemp48 }),
+          protocol: tf("alert48HeatP").split("|"),
         });
       }
     } else {
@@ -2799,25 +2772,25 @@ function renderInsightsScreen() {
         const wetDays = dRainProb.filter((p) => p >= 35).length;
         alertItems.push({
           severity: "Advisory",
-          type: "Extended Synoptic Rain Pattern",
-          text: `Rain expected on around ${wetDays} of the next 7 days, peaking at ${maxRain7d}% — about ${totalRain7d} mm in total.`,
-          protocol: ["Plan outdoor work around the drier days", "Clear drains before the rainy days"],
+          type: T("type7dRain"),
+          text: tf("alert7dRain", { d: wetDays, n: maxRain7d, m: totalRain7d }),
+          protocol: tf("alert7dRainP").split("|"),
         });
       }
       if (maxTemp7d >= 37) {
         alertItems.push({
           severity: "Warning",
-          type: "Multi-Day Thermal Stress",
-          text: `The week's high reaches ${maxTemp7d}°C with strong sun — hot days ahead.`,
-          protocol: ["Shift heavy work to early morning", "Plan shade breaks through the afternoon"],
+          type: T("type7dHeat"),
+          text: tf("alert7dHeat", { n: maxTemp7d }),
+          protocol: tf("alert7dHeatP").split("|"),
         });
       }
       if (maxWind7d >= 45) {
         alertItems.push({
           severity: "Notice",
-          type: "Synoptic Jet Wind Velocity",
-          text: `Strong winds gusting up to ${maxWind7d} km/h expected at times this week.`,
-          protocol: ["Take care in exposed places — ridges, coasts and open roads"],
+          type: T("type7dWind"),
+          text: tf("alert7dWind", { n: maxWind7d }),
+          protocol: tf("alert7dWindP").split("|"),
         });
       }
     }
@@ -2833,15 +2806,15 @@ function renderInsightsScreen() {
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1 flex-wrap">
-                <span class="px-2 py-0.5 rounded-full font-label-caps text-[9px] bg-alert-coral text-white uppercase font-bold tracking-wider">${alert.severity || "Advisory"}</span>
-                <span class="font-headline-card text-xs text-alert-coral-text font-semibold">${escapeHTML(alert.type || "Meteorological Notice")}</span>
+                <span class="px-2 py-0.5 rounded-full font-label-caps text-[9px] bg-alert-coral text-white uppercase font-bold tracking-wider">${escapeHTML(alert.severity || T("advisory"))}</span>
+                <span class="font-headline-card text-xs text-alert-coral-text font-semibold">${escapeHTML(alert.type || T("notice"))}</span>
               </div>
               <p class="font-body-base text-xs text-alert-coral-text/90">${escapeHTML(alert.text || "")}</p>
               ${
                 alert.protocol
                   ? `
               <div class="mt-3 pt-2.5 bg-surface-container-lowest/40 -mx-4 -mb-4 px-4 py-2.5 rounded-b-2xl flex flex-col gap-1.5">
-                <span class="font-label-caps text-[9px] text-alert-coral uppercase tracking-wider font-semibold">What you can do</span>
+                <span class="font-label-caps text-[9px] text-alert-coral uppercase tracking-wider font-semibold">${T("canDo")}</span>
                 ${alert.protocol
                   .map(
                     (p) => `
@@ -2860,15 +2833,15 @@ function renderInsightsScreen() {
         )
         .join("");
     } else {
-      const scopeLabel = scope === "48h" ? "for Next 48 Hours" : scope === "7d" ? "for Extended 7-Day Forecast" : "Today";
+      const scopeLabel = scope === "48h" ? T("for48h") : scope === "7d" ? T("for7d") : T("scopeToday");
       els.insightsAlertsContainer.innerHTML = `
         <div class="rounded-2xl bg-surface-container-high border border-glass-border/20 p-4 flex items-center gap-3">
           <div class="w-8 h-8 rounded-full bg-emerald-500/15 text-emerald-700 flex items-center justify-center shrink-0">
             <span class="material-symbols-outlined text-[20px]">verified_user</span>
           </div>
           <div>
-            <h4 class="font-headline-card text-xs text-ink-primary font-semibold">No weather alerts ${scopeLabel}</h4>
-            <p class="font-body-dim text-xs text-ink-tertiary">Nothing unusual expected — conditions look steady and safe.</p>
+            <h4 class="font-headline-card text-xs text-ink-primary font-semibold">${T("noAlerts")} ${scopeLabel}</h4>
+            <p class="font-body-dim text-xs text-ink-tertiary">${T("allClear")}</p>
           </div>
         </div>`;
     }
@@ -2880,35 +2853,35 @@ function renderInsightsScreen() {
 
     if (scope === "today") {
       if (els.insightsBaselineLabel) {
-        els.insightsBaselineLabel.textContent = `Around ${locationName} right now (vs ${temp}°C here)`;
+        els.insightsBaselineLabel.textContent = tf("baselineNow", { loc: locationName, t: temp });
       }
       bars = [
-        { name: "Valley / Urban Basin (illustrative)", delta: "+2.4°C", width: "48%", color: "bg-primary-container" },
-        { name: "Downtown Canyon Core (illustrative)", delta: "+1.1°C", width: "24%", color: "bg-secondary" },
-        { name: "Coastal Headlands (illustrative)", delta: "-3.2°C", width: "56%", color: "bg-tertiary-container" },
-        { name: "Elevated Hill Ridge (illustrative)", delta: "-1.6°C", width: "32%", color: "bg-secondary-fixed" },
+        { name: `${T("valBar")} ${T("illustrative")}`, delta: "+2.4°C", width: "48%", color: "bg-primary-container" },
+        { name: `${T("dtBar")} ${T("illustrative")}`, delta: "+1.1°C", width: "24%", color: "bg-secondary" },
+        { name: `${T("coastBar")} ${T("illustrative")}`, delta: "-3.2°C", width: "56%", color: "bg-tertiary-container" },
+        { name: `${T("hillBar")} ${T("illustrative")}`, delta: "-1.6°C", width: "32%", color: "bg-secondary-fixed" },
       ];
     } else if (scope === "48h") {
       const swing48 = Math.max(3, Math.abs(maxTemp48 - minTemp48));
       if (els.insightsBaselineLabel) {
-        els.insightsBaselineLabel.textContent = `Next 48 hours (swing of ${swing48}°C between low and high)`;
+        els.insightsBaselineLabel.textContent = tf("baseline48", { s: swing48 });
       }
       bars = [
-        { name: "Warmest hour (next 48h)", delta: `${maxTemp48}°C`, width: `${Math.min(100, Math.abs(maxTemp48) * 2.5)}%`, color: "bg-secondary" },
-        { name: "Coolest hour (next 48h)", delta: `${minTemp48}°C`, width: `${Math.min(100, Math.abs(minTemp48) * 2.5)}%`, color: "bg-tertiary-container" },
-        { name: "Rain chance peak", delta: `${maxRain48}%`, width: `${Math.max(15, Math.min(100, maxRain48))}%`, color: "bg-secondary-fixed" },
-        { name: "Average humidity", delta: `${avgHum48}%`, width: `${Math.min(100, Math.max(10, avgHum48))}%`, color: "bg-primary-container" },
+        { name: T("warmHour"), delta: `${maxTemp48}°C`, width: `${Math.min(100, Math.abs(maxTemp48) * 2.5)}%`, color: "bg-secondary" },
+        { name: T("coolHour"), delta: `${minTemp48}°C`, width: `${Math.min(100, Math.abs(minTemp48) * 2.5)}%`, color: "bg-tertiary-container" },
+        { name: T("rainPeakBar"), delta: `${maxRain48}%`, width: `${Math.max(15, Math.min(100, maxRain48))}%`, color: "bg-secondary-fixed" },
+        { name: T("avgHum48"), delta: `${avgHum48}%`, width: `${Math.min(100, Math.max(10, avgHum48))}%`, color: "bg-primary-container" },
       ];
     } else {
       const swing7d = Math.max(4, Math.abs(maxTemp7d - minTemp7d));
       if (els.insightsBaselineLabel) {
-        els.insightsBaselineLabel.textContent = `Across the week (from ${minTemp7d}° to ${maxTemp7d}°C)`;
+        els.insightsBaselineLabel.textContent = tf("baseline7d", { a: minTemp7d, b: maxTemp7d });
       }
       bars = [
-        { name: "Low-to-high spread", delta: `Δ ${swing7d}°C`, width: `${Math.min(100, swing7d * 7)}%`, color: "bg-primary-container" },
-        { name: "Rainiest day chance", delta: `${maxRain7d}%`, width: `${Math.max(15, Math.min(100, maxRain7d))}%`, color: "bg-secondary" },
-        { name: "Total rain this week", delta: `${totalRain7d} mm`, width: `${Math.min(100, Math.max(20, parseFloat(totalRain7d) * 4))}%`, color: "bg-tertiary-container" },
-        { name: "Strongest wind", delta: `${maxWind7d} km/h`, width: `${Math.min(100, maxWind7d * 2)}%`, color: "bg-secondary-fixed" },
+        { name: T("lowHigh7d"), delta: `Δ ${swing7d}°C`, width: `${Math.min(100, swing7d * 7)}%`, color: "bg-primary-container" },
+        { name: T("rainPeakBar"), delta: `${maxRain7d}%`, width: `${Math.max(15, Math.min(100, maxRain7d))}%`, color: "bg-secondary" },
+        { name: T("totalRain"), delta: `${totalRain7d} mm`, width: `${Math.min(100, Math.max(20, parseFloat(totalRain7d) * 4))}%`, color: "bg-tertiary-container" },
+        { name: T("windPeak7d"), delta: `${maxWind7d} km/h`, width: `${Math.min(100, maxWind7d * 2)}%`, color: "bg-secondary-fixed" },
       ];
     }
 
@@ -3091,6 +3064,23 @@ async function initFarmAdvisor() {
 async function generateAiReport(requestId = state.locationRequestId) {
   const language = state.voiceLang === "hi" ? "Hindi" : state.voiceLang === "te" ? "Telugu" : "English";
 
+  // The synopsis is UI, not a fetch gate: render whatever we already have
+  // for this language instantly. Language switching NEVER blocks on or
+  // waits for the LLM — a localized report is generated lazily in the
+  // background on first need and cached per location + language.
+  const cacheKey = `${state.currentLocation.latitude},${state.currentLocation.longitude}:${language}`;
+  const cached = state.reportCache && state.reportCache.key === cacheKey ? state.reportCache : null;
+  if (cached) {
+    if (els.heroSynopsisText) els.heroSynopsisText.innerHTML = renderMarkdownLite(cached.report);
+    if (els.heroSynopsisMeta) els.heroSynopsisMeta.textContent = tf("synopsisMeta", { lang: language });
+    return;
+  }
+
+  // No report yet for this language: keep the previous synopsis visible
+  // (stale but real) and refresh in the background — once per key.
+  if (state.reportInflight === cacheKey) return;
+  state.reportInflight = cacheKey;
+
   try {
     const tick = ++state.reportAiTick;
     const payload = {
@@ -3099,14 +3089,6 @@ async function generateAiReport(requestId = state.locationRequestId) {
       alerts: state.alerts,
       language: language,
     };
-
-    // Skip redundant LLM calls: cache the synopsis per location + language.
-    const cacheKey = `${state.currentLocation.latitude},${state.currentLocation.longitude}:${language}`;
-    if (state.reportCache && state.reportCache.key === cacheKey) {
-      els.heroSynopsisText.innerHTML = renderMarkdownLite(state.reportCache.report);
-      els.heroSynopsisMeta.textContent = `Written in ${language} • just now`;
-      return;
-    }
 
     const res = await postJSON("/api/report", payload);
     if (requestId !== state.locationRequestId) return; // stale — a newer location won
@@ -3117,18 +3099,14 @@ async function generateAiReport(requestId = state.locationRequestId) {
       els.heroSynopsisText.innerHTML = renderMarkdownLite(res.report);
     }
     if (els.heroSynopsisMeta) {
-      els.heroSynopsisMeta.textContent = `Written in ${language} • just now`;
+      els.heroSynopsisMeta.textContent = tf("synopsisMeta", { lang: language });
     }
   } catch (err) {
+    // Keep the previous language's synopsis on screen rather than blanking
+    // the card — it is still real data for this location.
     console.warn("AI report synthesis skipped:", err);
-    state.reportCache = null;
-    if (els.heroSynopsisText) {
-      const realTemp = state.weather?.current?.temperature_2m;
-      els.heroSynopsisText.textContent =
-        realTemp != null
-          ? `Current temperature is ${Math.round(realTemp)}°C with ${CONDITION_TITLES[document.body.dataset.condition] || "current conditions"}.`
-          : `Weather synopsis unavailable right now.`;
-    }
+  } finally {
+    if (state.reportInflight === cacheKey) state.reportInflight = null;
   }
 }
 
@@ -3198,8 +3176,8 @@ async function submitAssistantQuery(userQuery) {
     const fallbackLine =
       realTemp != null
         ? `${Math.round(realTemp)}°C, ${CONDITION_TITLES[document.body.dataset.condition] || "current conditions"}`
-        : "Live weather data unavailable";
-    const fallbackAnswer = `I couldn't reach the AI service just now (${err.message}). Current conditions in ${locationDisplayName()}: ${fallbackLine}.`;
+        : T("liveDataUnavailable");
+    const fallbackAnswer = tf("gptFallback", { err: err.message, loc: locationDisplayName(), line: fallbackLine });
     rememberAnswerForReplay(fallbackAnswer);
     appendAssistantResponseNode({
       answer: fallbackAnswer,
@@ -3375,10 +3353,10 @@ function appendAssistantResponseNode(data) {
 // Tailwind's "hidden" class loses to the flex/display utilities on the
 // controls bar, so visibility is owned here via inline style.
 const VOICE_PHASE_UI = {
-  idle: { icon: "volume_up", label: "Speak answer", disabled: true },
-  ready: { icon: "volume_up", label: "Speak answer", disabled: false },
-  replay: { icon: "replay", label: "Replay answer", disabled: false },
-  speaking: { icon: "stop", label: "Stop speaking", disabled: false },
+  idle: { icon: "volume_up", label: "speakAnswer", aria: "speakAnswer", disabled: true },
+  ready: { icon: "volume_up", label: "speakAnswer", aria: "speakAnswer", disabled: false },
+  replay: { icon: "replay", label: "speakReplay", aria: "speakReplayA11y", disabled: false },
+  speaking: { icon: "stop", label: "speakStop", aria: "speakStop", disabled: false },
 };
 
 function syncVoiceOutputControls() {
@@ -3394,12 +3372,9 @@ function syncVoiceOutputControls() {
     const ui = VOICE_PHASE_UI[phase];
     els.voiceSpeakBtn.dataset.phase = phase;
     els.voiceSpeakBtn.disabled = ui.disabled;
-    els.voiceSpeakBtn.setAttribute(
-      "aria-label",
-      phase === "speaking" ? "Stop speaking" : phase === "replay" ? "Replay last answer" : "Speak answer"
-    );
+    els.voiceSpeakBtn.setAttribute("aria-label", T(ui.aria));
     if (els.voiceSpeakIcon) els.voiceSpeakIcon.textContent = ui.icon;
-    if (els.voiceSpeakLabel) els.voiceSpeakLabel.textContent = ui.label;
+    if (els.voiceSpeakLabel) els.voiceSpeakLabel.textContent = T(ui.label);
   }
 }
 
@@ -3434,7 +3409,8 @@ function initVoiceOutput() {
 
   // Speaking state changes drive the button's Stop phase.
   document.addEventListener("voice-output-state", syncVoiceOutputControls);
-  syncVoiceOutputControls();}
+  syncVoiceOutputControls();
+}
 
 // Never speaks automatically — speaking is strictly user-controlled via
 // the Speak button. Every answer (voice-origin or typed) is only
@@ -3507,11 +3483,11 @@ async function startVoiceRecording() {
   if (els.voiceOverlay) els.voiceOverlay.classList.remove("hidden");
 
   let secondsLeft = 20;
-  if (els.voiceCountdownLabel) els.voiceCountdownLabel.textContent = `${secondsLeft}s remaining`;
+  if (els.voiceCountdownLabel) els.voiceCountdownLabel.textContent = `${secondsLeft} ${T("secondsRemaining")}`;
 
   state.countdownInterval = setInterval(() => {
     secondsLeft -= 1;
-    if (els.voiceCountdownLabel) els.voiceCountdownLabel.textContent = `${secondsLeft}s remaining`;
+    if (els.voiceCountdownLabel) els.voiceCountdownLabel.textContent = `${secondsLeft} ${T("secondsRemaining")}`;
     if (secondsLeft <= 0) {
       stopVoiceRecording();
     }

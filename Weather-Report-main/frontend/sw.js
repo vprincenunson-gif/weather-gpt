@@ -1,9 +1,10 @@
-const CACHE_NAME = "weathergpt-shell-v21"; // v21: consistent radar layer states, full EN/HI/TE chrome i18n, satellite explainer + fallback, location-anchored field layers
+const CACHE_NAME = "weathergpt-shell-v22"; // v22: full local translation bundle (i18n.js) — EN/HI/TE switching is instant, offline-capable, zero API calls
 
 const SHELL_FILES = [
   "/",
   "/index.html",
   "/style.css",
+  "/i18n.js",
   "/script.js",
   "/voice-output.js",
   "/radar-map.js",

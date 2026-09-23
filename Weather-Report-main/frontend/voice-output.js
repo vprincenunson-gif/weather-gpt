@@ -79,9 +79,28 @@
   }
 
   // Screen-reader announcements (visually hidden aria-live region).
+  // Text is localized at call time via the CHROME_I18N bundle (loaded
+  // before this script) — English fallback keeps tests and edge cases safe.
   function announce(message) {
     const region = document.getElementById("voice-speech-status");
-    if (region) region.textContent = message;
+    if (region) region.textContent = localizeVoiceText(message);
+  }
+
+  function localizeVoiceText(message) {
+    const dicts = window.CHROME_I18N;
+    const lang = (window.WeatherState && window.WeatherState.voiceLang) ||
+      (document.documentElement.lang || "en").slice(0, 2);
+    const dict = (dicts && dicts[lang]) || (dicts && dicts.en);
+    if (dict) {
+      const map = {
+        "Speaking the answer.": "speakAnswer",
+        "Speech output failed. The written answer is shown above.": "speakFailed",
+      };
+      const key = map[message];
+      if (key && dict[key]) return dict[key];
+      if (key && dicts && dicts.en && dicts.en[key]) return dicts.en[key];
+    }
+    return message;
   }
 
   // Let script.js (and tests) react to state changes without coupling.
