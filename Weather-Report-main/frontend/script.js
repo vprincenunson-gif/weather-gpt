@@ -2086,7 +2086,7 @@ function renderNextHoursStrip() {
   strip.innerHTML = slots
     .map(
       (s, idx) => `
-      <div role="listitem" class="flex flex-col items-center justify-between min-w-[52px] flex-1 px-1.5 py-0.5 rounded-xl ${
+      <div role="listitem" class="flex flex-col items-center justify-between min-w-[52px] flex-1 px-1.5 py-0.5 rounded-xl overflow-hidden ${
         idx === 0 ? "bg-amber-glow-surface/70" : ""
       }">
         <span class="font-label-caps text-[10px] leading-tight ${idx === 0 ? "text-primary font-bold" : "text-ink-tertiary"} uppercase">${s.label}</span>
