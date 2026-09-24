@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v23"; // v23: pre-paint i18n (no raw-key flash, persisted language) + localized Next Few Hours strip
+const CACHE_NAME = "weathergpt-shell-v26"; // v26: backend ElevenLabs TTS for Speak Answer with browser-voice fallback
 
 const SHELL_FILES = [
   "/",

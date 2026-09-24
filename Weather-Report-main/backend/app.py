@@ -39,6 +39,17 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gpt-oss:120b")
 GROQ_WHISPER_MODEL = os.getenv("GROQ_WHISPER_MODEL", "whisper-large-v3-turbo")
 GROQ_CHAT_MODEL = os.getenv("GROQ_CHAT_MODEL", "llama-3.3-70b-versatile")
 WEATHERAPI_KEY = os.getenv("WEATHERAPI_KEY")
+# ElevenLabs TTS (server-side ONLY — the key never reaches the browser).
+# Used by /api/tts to give WeatherGPT's Speak Answer a natural sweet female
+# voice; the frontend falls back to the built-in browser voices when unset
+# or on any failure.
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+ELEVENLABS_TTS_MODEL = os.getenv("ELEVENLABS_TTS_MODEL", "eleven_multilingual_v2")
+# Telugu is NOT in Eleven Multilingual v2's 29-language list — it needs
+# Eleven v3 (74 languages). EN/HI stay on the most life-like multilingual
+# model; TE is routed to v3. Overridable via env for future model changes.
+ELEVENLABS_TTS_MODEL_TE = os.getenv("ELEVENLABS_TTS_MODEL_TE", "eleven_v3")
+ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "EXAVITQu4vr4xnSDxMaL")
 # CARTO's browser-embeddable basemap key (designed to be public, like a
 # Google Maps browser key) — served via /api/config so it can be rotated
 # through the environment without editing frontend code.
@@ -901,6 +912,9 @@ def health():
         "groq_model": GROQ_WHISPER_MODEL,
         "ollama": bool(ollama_client),
         "ollama_model": OLLAMA_MODEL,
+        "tts": bool(ELEVENLABS_API_KEY),
+        "tts_model": ELEVENLABS_TTS_MODEL,
+        "tts_model_te": ELEVENLABS_TTS_MODEL_TE,
         "weatherapi_fallback": bool(WEATHERAPI_KEY),
         "timestamp": datetime.now().isoformat(),
     })
@@ -911,6 +925,70 @@ def api_config():
     """Public, client-safe configuration (no secrets here — only keys that
     are designed to be embedded in browsers, e.g. CARTO basemaps)."""
     return jsonify({"carto_api_key": CARTO_API_KEY})
+
+
+@app.route("/api/tts", methods=["POST"])
+def api_tts():
+    """Server-side ElevenLabs text-to-speech for the Speak Answer button.
+
+    The ELEVENLABS_API_KEY stays in the backend — the frontend only sends
+    text + language and receives audio bytes. Uses a natural sweet female
+    voice; EN/HI are synthesized with Eleven Multilingual v2 (auto-detects
+    the language from the text) while TE routes to Eleven v3, the only
+    model with Telugu support (v2 covers 29 languages, Telugu isn't one).
+    Soft, gentle delivery via voice_settings. Any failure returns a JSON
+    error (never partial audio) so the frontend can fall back to browser
+    TTS.
+    """
+    if not ELEVENLABS_API_KEY:
+        return jsonify({"error": "TTS is not configured (ELEVENLABS_API_KEY missing)."}), 503
+    payload = request.get_json(silent=True) or {}
+    text = str(payload.get("text") or "").strip()
+    lang = str(payload.get("lang") or "en").strip().lower()
+    if not text:
+        return jsonify({"error": "text is required"}), 400
+    if len(text) > 1200:
+        return jsonify({"error": "text too long"}), 413
+    if lang not in ("en", "hi", "te"):
+        lang = "en"
+
+    # Softer, slower, sweet delivery: low-ish stability for warmth, high
+    # similarity for a natural voice, gentle speed below 1. Used for both
+    # models (v3 accepts stability; its other documented control).
+    sweet_settings = {
+        "stability": 0.55,
+        "similarity_boost": 0.8,
+        "style": 0.25,
+        "use_speaker_boost": True,
+        "speed": 0.93,
+    }
+
+    def _call_upstream(model_id):
+        return requests.post(
+            f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}",
+            params={"output_format": "mp3_44100_128"},
+            headers={"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"},
+            json={"text": text, "model_id": model_id, "voice_settings": sweet_settings},
+            timeout=30,
+        )
+
+    try:
+        resp = _call_upstream(ELEVENLABS_TTS_MODEL if lang != "te" else ELEVENLABS_TTS_MODEL_TE)
+        # Eleven v3 (the only model with Telugu) occasionally rejects
+        # payloads v2 accepts; retry the same voice through v2 so TE
+        # still speaks instead of failing (v2 may approximate it).
+        if resp.status_code != 200 and lang == "te":
+            print(f"[tts] eleven_v3 TE failed ({resp.status_code}); retrying with {ELEVENLABS_TTS_MODEL}")
+            resp = _call_upstream(ELEVENLABS_TTS_MODEL)
+    except requests.RequestException as error:
+        return jsonify({"error": f"TTS upstream unreachable: {error}"}), 502
+    if resp.status_code != 200:
+        # Surface the upstream failure as JSON so the frontend falls back.
+        return jsonify({"error": f"TTS upstream error {resp.status_code}"}), 502
+    audio = resp.content
+    if not audio:
+        return jsonify({"error": "TTS upstream returned empty audio"}), 502
+    return audio, 200, {"Content-Type": "audio/mpeg", "Cache-Control": "no-store"}
 
 
 @app.route("/api/transcribe", methods=["POST"])

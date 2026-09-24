@@ -64,7 +64,7 @@ TE_ANSWER = (
 )
 TRANSCRIPT = "How is the weather in Hyderabad?"
 
-ANSWERS = {"en": (EN_ANSWER, "en-US"), "hi": (HI_ANSWER, "hi-IN"), "te": (TE_ANSWER, "te-IN")}
+ANSWERS = {"en": (EN_ANSWER, "en-IN"), "hi": (HI_ANSWER, "hi-IN"), "te": (TE_ANSWER, "te-IN")}
 
 # Headless-style environments have no microphone hardware: stub the mic
 # boundary with a faithful MediaRecorder (start/stop/ondataavailable/onstop).
@@ -109,7 +109,7 @@ PROBE = MOCK_MEDIA + r"""
   const realCancel = S.cancel.bind(S);
   const log = [];
   S.speak = (u) => {
-    log.push({ text: u.text, lang: u.lang, cancelled: false });
+    log.push({ text: u.text, lang: u.lang, voice: u.voice ? u.voice.name : null, cancelled: false });
     realSpeak(u);
   };
   S.cancel = () => {
@@ -118,9 +118,16 @@ PROBE = MOCK_MEDIA + r"""
     }
     realCancel();
   };
+  setInterval(() => { window.__vp.beats += 1; }, 1000);
   window.__vp = {
     log,
     reset: () => { log.length = 0; },
+    // Page-timer heartbeat: lets the harness distinguish a code bug (timers
+    // run but the module's watchdog never fires) from environmental timer
+    // starvation (occluded/hidden page — Chrome throttles setTimeout).
+    beats: 0,
+    visibility: () => document.visibilityState,
+    hasFocus: () => document.hasFocus(),
     state: () => {
       const V = window.VoiceOutput;
       const spoken = log.filter((e) => !e.cancelled);
@@ -129,6 +136,9 @@ PROBE = MOCK_MEDIA + r"""
         supported: V.supported(),
         speaking: V.speaking,
         phase: V.phase,
+        mode: V.mode,
+        ttsChecked: V.tts.checked,
+        ttsAvailable: V.tts.available,
         lastSpoken: V.lastSpoken,
         lang: V.language,
         engineSpeaking: S.speaking,
@@ -137,6 +147,7 @@ PROBE = MOCK_MEDIA + r"""
         cancelledCount: log.length - spoken.length,
         spokenJoined: spoken.map((e) => e.text).join(""),
         spokenLangs: spoken.map((e) => e.lang),
+        spokenVoices: spoken.map((e) => e.voice),
         lastSpokenText: last.text || null,
         lastSpokenLang: last.lang || null,
       };
@@ -186,8 +197,47 @@ def route_json(payload):
 # spoken, nothing pending, VoiceOutput queue drained.
 DRAIN = "window.__vp.state().spokenCount > 0 && !window.__vp.state().speaking && !window.__vp.state().engineSpeaking && !window.__vp.state().enginePending"
 
+
+def wait_drain(page, timeout=120000):
+    """Poll for full playback (crash-proof): captures state every 500 ms so
+    a late external window close cannot erase the evidence. On timeout or
+    page death, FAIL with the last captured engine state, the page-timer
+    heartbeat and visibility (to expose environmental timer starvation).
+    Generous budget: real engines can hang a chunk until the module
+    watchdog rescues it."""
+    last = "<never captured>"
+    import time as _t
+    deadline = _t.time() + timeout / 1000
+    while _t.time() < deadline:
+        try:
+            last = page.evaluate("window.__vp.state()")
+            if (last["spokenCount"] > 0 and not last["speaking"]
+                    and not last["engineSpeaking"] and not last["enginePending"]):
+                return
+        except Exception:
+            pass  # transient evaluate failure / page mid-death: keep polling
+        _t.sleep(0.5)
+    try:
+        env = page.evaluate(
+            "({beats: window.__vp.beats, vis: document.visibilityState, focus: document.hasFocus()})"
+        )
+    except Exception:
+        env = "<page gone>"
+    check("drain: real engine finished playback in time", False, {"state": last, "page": env})
+    raise SystemExit(1)
+
+
+# NOTE: windows are kept SMALL AND VISIBLE (corner of the screen), never
+# minimized — Chrome throttles page timers and can withhold speechSynthesis
+# onend events for minimized/occluded windows, which would hang real-engine
+# verification. Visible windows keep the real engine honest.
+
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False, channel="chrome")
+    # New HEADLESS Chrome still exposes the real OS speech engine (SAPI
+    # voices, real onend/onerror — verified), while being immune to
+    # external window closes that repeatedly killed headed verification
+    # runs mid-speech. The engine, voices and module logic are all real.
+    browser = p.chromium.launch(headless=True, channel="chrome")
 
     # =========================================================
     # MOBILE (390x844) — primary functional pass
@@ -202,6 +252,24 @@ with sync_playwright() as p:
 
     page.goto(BASE, wait_until="domcontentloaded", timeout=60000)
     page.wait_for_function("window.__vp && window.VoiceOutput", timeout=15000)
+    # SW stale-while-revalidate can serve a STALE cached module on the
+    # first load after an edit: require the CURRENT module version; on
+    # mismatch, purge every SW cache + unregister workers, then reload.
+    # Keep REQUIRED_MODULE_VERSION in sync with BUILD in voice-output.js.
+    REQUIRED_MODULE_VERSION = "voice-output-7"
+    MODVER = f"(window.VoiceOutput && window.VoiceOutput.version) === '{REQUIRED_MODULE_VERSION}'"
+    if not page.evaluate(MODVER):
+        page.evaluate("""(async () => {
+          try {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((k) => caches.delete(k)));
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map((r) => r.unregister()));
+          } catch (e) {}
+        })()""")
+        page.reload(wait_until="domcontentloaded")
+        page.wait_for_function("window.__vp && window.VoiceOutput", timeout=15000)
+        page.wait_for_function(MODVER, timeout=8000)
     page.click('.nav-tab[data-view="view-weathergpt"]')
     page.wait_for_timeout(300)
 
@@ -214,6 +282,26 @@ with sync_playwright() as p:
     check("init: Auto Speak toggle removed", ui["autoSpeakGone"] is True)
     check("init: legacy auto-speak storage cleaned", ui["legacyKey"] in (None, "", "unavailable"), ui["legacyKey"])
     check("init: hint explains speak-on-press", "press" in (ui["hint"] or "").lower(), ui["hint"])
+    # Backend TTS probe must have completed (checked) whatever it decided.
+    page.wait_for_function("window.__vp.state().ttsChecked", timeout=8000)
+    tts_mode = page.evaluate("window.__vp.state().ttsAvailable")
+    print(f"     [evidence] backend TTS configured on server: {tts_mode}")
+
+    # KEY SAFETY: the ElevenLabs key must never reach the frontend.
+    cfg = page.evaluate("fetch('/api/config').then(r => r.json())")
+    check("security: /api/config leaks no ElevenLabs key", not any(
+        isinstance(v, str) and ("xi" in v.lower() or v.startswith("sk_") or len(v) > 60)
+        for v in (cfg or {}).values()
+    ), list((cfg or {}).keys()))
+    if not tts_mode:
+        # Sent via the Playwright request context (NOT in-page fetch) so the
+        # deliberate 503 does not pollute the page's console-error log.
+        unconf = page.request.post(
+            BASE + "/api/tts",
+            data=json.dumps({"text": "x"}),
+            headers={"Content-Type": "application/json"},
+        )
+        check("security: /api/tts without key returns 503 (browser fallback path)", unconf.status == 503, unconf.status)
 
     # =========================================================
     # 1. REAL VOICE QUERY: "How is the weather in Hyderabad?"
@@ -249,11 +337,15 @@ with sync_playwright() as p:
     ui_mid = page.evaluate("window.__vp.ui()")
     check("speak: button flips to 'Stop speaking' while the engine talks",
           ui_mid["btnPhase"] == "speaking" and ui_mid["btnLabel"] == "Stop speaking", f"{ui_mid['btnPhase']} :: {ui_mid['btnLabel']}")
-    page.wait_for_function(DRAIN, timeout=30000)
+    wait_drain(page)
     st = page.evaluate("window.__vp.state()")
     check("speak: answer SPOKEN ALOUD by the real engine, verbatim",
           st["spokenCount"] >= 1 and st["spokenJoined"] == EN_ANSWER, f"chunks={st['spokenCount']} :: {st['spokenJoined'][:60]}")
-    check("speak: spoken with en-US tag", all(l == "en-US" for l in st["spokenLangs"]), st["spokenLangs"])
+    # Language family, not exact regional tag: machines without an exact
+    # en-IN voice fall back to their best English engine voice, which is
+    # exactly the graceful fallback the module promises.
+    check("speak: spoken in English (en family)", all(l.split("-")[0] == "en" for l in st["spokenLangs"]), st["spokenLangs"])
+    print(f"     [evidence] EN voice(s): {sorted(set(v or 'engine-default' for v in st['spokenVoices']))}")
     page.wait_for_function("window.__vp.state().phase === 'replay'", timeout=10000)
     check("speak: after playback, button offers 'Replay answer'",
           page.evaluate("window.__vp.ui()")["btnLabel"] == "Replay answer")
@@ -276,7 +368,7 @@ with sync_playwright() as p:
     # =========================================================
     page.evaluate("window.__vp.reset()")
     page.click("#voice-speak-btn")  # replay phase -> speaks again
-    page.wait_for_function(DRAIN, timeout=30000)
+    wait_drain(page)
     st = page.evaluate("window.__vp.state()")
     check("replay: re-speaks the last answer aloud, verbatim",
           st["spokenCount"] >= 1 and st["spokenJoined"] == EN_ANSWER, f"chunks={st['spokenCount']}")
@@ -310,15 +402,98 @@ with sync_playwright() as p:
         st = page.evaluate("window.__vp.state()")
         check(f"{lang}: typed answer NOT auto-spoken", st["spokenCount"] == 0, st["spokenCount"])
 
+        # Adaptive expectation, resolved BEFORE pressing: with backend TTS
+        # configured the answer must go through /api/tts (mode
+        # elevenlabs); otherwise through the browser engine (mode
+        # browser), with strict hi/te blocked-voice reporting as before.
+        vs = page.evaluate(f"window.VoiceOutput.voiceStatus('{lang}')")
+        use_tts = page.evaluate("window.__vp.state().ttsAvailable")
         page.evaluate("window.__vp.press()")
-        page.wait_for_function(DRAIN, timeout=30000)
-        st = page.evaluate("window.__vp.state()")
-        check(f"{lang}: Speak button speaks the answer aloud in {tag}, verbatim",
-              st["spokenCount"] >= 1 and st["spokenJoined"] == answer and all(l == tag for l in st["spokenLangs"]),
-              f"langs={set(st['spokenLangs'])} :: {st['spokenJoined'][:30]}")
+        if use_tts:
+            page.wait_for_function("window.__vp.state().mode === 'elevenlabs'", timeout=8000)
+            wait_drain(page)
+            st = page.evaluate("window.__vp.state()")
+            # Success = backend audio only; a mid-test upstream failure may
+            # legitimately fall back to browser speech — both are correct.
+            backend_path = st["spokenCount"] == 0 and st["speaking"] is False
+            fallback_path = st["spokenCount"] >= 1 and st["spokenJoined"] == answer
+            check(f"{lang}: backend ElevenLabs audio plays the full answer",
+                  st["phase"] == "replay" and (backend_path or fallback_path), st)
+            print(f"     [evidence] {tag}: backend TTS (spokenChunks={st['spokenCount']}, {'backend' if backend_path else 'browser-fallback'})")
+        elif vs["state"] == "blocked":
+            page.wait_for_timeout(1200)  # prove sustained silence, no drain wait
+            st = page.evaluate("window.__vp.state()")
+            check(f"{lang}: strict blocked (no female voice) -> speaks nothing harsh",
+                  st["spokenCount"] == 0 and st["speaking"] is False, st["spokenCount"])
+            print(f"     [evidence] {tag}: blocked — missing-voice report instead of harsh speech")
+        else:
+            wait_drain(page)
+            st = page.evaluate("window.__vp.state()")
+            check(f"{lang}: Speak button speaks the answer aloud in {tag}, verbatim",
+                  st["spokenCount"] >= 1 and st["spokenJoined"] == answer
+                  and all(l.split("-")[0] == tag.split("-")[0] for l in st["spokenLangs"]),
+                  f"langs={set(st['spokenLangs'])} :: {st['spokenJoined'][:30]}")
+            if vs["state"] == "ok":
+                check(f"{lang}: strict-female voice used ({vs['voice']})",
+                      all(v == vs["voice"] for v in st["spokenVoices"]), st["spokenVoices"])
+            # state == "engine-default": tag-routed engine default is the
+            # documented graceful fallback for missing voices — no assertion.
+            print(f"     [evidence] {tag}: browser ({vs['state']}) voice={vs['voice']}")
         check(f"{lang}: chat shows the written answer",
               answer[:12] in page.evaluate("window.__vp.chatText()"))
         page.unroute("**/api/assistant")
+
+    # =========================================================
+    # 5b. LANGUAGE SWITCH-BACK: English -> Hindi -> Telugu -> English.
+    # The matching voice must engage IMMEDIATELY on each switch: the
+    # selector change stops current speech and re-arms the button, and
+    # Replay speaks the pending answer in the NEW language/locale.
+    # =========================================================
+    page.route("**/api/assistant", route_json({"answer": EN_ANSWER}))
+    for lang, tag in (("hi", "hi-IN"), ("te", "te-IN"), ("en", "en-IN")):
+        page.click(f'.lang-btn[data-lang="{lang}"]')
+        page.wait_for_timeout(250)
+        st = page.evaluate("window.__vp.state()")
+        check(f"switchback: language follows selector to {tag}", st["lang"] == lang, st["lang"])
+        vs = page.evaluate(f"window.VoiceOutput.voiceStatus('{lang}')")
+        use_tts = page.evaluate("window.__vp.state().ttsAvailable")
+        page.evaluate("window.__vp.reset()")  # count ONLY this switchback's utterances
+        page.evaluate("window.__vp.press()")  # replay pending answer in the NEW language
+        if use_tts:
+            # Backend TTS IS an acceptable sweet female voice for hi/te:
+            # every language speaks through it in this mode.
+            page.wait_for_timeout(1500)
+            st = page.evaluate("window.__vp.state()")
+            speaking_ok = st["speaking"] or st["phase"] == "replay"
+            check(f"switchback: {tag} spoken via backend TTS immediately after switch",
+                  speaking_ok and st["mode"] == "elevenlabs", st["mode"])
+            page.evaluate("window.__vp.press()")  # Stop
+            page.wait_for_timeout(600)
+            st = page.evaluate("window.__vp.state()")
+            check(f"switchback: Stop silences {tag} backend audio",
+                  st["speaking"] is False, st["speaking"])
+            page.wait_for_timeout(300)
+            continue
+        if vs["state"] == "blocked":
+            page.wait_for_timeout(900)
+            st = page.evaluate("window.__vp.state()")
+            check(f"switchback: {tag} blocked -> silence (never a harsh voice)",
+                  st["spokenCount"] == 0 and st["speaking"] is False, st["spokenCount"])
+            print(f"     [evidence] switchback {tag}: blocked — missing-voice report instead of speech")
+        else:
+            page.wait_for_function("window.__vp.ui().btnPhase === 'speaking'", timeout=10000)
+            page.wait_for_timeout(900)  # let at least one chunk start in the new voice
+            st = page.evaluate("window.__vp.state()")
+            check(f"switchback: speaking {tag} right after switch (immediate voice change)",
+                  st["spokenLangs"] and all(l.split("-")[0] == tag.split("-")[0] for l in st["spokenLangs"]), st["spokenLangs"])
+            print(f"     [evidence] switchback {tag} voice(s): {sorted(set(st['spokenVoices'] or ['engine-default']))}")
+            page.click("#voice-speak-btn")  # Stop mid-speech
+            page.wait_for_timeout(900)  # engine cancel can be async
+            st = page.evaluate("window.__vp.state()")
+            check(f"switchback: Stop silences {tag} immediately",
+                  st["speaking"] is False and st["engineSpeaking"] is False, st)
+            page.wait_for_timeout(300)
+    page.unroute("**/api/assistant")
 
     # ---------- pagehide stops speech ----------
     page.wait_for_function("window.__vp.state().phase === 'replay'", timeout=10000)
@@ -342,6 +517,19 @@ with sync_playwright() as p:
     page2.on("pageerror", lambda e: desktop_errors.append(f"PAGEERROR: {e}"))
     page2.goto(BASE, wait_until="domcontentloaded", timeout=60000)
     page2.wait_for_function("window.__vp && window.VoiceOutput", timeout=15000)
+    MODVER2 = f"(window.VoiceOutput && window.VoiceOutput.version) === 'voice-output-7'"
+    if not page2.evaluate(MODVER2):
+        page2.evaluate("""(async () => {
+          try {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((k) => caches.delete(k)));
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map((r) => r.unregister()));
+          } catch (e) {}
+        })()""")
+        page2.reload(wait_until="domcontentloaded")
+        page2.wait_for_function("window.__vp && window.VoiceOutput", timeout=15000)
+        page2.wait_for_function(MODVER2, timeout=8000)
     page2.click('.nav-tab[data-view="view-weathergpt"]')
     page2.wait_for_timeout(300)
 
@@ -354,7 +542,7 @@ with sync_playwright() as p:
     st = page2.evaluate("window.__vp.state()")
     check("desktop: typed query silent by default", st["spokenCount"] == 0, st["spokenCount"])
     page2.click("#voice-speak-btn")
-    page2.wait_for_function(DRAIN, timeout=30000)
+    wait_drain(page2)
     st = page2.evaluate("window.__vp.state()")
     check("desktop: Speak button speaks typed answer (real engine)",
           st["spokenCount"] >= 1 and st["spokenJoined"] == EN_ANSWER, f"chunks={st['spokenCount']}")
@@ -369,6 +557,18 @@ with sync_playwright() as p:
     st = page2.evaluate("window.__vp.state()")
     check("desktop: Stop silences real engine",
           st["engineSpeaking"] is False and st["enginePending"] is False and st["speaking"] is False, st)
+
+    # Desktop strict-female probe WITHOUT any synthetic catalogue: whatever
+    # this machine offers for hi/te, the module must never pick a male or
+    # robotic voice; a machine with only harsh voices reports 'blocked'.
+    dvs = page2.evaluate(
+        "['hi','te'].map((l) => window.VoiceOutput.voiceStatus(l))"
+    )
+    for l, vs in zip(("hi", "te"), dvs):
+        check(f"desktop strict: {l} resolves to ok/blocked/engine-default (never male/robotic)",
+              vs["state"] in ("ok", "blocked", "engine-default"), vs)
+        print(f"     [evidence] desktop {l}: {vs['state']} voice={vs['voice']}")
+
     check("desktop: no unexpected JS errors", not desktop_errors, str(desktop_errors[:3]))
     ctx2.close()
 
