@@ -2053,20 +2053,31 @@ function disconnectI18nBootObserver() {
 }
 
 // ============================================================
-// NEXT FEW HOURS — compact real hourly outlook strip
+// NEXT FEW HOURS — approved concept: wide NOW row + hourly cards
 // ============================================================
-// A lightweight band directly below the hero card: ~6 upcoming slots
-// from the SAME real hourly payload the 24h scroller uses. Fully
-// localized; hidden entirely when hourly data is unavailable (never
-// fabricated), with an honest localized empty note otherwise.
+// A panel directly below the hero card: the WIDE TOP ROW is NOW/current
+// conditions (temperature, rain chance, wind, humidity — all real, from
+// the current payload plus the in-progress hour's rain probability);
+// underneath, the upcoming hours render as an EQUAL-WIDTH row of compact
+// cards. Fully localized; honest when data is missing (never fabricated).
 function renderNextHoursStrip() {
   const strip = els.nextHoursStrip;
   if (!strip) return;
+  const nowRow = document.getElementById("nfh-now-row");
   const hourly = state.weather?.hourly || {};
+  const current = state.weather?.current || {};
+
+  const rInt = (v) =>
+    v === undefined || v === null || v === "" || Number.isNaN(+v) ? null : Math.round(+v);
+  const fmtTemp = (v) => (v === null ? "–" : `${v}°`);
+  const fmtVal = (v, unit = "") => (v === null ? "–" : `${v}${unit}`);
+
   if (!hourly.time || !hourly.time.length) {
+    if (nowRow) nowRow.innerHTML = "";
     strip.innerHTML = `<span class="font-body-dim text-[11px] text-ink-tertiary px-1 py-1">${T("nfhUnavailable")}</span>`;
     return;
   }
+
   const nowMs = Date.now();
   let startIdx = hourly.time.findIndex((tStr) => new Date(tStr).getTime() >= nowMs - 1800e3);
   if (startIdx < 0) startIdx = 0;
@@ -2075,14 +2086,49 @@ function renderNextHoursStrip() {
   const codes = hourly.weather_code || [];
   const locale = farmLang() === "hi" ? "hi-IN" : farmLang() === "te" ? "te-IN" : undefined;
 
+  // ---- WIDE TOP ROW: NOW / current conditions --------------------------
+  const curTemp = rInt(current.temperature_2m ?? temps[startIdx]);
+  const curRain = rInt(probs[startIdx]) ?? 0;
+  const curWind = rInt(current.wind_speed_10m);
+  const curHum = rInt(current.relative_humidity_2m);
+  const curFeels = rInt(current.apparent_temperature);
+  const curCat = getConditionCategory(current.weather_code ?? codes[startIdx] ?? 0, current.is_day ?? 1);
+  const curIcon = CONDITION_ICONS[curCat] || "wb_sunny";
+
+  if (nowRow) {
+    const stat = (icon, label, value, aria) => `
+      <div class="flex flex-col items-center justify-center gap-0.5 min-w-[52px] px-1 py-0.5">
+        <span class="flex items-center gap-0.5 font-label-caps text-[9px] leading-none text-ink-tertiary uppercase whitespace-nowrap">
+          <span class="material-symbols-outlined text-[13px] leading-none" aria-hidden="true">${icon}</span>${label}
+        </span>
+        <span class="font-headline-card text-[13px] leading-none text-ink-primary font-bold whitespace-nowrap" aria-label="${aria}">${value}</span>
+      </div>`;
+    nowRow.innerHTML = `
+      <div class="flex items-center gap-2.5 min-w-0 flex-1">
+        <span class="material-symbols-outlined text-[28px] leading-none text-primary" role="img" aria-label="${conditionTitleFor(curCat)}" style="font-variation-settings: 'FILL' 1;">${curIcon}</span>
+        <div class="flex flex-col leading-tight min-w-0">
+          <span class="font-label-caps text-[10px] leading-none text-primary font-bold uppercase">${T("now")}</span>
+          <span class="font-display-hero text-[26px] leading-none text-ink-primary font-light">${fmtTemp(curTemp)}</span>
+          <span class="font-body-dim text-[10px] leading-none text-ink-tertiary whitespace-nowrap">${T("hlFeels")} ${fmtTemp(curFeels)}</span>
+        </div>
+      </div>
+      <div class="h-9 w-px bg-glass-border/40 shrink-0 hidden sm:block" aria-hidden="true"></div>
+      <div class="flex items-center justify-around gap-1 min-w-0 flex-1 max-[374px]:basis-full">
+        ${stat("water_drop", T("rainChance"), `${curRain}%`, `${T("rainChance")} ${curRain}%`)}
+        ${stat("air", T("wind"), fmtVal(curWind, ` ${T("kmh")}`), `${T("wind")} ${fmtVal(curWind, ` ${T("kmh")}`)}`)}
+        ${stat("humidity_percentage", T("humidity"), fmtVal(curHum, "%"), `${T("humidity")} ${fmtVal(curHum, "%")}`)}
+      </div>`;
+  }
+
+  // ---- EQUAL-WIDTH ROW: upcoming hours (strictly after NOW) ------------
   const slots = [];
-  for (let i = startIdx; i < hourly.time.length && slots.length < 6; i++) {
+  for (let i = startIdx; i < hourly.time.length && slots.length < 5; i++) {
     const d = new Date(hourly.time[i]);
-    if (d.getTime() < nowMs - 3600e3) continue;
+    if (d.getTime() <= nowMs) continue; // in-progress hour is the NOW row
     slots.push({
-      label: slots.length === 0 ? T("now") : d.toLocaleTimeString(locale, { hour: "numeric" }),
-      temp: Math.round(temps[i] ?? ""),
-      rain: Math.round(probs[i] ?? 0),
+      label: d.toLocaleTimeString(locale, { hour: "numeric" }),
+      temp: rInt(temps[i]),
+      rain: rInt(probs[i]) ?? 0,
       icon: CONDITION_ICONS[getConditionCategory(codes[i] ?? 0, 1)] || "wb_sunny",
       cat: getConditionCategory(codes[i] ?? 0, 1),
     });
@@ -2094,16 +2140,12 @@ function renderNextHoursStrip() {
 
   strip.innerHTML = slots
     .map(
-      (s, idx) => `
-      <div role="listitem" class="flex flex-col items-center justify-between min-w-[52px] flex-1 px-1.5 py-0.5 rounded-xl overflow-hidden ${
-        idx === 0 ? "bg-amber-glow-surface/70" : ""
-      }">
-        <span class="font-label-caps text-[10px] leading-tight ${idx === 0 ? "text-primary font-bold" : "text-ink-tertiary"} uppercase">${s.label}</span>
-        <span class="material-symbols-outlined text-[16px] leading-none ${idx === 0 ? "text-primary" : "text-ink-primary"}" role="img" aria-label="${conditionTitleFor(s.cat)}">${s.icon}</span>
-        <span class="flex items-baseline justify-center gap-1 leading-tight">
-          <span class="font-headline-card text-[12px] text-ink-primary font-bold leading-none">${s.temp === "" ? "–" : `${s.temp}°`}</span>
-          <span class="font-label-caps text-[9px] text-secondary font-medium leading-none" aria-label="${T("rainChance")} ${s.rain}%">${s.rain}%</span>
-        </span>
+      (s) => `
+      <div role="listitem" class="flex flex-col items-center justify-between gap-0.5 min-w-0 max-[359px]:min-w-[56px] px-1 py-1.5 rounded-xl bg-surface-container/60 border border-glass-border-subtle">
+        <span class="font-label-caps text-[10px] leading-none text-ink-tertiary uppercase whitespace-nowrap">${s.label}</span>
+        <span class="material-symbols-outlined text-[17px] leading-none text-ink-primary" role="img" aria-label="${conditionTitleFor(s.cat)}">${s.icon}</span>
+        <span class="font-headline-card text-[12px] leading-none text-ink-primary font-bold">${fmtTemp(s.temp)}</span>
+        <span class="font-label-caps text-[9px] leading-none text-secondary font-medium" aria-label="${T("rainChance")} ${s.rain}%">${s.rain}%</span>
       </div>`
     )
     .join("");

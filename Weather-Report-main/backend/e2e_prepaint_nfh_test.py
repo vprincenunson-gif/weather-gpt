@@ -121,17 +121,30 @@ def install_routes(ctx, payload):
 
 def strip_state(pg):
     return pg.evaluate(
-        """() => {
+        r"""() => {
           const strip = document.getElementById('next-hours-strip');
+          const nowRow = document.getElementById('nfh-now-row');
           if (!strip) return null;
-          const cs = getComputedStyle(strip);
           const slots = [...strip.querySelectorAll('[role="listitem"]')];
+          const nowText = nowRow ? nowRow.textContent : "";
+          const has = (re) => re.test(nowText);
           return {
             present: true,
-            display: cs.display,
+            display: getComputedStyle(strip).display,
+            gridCols: getComputedStyle(strip).gridTemplateColumns.split(" ").length,
             height: Math.round(strip.getBoundingClientRect().height),
+            nowRow: !!nowRow,
+            nowText: nowText.trim(),
+            nowTemp: has(/\d+°/),
+            nowRain: has(/Rain|वर्षा|వర్ష/i),
+            nowWind: has(/Wind|हवा|గాలి/i),
+            nowHumidity: has(/Humidity|आर्द्रता|తేమ/i),
             slotCount: slots.length,
             firstLabel: slots.length ? slots[0].textContent.trim() : null,
+            slotWidthsEqual: (() => {
+              const ws = slots.map((s) => Math.round(s.getBoundingClientRect().width));
+              return ws.length > 1 && Math.max(...ws) - Math.min(...ws) <= 2;
+            })(),
             text: strip.textContent.trim(),
             emptyNote: strip.textContent.includes('unavailable') ||
                        strip.textContent.includes('उपलब्ध नहीं') ||
@@ -142,18 +155,19 @@ def strip_state(pg):
 
 
 def hero_bottom_gap(pg):
-    """Gap between the animated scene card's bottom edge and the strip
-    (the strip lives inside the hero column, directly under the card)."""
+    """Gap between the animated scene card's bottom edge and the NFH panel
+    (the panel is the hero column block directly under the card; measuring
+    the inner hourly grid would wrongly include the NOW row's height)."""
     return pg.evaluate(
         """() => {
           const scene = document.querySelector('main .cs-sky-a');
-          const strip = document.getElementById('next-hours-strip');
-          if (!scene || !strip) return null;
+          const panel = document.getElementById('next-hours-panel');
+          if (!scene || !panel) return null;
           const card = scene.closest('.rounded-3xl');
           if (!card) return null;
           const cr = card.getBoundingClientRect();
-          const sr = strip.getBoundingClientRect();
-          return Math.round(sr.top - cr.bottom);
+          const pr = panel.getBoundingClientRect();
+          return Math.round(pr.top - cr.bottom);
         }"""
     )
 
@@ -205,23 +219,43 @@ def run():
             ) == "hi",
         )
 
-        # ============ 4: strip from fresh load with real hourly data ============
+        # ============ 4: approved concept — NOW row + equal-width hourly cards ============
         dom_click(page, '[data-view="view-forecast"]')
         page.wait_for_timeout(300)
         st = strip_state(page)
-        check("strip present", bool(st and st["present"]))
-        check("strip visible (flex)", bool(st and "flex" in (st["display"] or "")))
-        check("strip: 6 real slots", bool(st and st["slotCount"] == 6), f"slots={st and st['slotCount']}")
-        check("strip: compact single row (<= 56px)", bool(st and 0 < st["height"] <= 56), f"h={st and st['height']}")
-        check(
-            "strip: first slot is localized Now (HI)",
-            bool(st and (st["firstLabel"] or "").startswith("अभी")),
-            st and st["firstLabel"],
+        check("panel present", bool(st and st["present"]))
+        check("NOW row present (wide top row)", bool(st and st["nowRow"]))
+        check("NOW row: current temp", bool(st and st["nowTemp"]), st and st["nowText"][:80])
+        check("NOW row: rain chance", bool(st and st["nowRain"]), st and st["nowText"][:80])
+        check("NOW row: wind", bool(st and st["nowWind"]), st and st["nowText"][:80])
+        check("NOW row: humidity", bool(st and st["nowHumidity"]), st and st["nowText"][:80])
+        check("NOW row: localized Now (HI)", bool(st and "अभी" in (st["nowText"] or "")), st and st["nowText"][:40])
+        check("hourly row: 5 upcoming slots", bool(st and st["slotCount"] == 5), f"slots={st and st['slotCount']}")
+        check("hourly row: grid display", bool(st and "grid" in (st["display"] or "")))
+        check("hourly row: equal widths (5 equal columns)", bool(st and st["gridCols"] == 5 and st["slotWidthsEqual"]),
+              f"cols={st and st['gridCols']}")
+        check("hourly row: no Now label in cards (NOW moved up)",
+              bool(st and not (st["firstLabel"] or "").startswith("अभी")), st and st["firstLabel"])
+        # Measure only after layout has been stable for two consecutive
+        # animation frames (late-loading fonts can shift the hero card
+        # height mid-settle; a fixed wait races that).
+        page.wait_for_function(
+            """() => {
+              const scene = document.querySelector('main .cs-sky-a');
+              const card = scene && scene.closest('.rounded-3xl');
+              const panel = document.getElementById('next-hours-panel');
+              if (!card || !panel) return false;
+              const g = () => Math.round(panel.getBoundingClientRect().top - card.getBoundingClientRect().bottom);
+              const a = g();
+              return new Promise((res) => requestAnimationFrame(() =>
+                requestAnimationFrame(() => res(g() === a))));
+            }""",
+            timeout=5000,
         )
         gap = hero_bottom_gap(page)
-        check("strip sits directly below hero scene card (0..60px gap)", gap is not None and 0 <= gap <= 60, f"gap={gap}")
+        check("panel sits directly below hero scene card (0..60px gap)", gap is not None and 0 <= gap <= 60, f"gap={gap}")
         check(
-            "strip is inside the left hero column",
+            "panel is inside the left hero column",
             page.evaluate(
                 """() => {
                   const strip = document.getElementById('next-hours-strip');
@@ -230,7 +264,7 @@ def run():
             ),
         )
         check(
-            "all 6 slots visible without scrolling (desktop)",
+            "all 5 slots visible without scrolling (desktop)",
             page.evaluate(
                 """() => {
                   const s = document.getElementById('next-hours-strip');
@@ -261,9 +295,9 @@ def run():
             txt(page, '[data-i18n="nfhTitle"]'),
         )
         check(
-            "switch->TE: strip Now localized",
-            bool(st and (st["firstLabel"] or "").startswith("ఇప్పుడు")),
-            st and st["firstLabel"],
+            "switch->TE: NOW row localized (ఇప్పుడు)",
+            bool(st and "ఇప్పుడు" in (st["nowText"] or "")),
+            st and st["nowText"][:40],
         )
         switch_to(page, "en")
         page.wait_for_timeout(80)
@@ -274,9 +308,9 @@ def run():
             txt(page, '[data-i18n="nfhTitle"]'),
         )
         check(
-            "switch->EN: strip Now back to EN",
-            bool(st and (st["firstLabel"] or "").startswith("Now")),
-            st and st["firstLabel"],
+            "switch->EN: NOW row back to EN",
+            bool(st and "Now" in (st["nowText"] or "")),
+            st and st["nowText"][:40],
         )
         check("no weather refetch during switches", page.evaluate("window.__wx") == 0, page.evaluate("window.__wx"))
         check("zero page errors (desktop)", len(errors) == 0, "; ".join(errors[:3]))
@@ -309,7 +343,10 @@ def run():
         dom_click(page, '[data-view="view-forecast"]')
         page.wait_for_timeout(300)
         st = strip_state(page)
-        check("mobile: strip present with slots", bool(st and st["slotCount"] == 6), f"slots={st and st['slotCount']}")
+        check("mobile: NOW row present with 5 slots", bool(st and st["nowRow"] and st["slotCount"] == 5),
+              f"slots={st and st['slotCount']} now={st and st['nowRow']}")
+        check("mobile: NOW row has temp/rain/wind/humidity",
+              bool(st and st["nowTemp"] and st["nowRain"] and st["nowWind"] and st["nowHumidity"]))
         check("mobile: no horizontal overflow", page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"))
         page.screenshot(path=os.path.join(OUT, "nfh_en_mobile.png"))
         switch_to(page, "hi")

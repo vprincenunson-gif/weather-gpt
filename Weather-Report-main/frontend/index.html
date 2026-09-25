@@ -582,14 +582,25 @@
         </div>
       </div>
 
-        <!-- Next Few Hours — compact real hourly outlook strip, directly
-             under the hero card in the left column (reference-matched) -->
+        <!-- Next Few Hours — approved concept: a wide NOW row (current temp,
+             rain chance, wind, humidity) above an equal-width row of the
+             upcoming hourly cards, directly under the hero card in the
+             left column. Rendered by renderNextHoursStrip() from the SAME
+             real hourly + current payload (never fabricated). -->
         <div class="flex flex-col gap-1.5 mt-4">
           <div class="flex items-center justify-between px-1">
             <span data-i18n="nfhTitle" class="font-label-section text-xs text-ink-tertiary uppercase tracking-wider font-semibold">Next few hours</span>
             <span data-i18n="nfhSubtitle" class="font-label-caps text-[10px] text-ink-tertiary">Next 6 hours</span>
           </div>
-          <div id="next-hours-strip" class="flex items-stretch gap-1.5 overflow-x-auto pb-0.5 scrollbar-none rounded-2xl bg-surface-container-high/60 border border-glass-border/15 px-1.5 py-0.5 shadow-sm" role="list" data-i18n-attr="aria-label:nfhTitle"></div>
+          <div id="next-hours-panel" role="list" aria-label="Next few hours" data-i18n-attr="aria-label:nfhTitle"
+            class="flex flex-col gap-1.5 rounded-2xl bg-surface-container-high/60 border border-glass-border/15 px-1.5 py-1.5 shadow-sm">
+            <!-- NOW / current conditions (wide top row) -->
+            <div id="nfh-now-row" role="listitem"
+              class="flex flex-wrap items-center justify-between gap-2 max-[374px]:gap-y-2.5 min-w-0 min-h-[64px] px-2.5 py-2 rounded-xl bg-amber-glow-surface/70 border border-primary/25"></div>
+            <!-- Upcoming hours (equal-width row underneath) -->
+            <div id="next-hours-strip"
+              class="grid grid-cols-5 gap-1.5 min-[360px]:grid max-[359px]:flex max-[359px]:items-stretch max-[359px]:overflow-x-auto"></div>
+          </div>
         </div>
       </div>
 
