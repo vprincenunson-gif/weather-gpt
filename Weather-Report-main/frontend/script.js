@@ -902,8 +902,17 @@ function tf(key, vars = {}) {
   return s;
 }
 
+// Safe dictionary access: a missing/failed i18n bundle degrades to the
+// static (already-localized) markup instead of throwing — pre-paint
+// guarantee holds even when i18n.js never arrives.
+function chromeDict() {
+  const d = window.CHROME_I18N;
+  return (d && (d[farmLang()] || d.en)) || {};
+}
+
 function applyChromeI18n() {
-  const t = CHROME_I18N[farmLang()] || CHROME_I18N.en;
+  const t = chromeDict();
+  if (!t || !Object.keys(t).length) return;
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const v = t[el.dataset.i18n];
     if (v !== undefined) el.textContent = v;
@@ -2583,7 +2592,7 @@ function renderForecastScreen() {
     els.dailyForecastContainer.innerHTML = days
       .map((dStr, i) => {
         const d = new Date(dStr + "T00:00:00");
-        const dayLabel = i === 0 ? (CHROME_I18N[farmLang()] || CHROME_I18N.en).today
+        const dayLabel = i === 0 ? (chromeDict().today || "Today")
           : d.toLocaleDateString(farmLang() === "hi" ? "hi-IN" : farmLang() === "te" ? "te-IN" : undefined, { weekday: "short" });
         const dCode = daily.weather_code?.[i] ?? 0;
         const dCat = getConditionCategory(dCode, 1);
@@ -2680,7 +2689,7 @@ function renderMapScreen() {
   const current = state.weather?.current || {};
   const temp = Math.round(current.temperature_2m ?? 0);
   const hasTemp = current.temperature_2m !== undefined;
-  const mapT = (CHROME_I18N[farmLang()] || CHROME_I18N.en);
+  const mapT = chromeDict();
 
   if (els.sensorCardTitle) {
     els.sensorCardTitle.textContent = `${locationDisplayName()} — ${mapT.liveReading || "Live Reading"}`;
@@ -3713,7 +3722,7 @@ window.addEventListener("radar-field-status", (event) => {
   } else if (status === "error") {
     // Satellite (clouds) has its own localized unavailable wording.
     if (metric === "clouds") {
-      showMapFieldStatus((CHROME_I18N[farmLang()] || CHROME_I18N.en).satUnavailable);
+      showMapFieldStatus(chromeDict().satUnavailable || "Satellite imagery unavailable.");
     } else {
       showMapFieldStatus(`${label}: field data temporarily unavailable.`);
     }

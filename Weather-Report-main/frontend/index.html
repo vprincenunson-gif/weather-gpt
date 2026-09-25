@@ -34,49 +34,62 @@
       // visible render so no raw translation key or English flash can ever
       // appear. i18n.js (bundled, local) loads before this block; the
       // inline handler guarantees order even if network scripts stall.
+      // Hardened: (a) a localStorage failure degrades to EN instead of
+      // skipping translation entirely; (b) the boot MutationObserver is
+      // installed in EVERY case (including EN and CHROME_I18N hiccups),
+      // so any node added during the initial parse is translated before
+      // it can paint a raw key; (c) dictionary lookups are re-resolved per
+      // mutation so a late-arriving CHROME_I18N still applies.
       try {
-        var savedLang = localStorage.getItem("weathergpt-lang");
-        if (savedLang !== "en" && savedLang !== "hi" && savedLang !== "te") savedLang = "en";
-        var B = window.CHROME_I18N;
-        var dict = B && (B[savedLang] || B.en);
+        var savedLang = "en";
+        try {
+          var sl = localStorage.getItem("weathergpt-lang");
+          if (sl === "en" || sl === "hi" || sl === "te") savedLang = sl;
+        } catch (se) { /* storage unavailable — EN chrome, still no raw keys */ }
+        var bootDict = function () {
+          var B = window.CHROME_I18N;
+          return (B && (B[savedLang] || B.en)) || null;
+        };
+        var translate = function (dict, root) {
+          if (!dict || !root) return;
+          root.querySelectorAll("[data-i18n]").forEach(function (el) {
+            var v = dict[el.getAttribute("data-i18n")];
+            if (v !== undefined) el.textContent = v;
+          });
+          root.querySelectorAll("[data-i18n-attr]").forEach(function (el) {
+            el.getAttribute("data-i18n-attr").split(",").forEach(function (pair) {
+              var parts = pair.split(":");
+              var v = dict[parts[1].trim()];
+              if (parts[0] && v !== undefined) el.setAttribute(parts[0].trim(), v);
+            });
+          });
+        };
+        // The observer only needs to cover initial parse; script.js owns
+        // everything after DOMContentLoaded and disconnects it.
+        var bootObserver = new MutationObserver(function (muts) {
+          muts.forEach(function (m) {
+            m.addedNodes.forEach(function (n) {
+              if (n.nodeType === 1) {
+                if (n.hasAttribute && (n.hasAttribute("data-i18n") || n.hasAttribute("data-i18n-attr"))) translate(bootDict(), n.parentElement || n);
+                else if (n.querySelector && (n.querySelector("[data-i18n], [data-i18n-attr]"))) translate(bootDict(), n);
+              }
+            });
+          });
+        });
+        var dict = bootDict();
         if (dict) {
           document.documentElement.lang = savedLang;
-          var translate = function (root) {
-            root.querySelectorAll("[data-i18n]").forEach(function (el) {
-              var v = dict[el.getAttribute("data-i18n")];
-              if (v !== undefined) el.textContent = v;
-            });
-            root.querySelectorAll("[data-i18n-attr]").forEach(function (el) {
-              el.getAttribute("data-i18n-attr").split(",").forEach(function (pair) {
-                var parts = pair.split(":");
-                var v = dict[parts[1].trim()];
-                if (parts[0] && v !== undefined) el.setAttribute(parts[0].trim(), v);
-              });
-            });
-          };
-          translate(document);
-          // The observer only needs to cover initial parse; script.js owns
-          // everything after DOMContentLoaded and disconnects it.
-          var bootObserver = new MutationObserver(function (muts) {
-            muts.forEach(function (m) {
-              m.addedNodes.forEach(function (n) {
-                if (n.nodeType === 1) {
-                  if (n.hasAttribute && (n.hasAttribute("data-i18n") || n.hasAttribute("data-i18n-attr"))) translate(n.parentElement || n);
-                  else if (n.querySelector && (n.querySelector("[data-i18n], [data-i18n-attr]"))) translate(n);
-                }
-              });
-            });
-          });
-          bootObserver.observe(document, { childList: true, subtree: true });
-          document.documentElement.__i18nBootObserver = bootObserver;
-          document.addEventListener("DOMContentLoaded", function () {
-            setTimeout(function () {
-              try { document.documentElement.__i18nBootObserver && document.documentElement.__i18nBootObserver.disconnect(); } catch (e) {}
-            }, 0);
-          });
+          translate(dict, document);
           document.documentElement.__i18nBootLang = savedLang;
         }
-      } catch (e) { /* default to EN chrome as-is */ }
+        bootObserver.observe(document, { childList: true, subtree: true });
+        document.documentElement.__i18nBootObserver = bootObserver;
+        document.addEventListener("DOMContentLoaded", function () {
+          setTimeout(function () {
+            try { document.documentElement.__i18nBootObserver && document.documentElement.__i18nBootObserver.disconnect(); } catch (e) {}
+          }, 0);
+        });
+      } catch (e) { /* default to EN chrome as-is — never block render */ }
 
       // ---- PRE-PAINT THEME (existing behavior, unchanged) ----
       try {
@@ -102,6 +115,99 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Telugu:wght@400;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+
+  <!-- ICON GLYPH READINESS: the Material Symbols font arrives only via
+       the Google Fonts stylesheet above (font-display: swap), so on cold
+       loads / cache-disabled / slow networks every icon span would paint
+       its ligature SOURCE text ("near_me", "light_mode", "location_on",
+       "partly_cloudy_day", "chat", "agriculture", "radar", …) while the
+       gstatic font file is still in flight — the raw-key flash reported
+       at startup. style.css therefore keeps .material-symbols-outlined
+       visibility:hidden until THIS probe proves the font is usable and
+       flips html.gi (layout is computed with real font metrics, so there
+       is no shift when glyphs appear). A 3s backstop flips html.gif so a
+       stalled/offline font can never hide icons forever — it degrades to
+       plain-text icons instead. Placed after the stylesheet link so the
+       @font-face is in the CSSOM when document.fonts.load runs (inline
+       scripts wait for pending stylesheets). -->
+  <script>
+    (function () {
+      var done = false;
+      function glyphsIn() {
+        if (done) return;
+        done = true;
+        document.documentElement.classList.add("gi");
+      }
+      function glyphsFailed() {
+        if (done) return;
+        done = true;
+        document.documentElement.classList.add("gif");
+      }
+      var FONT = '24px "Material Symbols Outlined"';
+      function fontReady() {
+        try { return document.fonts.check(FONT); } catch (e) { return false; }
+      }
+      try {
+        if (document.fonts && document.fonts.load) {
+          // Success path: font confirmed usable -> glyphs in.
+          document.fonts.load(FONT, "near_me")
+            .then(function (faces) { (faces && faces.length) ? glyphsIn() : undefined; })
+            .catch(function () {});
+          // Settle path: fonts.ready resolves once every pending load
+          // finishes (success OR failure) — earlier than the backstop
+          // whenever the network is merely slow, so a late-arriving font
+          // yields real glyphs instead of a text->glyph swap.
+          document.fonts.ready.then(function () {
+            fontReady() ? glyphsIn() : glyphsFailed();
+          });
+          // Backstop: a stalled/offline font must never hide icons
+          // forever — but it must also NEVER flip to ligature text while
+          // the font is genuinely still arriving (the woff2 is ~4 MB;
+          // on slow 3G it takes ~65s, so a short timer would itself
+          // cause the raw-text flash). Poll the FontFace status and
+          // decide ONLY on terminal states:
+          //   loaded                -> gi (real glyphs)
+          //   error                 -> gif (verified failure -> text)
+          //   still "loading"       -> keep waiting (any duration; a
+          //                            byte-starved socket eventually
+          //                            errors in the browser itself)
+          //   limbo (no pending face, e.g. CSS still parsing) -> wait up
+          //                            to 30s, then gif
+          //   absolute ceiling 120s -> gif (covers pathological hangs)
+          var pollStart = Date.now();
+          var sawPending = false;
+          var backstop = setInterval(function () {
+            if (done) { clearInterval(backstop); return; }
+            var status = "";
+            try {
+              document.fonts.forEach(function (f) {
+                if (f.family.indexOf("Material Symbols") !== -1 && f.status !== "unloaded") {
+                  status = f.status;
+                  if (f.status === "loading" || f.status === "loaded") sawPending = true;
+                }
+              });
+            } catch (e) {}
+            if (fontReady()) { glyphsIn(); clearInterval(backstop); return; }
+            if (status === "error") { glyphsFailed(); clearInterval(backstop); return; }
+            if (status === "loading") return; // genuinely in flight: wait
+            if (!sawPending && Date.now() - pollStart > 30000) {
+              glyphsFailed(); clearInterval(backstop); return;
+            }
+            if (Date.now() - pollStart > 120000) {
+              glyphsFailed(); clearInterval(backstop);
+            }
+          }, 250);
+        } else {
+          glyphsIn(); // No Font Loading API — old engine, show as before.
+        }
+      } catch (e) {
+        glyphsIn();
+      }
+    })();
+  </script>
+  <noscript>
+    <style>.material-symbols-outlined { visibility: visible !important; }</style>
+  </noscript>
 
   <!-- Tailwind CSS Engine -->
   <script src="https://cdn.tailwindcss.com"></script>

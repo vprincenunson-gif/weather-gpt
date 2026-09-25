@@ -186,6 +186,47 @@ main,
   transition: background-color 0.45s ease, color 0.45s ease, border-color 0.45s ease;
 }
 
+/* ============================================================
+   ICON FONT READINESS GATE — zero raw ligature text ever paints.
+   The Material Symbols font (and its class rule) ship only via the
+   third-party Google Fonts stylesheet, so on cold loads / cache-disabled
+   / slow networks the browser paints ligature SOURCE text ("near_me",
+   "light_mode", "location_on", "partly_cloudy_day", "chat",
+   "agriculture", "radar", …) before the font arrives.
+   Rules:
+   1. Icons stay `visibility:hidden` until the font is confirmed — but the
+      span is laid out as a 1em-wide inline-block (the exact advance of a
+      Material glyph), so the reserved space equals the final rendered
+      size and the reveal causes ZERO layout shift (unlike the fallback
+      text metrics a plain visibility toggle would reserve).
+   2. The inline bootstrap below the Google Fonts <link> runs
+      document.fonts.load() and sets html.gi (glyphs-in) the moment the
+      font is ready (or immediately if the font IS already available or
+      the Font Loading API is unavailable). CSS in index.html also flips
+      on document.fonts.ready. A timeout backstop guarantees icons can
+      never stay hidden forever.
+   ============================================================ */
+.material-symbols-outlined {
+  visibility: hidden;
+  display: inline-block;
+  max-width: 1em;
+  overflow: hidden;
+  line-height: 1;
+}
+html.gi .material-symbols-outlined {
+  visibility: visible;
+  max-width: none;
+  overflow: visible;
+}
+/* If the icon font genuinely fails to load (offline, blocked host, or
+   timeout backstop), fall back to the full plain-text name rather than
+   blank boxes — honest degradation, never a hidden control. */
+html.gif .material-symbols-outlined {
+  visibility: visible;
+  max-width: none;
+  overflow: visible;
+}
+
 /* THEME TOGGLE: one icon per theme, CSS picks the visible one. */
 #theme-toggle-btn .theme-icon-dark { display: none; }
 html[data-theme="dark"] #theme-toggle-btn .theme-icon-light { display: none; }
