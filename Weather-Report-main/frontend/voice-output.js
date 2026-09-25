@@ -44,7 +44,7 @@
   // Build tag — bumped whenever this module's behaviour changes. The live
   // E2E harness gates on it so a service-worker-served stale copy can never
   // silently invalidate a verification run.
-  const BUILD = "voice-output-7";
+  const BUILD = "voice-output-9";
 
   // Legacy key from the removed Auto Speak setting — cleaned up on load.
   const LEGACY_AUTOSPEAK_KEY = "weathergpt-autospeak";
@@ -65,11 +65,26 @@
     errorRetryMs: 250, // brief backoff before retrying a hiccuped chunk
   };
 
-  // App language selector value -> BCP-47 tag ("auto" follows the default).
-  // English targets en-IN: Indian-accented English matches the app's
-  // audience and pairs with the same sweet female voice family used for
-  // Hindi (e.g. Windows' Heera, Google's Indian English voice).
+  // App language selector value -> BCP-47 tag. English targets en-IN:
+  // Indian-accented English matches the app's audience and pairs with the
+  // same sweet female voice family used for Hindi (e.g. Windows' Heera,
+  // Google's Indian English voice). "auto" is resolved from the answer's
+  // Unicode script at speak time (see detectScriptLang) — never from a
+  // hardcoded default.
   const BCP47 = { auto: "en-IN", en: "en-IN", hi: "hi-IN", te: "te-IN" };
+
+  // Resolve the "auto" selector to the actual language of the text about
+  // to be spoken: Devanagari blocks are Hindi, Telugu blocks are Telugu,
+  // everything else (Latin, digits, punctuation) is English. Speaking a
+  // Hindi/Telugu answer under the en-IN tag/voice is exactly what made
+  // Auto mode pronounce them with an English accent. Deterministic — an
+  // answer is written in exactly one of the three scripts.
+  function detectScriptLang(text) {
+    const s = String(text || "");
+    if (/[\u0900-\u097F]/.test(s)) return "hi"; // Devanagari
+    if (/[\u0C00-\u0C7F]/.test(s)) return "te"; // Telugu
+    return "en";
+  }
 
   // Languages that must NEVER fall back to a male or robotic voice: if the
   // browser only offers harsh options for them, the missing voice is
@@ -344,16 +359,20 @@
     // and would be read aloud as "bullet" by several engines.
     t = t.replace(/[\u00B7\u2022\u2023\u2043\u2219\u25AA\u25AB\u25CF\u25E6]/g, " ");
 
-    // Units and symbols -> speakable words.
-    t = t.replace(/°\s*C\b/gi, " degrees Celsius");
-    t = t.replace(/°\s*F\b/gi, " degrees Fahrenheit");
-    t = t.replace(/°/g, " degrees");
-    t = t.replace(/\bkm\/?h\b/gi, " kilometers per hour");
-    t = t.replace(/\bkph\b/gi, " kilometers per hour");
-    t = t.replace(/\bmph\b/gi, " miles per hour");
-    t = t.replace(/\bm\/s\b/gi, " meters per second");
-    t = t.replace(/%/g, " percent");
-    t = t.replace(/\$\s?([\d.]+)/g, "$1 dollars");
+    // Units and symbols -> speakable words. English is the default;
+    // Telugu gets Telugu words so English unit normalization never
+    // interrupts Telugu sentences (en/hi behavior is unchanged — hi
+    // intentionally keeps the English unit words it always had).
+    const teUnits = langTag === "te-IN";
+    t = t.replace(/°\s*C\b/gi, teUnits ? " డిగ్రీల సెల్సియస్" : " degrees Celsius");
+    t = t.replace(/°\s*F\b/gi, teUnits ? " డిగ్రీల ఫారెన్‌హీట్" : " degrees Fahrenheit");
+    t = t.replace(/°/g, teUnits ? " డిగ్రీలు" : " degrees");
+    t = t.replace(/\bkm\/?h\b/gi, teUnits ? " కిలోమీటర్లు గంటకు" : " kilometers per hour");
+    t = t.replace(/\bkph\b/gi, teUnits ? " కిలోమీటర్లు గంటకు" : " kilometers per hour");
+    t = t.replace(/\bmph\b/gi, teUnits ? " మైళ్లు గంటకు" : " miles per hour");
+    t = t.replace(/\bm\/s\b/gi, teUnits ? " మీటర్లు సెకనుకు" : " meters per second");
+    t = t.replace(/%/g, teUnits ? " శాతం" : " percent");
+    t = t.replace(/\$\s?([\d.]+)/g, teUnits ? "$1 డాలర్లు" : "$1 dollars");
 
     // HTML entities and bare ampersands.
     t = t.replace(/&[a-z]+;/gi, " ");
@@ -667,7 +686,11 @@
 
   function speak(text, langOverride) {
     if (!supported()) return false;
-    const lang = langOverride || state.lang;
+    // "auto" is resolved from the text itself (script detection) so the
+    // utterance gets the voice/locale of the language actually being
+    // spoken; explicit en/hi/te selections pass through untouched.
+    const selected = langOverride || state.lang;
+    const lang = selected === "auto" ? detectScriptLang(text) : selected;
     const langTag = BCP47[lang] || "en-IN";
     const clean = cleanForSpeech(text, langTag);
     if (!clean) return false;

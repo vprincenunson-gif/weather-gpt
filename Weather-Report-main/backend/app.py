@@ -927,6 +927,20 @@ def api_config():
     return jsonify({"carto_api_key": CARTO_API_KEY})
 
 
+def _detect_tts_lang(text):
+    """Resolve an unknown/auto language label from the text's Unicode script:
+    Devanagari blocks are Hindi, Telugu blocks are Telugu, everything else
+    is English. Keeps the TE -> eleven_v3 routing (Telugu is NOT in Eleven
+    Multilingual v2's language set) working when the frontend sends
+    lang:"auto" — without this, Auto-mode Telugu was approximated by v2
+    and pronounced with an English accent."""
+    if any("\u0900" <= ch <= "\u097F" for ch in text):
+        return "hi"
+    if any("\u0C00" <= ch <= "\u0C7F" for ch in text):
+        return "te"
+    return "en"
+
+
 @app.route("/api/tts", methods=["POST"])
 def api_tts():
     """Server-side ElevenLabs text-to-speech for the Speak Answer button.
@@ -950,7 +964,10 @@ def api_tts():
     if len(text) > 1200:
         return jsonify({"error": "text too long"}), 413
     if lang not in ("en", "hi", "te"):
-        lang = "en"
+        # "auto" (or any unknown label) is resolved from the text's script
+        # so model routing below matches the language actually spoken;
+        # explicit en/hi/te selections pass through untouched.
+        lang = _detect_tts_lang(text)
 
     # Softer, slower, sweet delivery: low-ish stability for warmth, high
     # similarity for a natural voice, gentle speed below 1. Used for both
@@ -964,11 +981,18 @@ def api_tts():
     }
 
     def _call_upstream(model_id):
+        body = {"text": text, "model_id": model_id, "voice_settings": sweet_settings}
+        # Enforce Telugu on the v3 call (the only model that supports it):
+        # without this the accent of the English reference voice bleeds into
+        # the Telugu phonemes. Not sent on the multilingual-v2 retry — v2
+        # does not support language_code, and its payload stays as before.
+        if model_id == ELEVENLABS_TTS_MODEL_TE:
+            body["language_code"] = "te"
         return requests.post(
             f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}",
             params={"output_format": "mp3_44100_128"},
             headers={"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"},
-            json={"text": text, "model_id": model_id, "voice_settings": sweet_settings},
+            json=body,
             timeout=30,
         )
 

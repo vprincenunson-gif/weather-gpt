@@ -256,7 +256,7 @@ with sync_playwright() as p:
     # first load after an edit: require the CURRENT module version; on
     # mismatch, purge every SW cache + unregister workers, then reload.
     # Keep REQUIRED_MODULE_VERSION in sync with BUILD in voice-output.js.
-    REQUIRED_MODULE_VERSION = "voice-output-7"
+    REQUIRED_MODULE_VERSION = "voice-output-9"
     MODVER = f"(window.VoiceOutput && window.VoiceOutput.version) === '{REQUIRED_MODULE_VERSION}'"
     if not page.evaluate(MODVER):
         page.evaluate("""(async () => {
@@ -517,7 +517,7 @@ with sync_playwright() as p:
     page2.on("pageerror", lambda e: desktop_errors.append(f"PAGEERROR: {e}"))
     page2.goto(BASE, wait_until="domcontentloaded", timeout=60000)
     page2.wait_for_function("window.__vp && window.VoiceOutput", timeout=15000)
-    MODVER2 = f"(window.VoiceOutput && window.VoiceOutput.version) === 'voice-output-7'"
+    MODVER2 = f"(window.VoiceOutput && window.VoiceOutput.version) === 'voice-output-9'"
     if not page2.evaluate(MODVER2):
         page2.evaluate("""(async () => {
           try {
