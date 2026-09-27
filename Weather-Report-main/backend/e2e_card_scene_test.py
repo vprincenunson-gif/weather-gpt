@@ -15,8 +15,9 @@ fog/mist, drizzle, rain, thunderstorm, snow, hot, cold):
   - the animated scene moves (frame-pair pixel motion)
   - switching condition updates both layers (with a real API payload
     check through renderForecastScreen's data path)
-  - dark theme remaps (page sun->night, card scene moonlit) and the
-    light/dark toggle keeps everything in sync
+  - dark theme keeps the scene day/night-faithful (scene follows the
+    API's is_day, never the theme) and the light/dark toggle keeps
+    everything in sync
   - reduced-motion freezes animations with the scenes still painted
   - mobile (390x844) and desktop (1280x900) viewports both verified
   - page background layers and card scene stay separate (z-order)
@@ -117,8 +118,8 @@ def force(page, cat, is_day, temp):
 
 
 # Expected: (page scene, card scene, page sky class, card sky class)
-# The page scene remaps sun->night in dark theme; the card sky class
-# keeps the condition class even when the element scene remaps.
+# The scene follows the real condition/is_day in both themes; the card
+# sky class always keeps the condition class.
 EXPECTED = {
     # cond:            (page scene, card scene, card sky)
     "clear-day":         ("sun", "sun", "cs-clear-day"),
@@ -296,16 +297,21 @@ with sync_playwright() as p:
     check("real payload: card sky = cs-snow (cold band keeps snow)", "cs-snow" in str(api_ok["cardSky"]), api_ok["cardSky"])
     check("real payload: hero temperature = 6 (rounded real value)", api_ok["temp"] == "6", api_ok["temp"])
 
-    print("\n===== 6. Dark theme synchronization (both layers) =====")
+    print("\n===== 6. Dark theme: scene follows is_day, not the theme (both layers) =====")
     page.evaluate("applyTheme('dark')")
     page.wait_for_timeout(400)
     force(page, "clear-day", 1, 24)
     page.wait_for_timeout(2100)
     s = probe(page)
-    check("dark: page scene remaps sun -> night", s["pageScene"] == "night", s["pageScene"])
-    check("dark: card scene remaps sun -> night (moon + stars)", s["cardScene"] == "night", s["cardScene"])
+    check("dark: page scene keeps sun at daytime (no night at 3 PM)", s["pageScene"] == "sun", s["pageScene"])
+    check("dark: card scene keeps sun at daytime (moon only at real night)", s["cardScene"] == "sun", s["cardScene"])
     check("dark: card sky follows dark clear-day gradient", s["cardSky"] == "cs-clear-day", s["cardSky"])
     check("dark: page sky follows dark gradient class", s["pageSky"] == "sky-clear-day", s["pageSky"])
+    force(page, "clear-night", 0, 18)
+    page.wait_for_timeout(2100)
+    s = probe(page)
+    check("dark: real night still renders night scene (page)", s["pageScene"] == "night", s["pageScene"])
+    check("dark: real night still renders night scene (card)", s["cardScene"] == "night", s["cardScene"])
     force(page, "rain", 1, 13)
     page.wait_for_timeout(300)
     s = probe(page)
@@ -314,11 +320,11 @@ with sync_playwright() as p:
     page.wait_for_timeout(2100)
     fill = page.evaluate("getComputedStyle(document.querySelector('#card-scene .cs-cloud ellipse')).fill")
     check("dark: card cloud ellipses repaint moonlit", "203, 216, 236" in fill, fill)
-    # Toggle back through the real handler
+    # Toggle back through the real handler — the scene must not flip with it
     page.click("#theme-toggle-btn")
     page.wait_for_timeout(400)
     s = probe(page)
-    check("toggle dark->light: card scene remaps back (clouds stay clouds)", s["cardScene"] == "clouds", s["cardScene"])
+    check("toggle dark->light: card scene stays clouds (theme-independent)", s["cardScene"] == "clouds", s["cardScene"])
     check("toggle: theme now light", s["theme"] == "light", s["theme"])
 
     print("\n===== 7. Reduced motion (scenes painted, animations frozen) =====")

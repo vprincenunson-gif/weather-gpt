@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v26"; // v26: backend ElevenLabs TTS for Speak Answer with browser-voice fallback
+const CACHE_NAME = "weathergpt-shell-v27"; // v27: day/night scene follows the real is_day (no dark-theme sun->night remap) + stale-state guard
 
 const SHELL_FILES = [
   "/",

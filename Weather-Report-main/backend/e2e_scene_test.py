@@ -2,8 +2,9 @@
 
 Requires the Flask server running on 127.0.0.1:5000.
 Covers: all weather states (sun/clouds/rain/night scenes from the REAL
-condition), scene transitions, lazy pool seeding exactly once, dark-theme
-sun->night remap, reduced-motion behavior, thunder-only lightning gating,
+condition), scene transitions, lazy pool seeding exactly once,
+theme-independence (the scene follows the API's is_day, never the UI
+dark theme), reduced-motion behavior, thunder-only lightning gating,
 merge integrity (sky gradients + rain-fx + lightning-fx still active),
 memory bounds across rapid switching, responsiveness and non-interactivity.
 Evidence: prints PASS/FAIL per check; exits non-zero on any FAIL.
@@ -188,27 +189,36 @@ with sync_playwright() as p:
           s["drops"] == 70 and s["ripples"] == 10 and s["stars"] == 40,
           f"{s['drops']}/{s['ripples']}/{s['stars']}")
 
-    # ---------- 5. Dark theme remap: sun -> night, clouds/rain unchanged ----------
+    # ---------- 5. Dark theme: scene follows the API's is_day, never the theme ----------
+    # Daytime + dark theme must keep the sun scene (the old behavior remapped
+    # sun -> night, which rendered a night atmosphere at 3 PM).
     page.evaluate("applyTheme('dark')")
     page.wait_for_timeout(300)
     apply_condition(page, "clear-day")
     page.wait_for_timeout(120)
     s = scene_state(page)
-    check("dark: clear-day remaps sun -> night", s["scene"] == "night", s["scene"])
-    dark_moon = page.evaluate("getComputedStyle(document.querySelector('#weather-scene .scene-moon')).display")
-    check("dark: moon shown for day condition", dark_moon == "block", dark_moon)
+    check("dark: clear-day keeps sun scene (no night at daytime)", s["scene"] == "sun", s["scene"])
+    dark_night_part = page.evaluate("getComputedStyle(document.querySelector('#weather-scene .scene-night')).display")
+    check("dark: night part hidden for day condition", dark_night_part == "none", dark_night_part)
     apply_condition(page, "cloudy")
     page.wait_for_timeout(120)
     check("dark: cloudy still clouds scene", scene_state(page)["scene"] == "clouds")
     apply_condition(page, "rain")
     page.wait_for_timeout(120)
     check("dark: rain still rain scene", scene_state(page)["scene"] == "rain")
+    apply_condition(page, "clear-night", is_day=0)
+    page.wait_for_timeout(120)
+    check("dark: clear-night still night scene", scene_state(page)["scene"] == "night")
 
-    # Theme toggle remaps back (syncSceneFxTheme through the real handler)
+    # Theme toggle must not flip the scene either way (through the real
+    # handler). syncSceneFxTheme re-applies from body.dataset.condition —
+    # in production renderForecastScreen always keeps it in sync with the
+    # last applied condition, so mirror that here before toggling.
+    page.evaluate("document.body.dataset.condition = 'clear-night'")
     page.click("#theme-toggle-btn")
     page.wait_for_timeout(300)
     s = scene_state(page)
-    check("toggle: dark->light remaps night scene for rain condition? (stays rain)", s["scene"] == "rain", s["scene"])
+    check("toggle: dark->light keeps night scene for night condition", s["scene"] == "night", s["scene"])
     apply_condition(page, "clear-day")
     page.wait_for_timeout(120)
     check("toggle: light theme + clear-day -> sun scene again", scene_state(page)["scene"] == "sun")

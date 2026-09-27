@@ -6,7 +6,7 @@
 // 1. Service Worker for Offline PWA Capabilities
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=23").catch((err) => {
+    navigator.serviceWorker.register("sw.js?v=27").catch((err) => {
       console.warn("ServiceWorker registration:", err);
     });
   });
@@ -1389,9 +1389,9 @@ if (window.matchMedia) {
 // Living Sky gradients + rain-fx/lightning-fx stay authoritative and
 // this layer only adds the illustrated elements on top. Pools are
 // seeded lazily ONCE (nodes persist across scene switches; hidden
-// parts simply stop compositing via display:none). Dark theme remaps
-// the sun scene to night. Reduced-motion users get instant switches
-// and static pools.
+// parts simply stop compositing via display:none). The scene follows
+// the weather API's real is_day — never the UI theme. Reduced-motion
+// users get instant switches and static pools.
 // ============================================================
 
 const sceneFx = {
@@ -1486,14 +1486,16 @@ function seedSceneStars() {
 
 // Public entry: pick the scene for the REAL condition and apply it.
 // Called from renderForecastScreen with the live payload and at boot.
+// Day/night comes ONLY from the weather API's location-local is_day —
+// the light/dark UI theme must never flip the illustrated scene (a
+// dark-theme daytime used to render the night scene: moon + stars at
+// 3 PM). Dark-theme palette support is CSS-side only: night-scene
+// elements re-theme via html[data-theme="dark"] tokens.
 function applySceneFx(condition, isDay = 1) {
   const host = document.getElementById("weather-scene");
   if (!host) return;
   sceneFx.lastIsDay = isDay !== 0 ? 1 : 0;
-  const wanted = sceneForCondition(condition, isDay);
-  // Dark theme: sun → night (a bright orb on navy skies reads wrong;
-  // moon + stars match the moonlit palette).
-  const scene = currentTheme() === "dark" && wanted === "sun" ? "night" : wanted;
+  const scene = sceneForCondition(condition, isDay);
   // Intensity-aware drop pool lives BEFORE the scene-change early return:
   // drizzle/rain/thunder all map to the "rain" scene, so intensity must
   // reseed even when the scene itself doesn't change. Reduced motion:
@@ -1511,8 +1513,9 @@ function applySceneFx(condition, isDay = 1) {
   if (scene === "night") seedSceneStars(); // stars render fine static
 }
 
-// If the theme flips mid-session, remap sun→night / night→sun so the
-// illustrated layer always matches the active theme's palette.
+// The illustrated scene follows only the REAL condition + is_day, so a
+// theme flip cannot change it; scene elements re-theme via CSS tokens.
+// Kept as a hook for theme-flip handlers (re-applies current state).
 function syncSceneFxTheme() {
   if (!sceneFx.current) return;
   applySceneFx(document.body.dataset.condition || "clear-day", sceneFx.lastIsDay);
@@ -1718,11 +1721,11 @@ function applyCardSceneFx(condition, isDay = 1, tempBand = "mild") {
   cardScene.lastCondition = condition;
   cardScene.lastTempBand = tempBand;
 
-  // Same real-condition + theme mapping as the page scene: in dark theme
-  // the sun scene never shows — moon + stars match the moonlit palette.
-  let scene = CARD_SCENE_BY_CONDITION[condition] || (day ? "sun" : "night");
-  if (currentTheme() === "dark" && scene === "sun") scene = "night";
-  if (!day && scene === "sun") scene = "night";
+  // Scene follows the REAL condition + is_day only — never the UI theme
+  // (dark theme + daytime must keep the sun scene; only the API's is_day
+  // flag decides day vs night). Night mappings that are unconditional in
+  // the table (clear/partly-cloudy night) already land on "night".
+  const scene = CARD_SCENE_BY_CONDITION[condition] || (day ? "sun" : "night");
 
   // In-card sky gradient follows the SAME condition + temp band as the
   // page Living Sky (hot/cold override fair skies only).
@@ -2477,11 +2480,93 @@ async function refreshWeatherData(requestId = state.locationRequestId) {
     if (requestId === state.locationRequestId) {
       console.error("Weather fetch failed:", err);
       showStatus(`Couldn't load weather: ${err.message}`, "Offline");
+      // Failed fetch: never let a stale night scene survive into daylight.
+      // The refreshSunsetGuard wakes periodically and re-derives the scene
+      // from the REAL payload (is_day wins; nothing fabricated when absent).
+      refreshSunsetGuard();
     }
   } finally {
     // A superseded request must not hide the active request's status bar.
     if (requestId === state.locationRequestId) hideStatus();
   }
+}
+
+// ============================================================
+// DAY/NIGHT STALE-STATE GUARD — the scene must never retain a night
+// state when the location's local daytime has arrived (and vice versa).
+// Local solar day/night is derived from the location's own coordinates
+// (NOAA solar equations over its utc_offset) and only used to verify
+// the REAL payload's is_day: if the API flag is missing, the computed
+// value fills in; if the API says day while local sun is down (or the
+// reverse, e.g. sampling edge cases), the API stays authoritative for
+// the scene. Re-checks periodically and on visibility changes so long-
+// lived sessions transition honestly through morning/day/evening/night.
+// ============================================================
+
+const SUNSET_GUARD_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+let sunsetGuardTimer = null;
+
+// NOAA solar equations: local solar elevation (degrees) for a
+// latitude/longitude at a UTC timestamp. Positive = sun above horizon.
+function solarElevationDeg(latitude, longitude, utcMs) {
+  const jd = utcMs / 86400000 + 2440587.5;
+  const n = jd - 2451545.0;
+  const L = (280.46 + 0.9856474 * n) % 360;
+  const g = ((357.528 + 0.9856003 * n) % 360) * (Math.PI / 180);
+  const lambda = (L + 1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) * (Math.PI / 180);
+  const epsilon = (23.439 - 0.0000004 * n) * (Math.PI / 180);
+  const declination = Math.asin(Math.sin(epsilon) * Math.sin(lambda));
+  const ra = Math.atan2(Math.cos(epsilon) * Math.sin(lambda), Math.cos(lambda));
+  const gmst = (18.697374558 + 24.06570982441908 * n) % 24; // hours
+  const raDeg = ((ra * 180) / Math.PI + 360) % 360;
+  const lst = ((gmst * 15 + longitude - raDeg) % 360 + 360) % 360;
+  const hourAngle = lst * (Math.PI / 180);
+  const latRad = latitude * (Math.PI / 180);
+  const sinAlt =
+    Math.sin(latRad) * Math.sin(declination) +
+    Math.cos(latRad) * Math.cos(declination) * Math.cos(hourAngle);
+  return Math.asin(Math.max(-1, Math.min(1, sinAlt))) * (180 / Math.PI);
+}
+
+// True when the location's local sun is up (solar elevation > -0.833°,
+// the standard sunrise/sunset refraction cutoff). No data → null.
+function isLocalSunUp(latitude, longitude, utcMs = Date.now()) {
+  if (latitude == null || longitude == null ||
+      Number.isNaN(Number(latitude)) || Number.isNaN(Number(longitude))) return null;
+  return solarElevationDeg(Number(latitude), Number(longitude), utcMs) > -0.833;
+}
+
+// Re-derive the day/night scene from the current REAL payload. Called
+// from renderForecastScreen, the periodic guard and visibility changes;
+// a no-op when no weather has landed (never fabricates a condition or
+// clobbers the fair-day boot default).
+function refreshSunsetGuard() {
+  // Without a REAL payload there is nothing to verify — re-deriving here
+  // would fabricate a condition and could clobber the fair-day boot
+  // default (the exact "stale state" this guard exists to prevent).
+  const current = state.weather?.current;
+  if (!current) return;
+  const hasFlag = current.is_day !== undefined && current.is_day !== null;
+  // Truth hierarchy: the API's location-local is_day wins; the computed
+  // local solar value is the honest fallback, not an override.
+  const isDay = hasFlag ? (current.is_day !== 0 ? 1 : 0)
+    : (isLocalSunUp(state.currentLocation.latitude, state.currentLocation.longitude) ? 1 : 0);
+  const wCode = current.weather_code ?? 0;
+  const cat = getConditionCategory(wCode, isDay);
+  document.body.dataset.condition = cat;
+  applySkyFx(cat, isDay);
+  applySceneFx(cat, isDay);
+  applyCardSceneFx(cat, isDay, tempBandFor(Math.round(current.temperature_2m ?? NaN)));
+}
+
+function startSunsetGuard() {
+  if (sunsetGuardTimer) return;
+  sunsetGuardTimer = setInterval(refreshSunsetGuard, SUNSET_GUARD_INTERVAL_MS);
+  // Return-to-foreground re-check: a tab kept open overnight (or across
+  // a timezone change) must not keep showing yesterday's scene.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshSunsetGuard();
+  });
 }
 
 function renderForecastScreen() {
@@ -2510,6 +2595,9 @@ function renderForecastScreen() {
   applyCardSceneFx(cat, isDay, tempBandFor(temp));
   // Precipitation overlay + storm lightning, from the same real payload.
   applyPrecipFx(cat, current.precipitation, current.wind_direction_10m);
+  // Day/night stale-state guard: re-verify the scene against the real
+  // is_day so no prior night state can survive a fresh render.
+  refreshSunsetGuard();
   // Smart Rain Alert + Rain Timeline — same real hourly payload.
   renderSmartRainAlert();
   renderRainTimeline();
@@ -4021,6 +4109,11 @@ window.addEventListener("DOMContentLoaded", () => {
   applySceneFx("clear-day", 1); // illustrated scene starts on the fair-day default
   applyCardSceneFx("clear-day", 1, "mild"); // in-card hero scene starts fair
   applyPrecipFx("clear-day"); // rain/lightning layers start hidden
+  // Never start on a stale night atmosphere: if a prior session's local
+  // night leaked into cached chrome (or the boot default simply raced a
+  // sunset at the default location), the guard re-derives the honest
+  // state immediately at boot and every 5 minutes after that.
+  startSunsetGuard();
   // Auto-request GPS on first load (graceful fallback to the default
   // city on denial/timeout/unsupported) instead of always loading SF.
   autoGpsOnFirstLoad();

@@ -228,7 +228,7 @@ with sync_playwright() as p:
     force(page, "clear-day", 1, 24)
     page.wait_for_timeout(300)
     got = page.evaluate("document.getElementById('weather-scene').dataset.scene")
-    check("dark: clear-day remaps sun -> night", got == "night", got)
+    check("dark: clear-day keeps sun scene (scene follows is_day, not theme)", got == "sun", got)
     force(page, "cloudy", 1, 19)
     page.wait_for_timeout(400)
     fill = page.evaluate(r"""(() => {
