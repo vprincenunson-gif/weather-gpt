@@ -6,7 +6,7 @@
 // 1. Service Worker for Offline PWA Capabilities
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=27").catch((err) => {
+    navigator.serviceWorker.register("sw.js?v=28").catch((err) => {
       console.warn("ServiceWorker registration:", err);
     });
   });
@@ -967,14 +967,21 @@ function smartRainAlertLocalized() {
 }
 
 // Condition category mapping for WMO codes
-function getConditionCategory(code, isDay = 1) {
+// `precipMm` (optional) bins provider trace readings: WMO codes 51–82 with
+// a reported amount below 0.1 mm (gauge "trace" — the WMO reporting
+// resolution) demote one honest visual step (drizzle→partly cloudy,
+// rain→drizzle) so a barely-wet hour doesn't paint a full rain scene.
+// Amounts ≥ 0.1 mm and all snow/thunder codes pass through untouched; call
+// sites without an amount keep the exact pre-threshold behavior.
+function getConditionCategory(code, isDay = 1, precipMm = null) {
   const day = isDay !== 0;
+  const trace = precipMm != null && precipMm < 0.1;
   if (code === 0) return day ? "clear-day" : "clear-night";
   if (code === 1 || code === 2) return day ? "partly-cloudy-day" : "partly-cloudy-night";
   if (code === 3) return "cloudy";
   if (code === 45 || code === 48) return "fog";
-  if ([51, 53, 55, 56, 57].includes(code)) return "drizzle";
-  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "rain";
+  if ([51, 53, 55, 56, 57].includes(code)) return trace ? (day ? "partly-cloudy-day" : "partly-cloudy-night") : "drizzle";
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return trace ? "drizzle" : "rain";
   if ([71, 73, 75, 77, 85, 86].includes(code)) return "snow";
   if ([95, 96, 99].includes(code)) return "thunder";
   return day ? "clear-day" : "clear-night";
@@ -2095,7 +2102,8 @@ function renderNextHoursStrip() {
   const curWind = rInt(current.wind_speed_10m);
   const curHum = rInt(current.relative_humidity_2m);
   const curFeels = rInt(current.apparent_temperature);
-  const curCat = getConditionCategory(current.weather_code ?? codes[startIdx] ?? 0, current.is_day ?? 1);
+  // Amount-aware (same trace rule as renderForecastScreen).
+  const curCat = getConditionCategory(current.weather_code ?? codes[startIdx] ?? 0, current.is_day ?? 1, current.precipitation);
   const curIcon = CONDITION_ICONS[curCat] || "wb_sunny";
 
   if (nowRow) {
@@ -2552,7 +2560,8 @@ function refreshSunsetGuard() {
   const isDay = hasFlag ? (current.is_day !== 0 ? 1 : 0)
     : (isLocalSunUp(state.currentLocation.latitude, state.currentLocation.longitude) ? 1 : 0);
   const wCode = current.weather_code ?? 0;
-  const cat = getConditionCategory(wCode, isDay);
+  // Amount-aware (same trace rule as renderForecastScreen).
+  const cat = getConditionCategory(wCode, isDay, current.precipitation);
   document.body.dataset.condition = cat;
   applySkyFx(cat, isDay);
   applySceneFx(cat, isDay);
@@ -2581,7 +2590,8 @@ function renderForecastScreen() {
   const low = Math.round(daily.temperature_2m_min?.[0] ?? temp - 4);
   const wCode = current.weather_code ?? 0;
   const isDay = current.is_day ?? 1;
-  const cat = getConditionCategory(wCode, isDay);
+  // Amount-aware: a trace (<0.1 mm) reading demotes one honest visual step.
+  const cat = getConditionCategory(wCode, isDay, current.precipitation);
 
   document.body.dataset.condition = cat;
   document.body.dataset.tempBand = tempBandFor(temp);

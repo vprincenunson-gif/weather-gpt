@@ -1,4 +1,5 @@
-const CACHE_NAME = "weathergpt-shell-v27"; // v27: day/night scene follows the real is_day (no dark-theme sun->night remap) + stale-state guard
+const CACHE_NAME = "weathergpt-shell-v28"; // v28: trace (<0.1mm) precip demotes rain-scene category one honest step
+// v27: day/night scene follows the real is_day (no dark-theme sun->night remap) + stale-state guard
 
 const SHELL_FILES = [
   "/",
